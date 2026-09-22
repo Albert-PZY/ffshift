@@ -70,3 +70,4 @@ $bytes = [System.IO.File]::ReadAllBytes("fixture_10s.mp4")[0..1048575]
 | 2026-09-22 | `82bf7d4` chore: 建立仓库骨架与工程规范 | 77 个文件 | 待人工确认（验证信息：npm run hooks:verify 16 条用例全绿） <!-- commit:82bf7d4 --> |
 | 2026-09-22 | `bdc0c71` tool: 补上分支命名检查并修掉沉淀两处缺陷 | 10 个文件 | 待人工确认（验证信息：hooks:verify 17 条用例全绿） <!-- commit:bdc0c71 --> |
 | 2026-09-22 | `7ccad2d` lib: 实现四个纯函数模块（含测试） | 8 个文件 | 待人工确认（验证信息：npm run test:unit → 4 个文件 51 条用例通过） <!-- commit:7ccad2d --> |
+| 2026-09-22 | `2b976c7` lib: 补 ffprobe 解析与缩略图缓存键 | 7 个文件 | 待人工确认（验证信息：npm run test:unit → 6 个文件 70 条用例通过） <!-- commit:2b976c7 --> |
