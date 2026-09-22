@@ -7,6 +7,7 @@ import { statSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { git, branch, stagedFiles, showStaged, mergeOrRebaseInProgress, hasCommits } from '../lib/git.mjs';
 import { config, ok, fail, warn, info, title, allowProtectedCommit } from '../lib/env.mjs';
+import { lintFiles } from '../lib/oil-tone.mjs';
 
 const cfg = config();
 const errors = [];
@@ -87,6 +88,22 @@ for (const f of files) {
 const check = git(['diff', '--cached', '--check'], { allowFail: true });
 if (check && check.trim()) {
   warnings.push(`git diff --check 报出空白问题（常见于行尾空格）：\n${check.trim().split('\n').slice(0, 5).join('\n')}`);
+}
+
+// 6) oil-tone 文风检查：只查暂存的 Markdown，skill 不在本机就跳过
+const mdFiles = files.filter((f) => f.toLowerCase().endsWith('.md'));
+if (mdFiles.length) {
+  const lint = lintFiles(mdFiles);
+  if (!lint.available) {
+    hints.push(`文风检查跳过：${lint.reason}`);
+  } else {
+    for (const f of lint.fails) {
+      errors.push(`${f.file}:${f.line} 命中 oil-tone FAIL → ${f.fix}\n   原文：${f.text.slice(0, 60)}`);
+    }
+    for (const f of lint.warns.slice(0, 5)) {
+      warnings.push(`${f.file}:${f.line} oil-tone 提示 → ${f.fix}`);
+    }
+  }
 }
 
 // 报告

@@ -22,7 +22,7 @@
 
 | 钩子 | 拦截什么 | 放行条件 |
 | --- | --- | --- |
-| `pre-commit` | main 上直接提交、`node_modules`/`dist`/`fixtures`/ffmpeg 目录、>50 MiB 文件、密钥字面量、冲突标记 | 合并 / rebase 中、`FFSHIFT_ALLOW_MAIN_COMMIT=1`、首次提交 |
+| `pre-commit` | main 上直接提交、`node_modules`/`dist`/`fixtures`/ffmpeg 目录、>50 MiB 文件、密钥字面量、冲突标记、Markdown 的 oil-tone FAIL | 合并 / rebase 中、`FFSHIFT_ALLOW_MAIN_COMMIT=1`、首次提交 |
 | `commit-msg` | 缺 area 前缀、area 不在白名单、首行过宽、句号结尾、正文缺失或空话 | 合并 / Revert / 修订提交自动跳过 |
 | `pre-push` | 推 `refs/heads/main` | `FFSHIFT_ALLOW_MAIN_PUSH=1`；推功能分支与 tag 不受限 |
 | `post-commit` | 不拦截任何东西 | 只负责后台触发沉淀 |
@@ -74,9 +74,16 @@ npm run lint:commit      # 校验最近一次提交信息（改历史后用）
 
 所有出口文字（界面、文档、提交信息、AI 草稿）按 `docs/writing-style.md` 执行：三条底线、禁词表、祈使句、术语统一、状态词只有五个。
 
-自动检查在 `scripts/lib/tone.mjs`：`commit-msg` 用禁词表拦提交，AI 提示词里带上契约摘录。
+两层自动检查：
 
-**关于 oil-tone**：本机 `.agents/skills/` 下只有 `oil-frontend`，没有 `oil-tone`，所以这份契约暂由人工维护。拿到 oil-tone 后把它的规则并进 `docs/writing-style.md` 和 `scripts/lib/tone.mjs` 即可，钩子与脚本不用改。
+| 检查 | 覆盖 | 实现 |
+| --- | --- | --- |
+| oil-tone `tone_lint.py` | 暂存的 Markdown：宣传黑话、模板化领起语、含糊动作词 | `scripts/lib/oil-tone.mjs`，pre-commit 调用；FAIL 拦截、WARN 提示 |
+| 项目禁词与祈使句 | 提交信息、AI 提示词 | `scripts/lib/tone.mjs`，commit-msg 调用 |
+
+**oil-tone 已接入**：skill 装在 `~/.agents/skills/oil-tone`，来源 `github.com/oil-oil/oil-tone`。定位顺序是 `OIL_TONE_HOME` → 用户目录 → 仓库内，python 顺序是 `python` → `python3` → `py`；两者任一找不到就打印"文风检查跳过"，不阻塞提交——这是加分项，不是硬依赖。
+
+两个实测踩到的坑记在 ADR-012：`tone_lint.py` 在 Windows 上输出 CRLF，按 `\n` 切行会让检查静默失效；规则文档里直接列出禁用词，会被自己的规则拦下，要用反引号包起来。
 
 ## 7. 出问题时
 

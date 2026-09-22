@@ -15,6 +15,7 @@
 | --- | --- | --- |
 | git 钩子 | 原生 git hooks，`core.hooksPath = .githooks` | husky、pre-commit 框架、lefthook |
 | 规格管理 | OpenSpec（`openspec/specs` 与 `openspec/changes`） | Jira、GitHub Projects |
+| 文案检查 | oil-tone skill 的 `tone_lint.py`，由 pre-commit 调用；项目落地规则在 `docs/writing-style.md` | 自研文风模型 |
 | 文档沉淀 | `scripts/sync-docs.mjs` + `.ffshift/pending/` 草稿 | 无 |
 | CI | 尚未配置 | GitHub Actions 流水线（还没有） |
 
