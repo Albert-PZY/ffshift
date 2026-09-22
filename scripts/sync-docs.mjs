@@ -122,18 +122,20 @@ async function aiDraft() {
   const ai = cfg.ai ?? {};
   const styleFile = rel(cfg.docs?.styleFile ?? 'docs/writing-style.md');
   const style = existsSync(styleFile) ? readFileSync(styleFile, 'utf8').slice(0, 2200) : '';
+  const contextFile = rel('.ffshift/ai-context.md');
+  const context = existsSync(contextFile) ? readFileSync(contextFile, 'utf8').slice(0, 3000) : '';
   const specs = existsSync(rel('openspec/specs'))
     ? git(['ls-files', 'openspec/specs'], { allowFail: true })?.split('\n').filter(Boolean) ?? []
     : [];
 
   const system = [
     '你是 FFShift 项目的变更记录员，为团队写"这次提交留下了什么"的草稿。',
-    'FFShift 是 Electron 桌面视频转换器，用 ffmpeg CLI 做转换。',
     '只输出 JSON，不写解释、不写客套。',
     '写作要求（必须遵守）：短句、具体、可核对；',
     '禁止空话（如"优化了性能""提升了体验"）；禁止编造未发生的事；',
     '信息不足就写「待确认」，不要猜。',
-    style ? `\n项目文案契约摘录：\n${style}` : '',
+    context ? `\n===== 项目事实（只能依据这里和下面的提交信息，不许引入其它工具或流程）=====\n${context}` : '',
+    style ? `\n===== 项目文案契约摘录 =====\n${style}` : '',
   ].join('\n');
 
   const user = [
