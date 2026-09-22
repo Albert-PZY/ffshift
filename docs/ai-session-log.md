@@ -92,7 +92,6 @@
 | 时间 | 分支 | 提交 | 摘要 | 验证 | 文件数 |
 | --- | --- | --- | --- | --- | --- |
 | 09-23 03:05 | chore/repo-bootstrap | `82bf7d4` | chore: 建立仓库骨架与工程规范 | npm run hooks:verify 16 条用例全绿 | 77 |
-| 09-23 03:06 | chore/repo-bootstrap | `82bf7d4` | chore: 建立仓库骨架与工程规范 | npm run hooks:verify 16 条用例全绿 | 77 |
 | 09-23 03:07 | chore/repo-bootstrap | `3909247` | docs: 沉淀骨架提交的产物并纳入状态页 | — | 3 |
 | 09-23 03:07 | chore/repo-bootstrap | `33fd66d` | docs: 沉淀骨架提交的产物并纳入状态页 | — | 3 |
 | 09-23 03:07 | chore/repo-bootstrap | `cd2b424` | chore: 沉淀产物支持自动提交 | 观察本次提交后是否自动产生一条 docs: 自动沉淀 提交 | 3 |
@@ -106,3 +105,4 @@
 | 09-23 03:23 | chore/repo-bootstrap | `22854bb` | tool: 接入 oil-tone 文风检查到提交钩子 | 探针提交被正确拦下；docs 下 8 份文档全量 PASS | 8 |
 | 09-23 03:23 | chore/repo-bootstrap | `0cef19e` | tool: 分支保护对管理员同样生效 | — | 1 |
 | 09-23 03:25 | docs/readme | `8815d08` | docs: 补 README，写清现状与上手方式 | oil-tone 对 README 报 PASS；hooks:verify 保持 16 条全绿 | 1 |
+| 09-23 03:28 | tool/branch-policy | `bdc0c71` | tool: 补上分支命名检查并修掉沉淀两处缺陷 | hooks:verify 17 条用例全绿 | 10 <!-- commit:bdc0c71 --> |

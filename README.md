@@ -20,7 +20,7 @@ Windows 优先的桌面视频格式转换器。界面用 Electron + React + Type
 
 ```bash
 npm run hooks:install    # 装 git 钩子，新克隆仓库后运行一次
-npm run hooks:verify     # 16 条钩子用例：拦截与放行都验一遍
+npm run hooks:verify     # 17 条钩子用例：拦截与放行都验一遍
 npm run docs:sync        # 手动补跑一次文档沉淀
 npm run docs:digest      # 查看 AI 沉淀草稿
 npm run lint:commit      # 校验最近一次提交信息

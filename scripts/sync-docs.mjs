@@ -50,16 +50,16 @@ function appendCommitLog() {
   if (text.includes(`<!-- commit:${short} -->`)) return 'skip: 已记录过';
 
   const heading = '## 提交流水（自动生成）';
-  const block = [
-    `<!-- commit:${short} -->`,
-    `| ${stamp()} | ${branchName} | \`${short}\` | ${commit.subject.replace(/\|/g, '/')} | ${extractVerify().replace(/\|/g, '/').slice(0, 60)} | ${commit.files.length} |`,
-  ];
+  // 幂等标记必须内联在表格行的单元格里：单独一行会切断 Markdown 表格
+  const row =
+    `| ${stamp()} | ${branchName} | \`${short}\` | ${commit.subject.replace(/\|/g, '/')} | ` +
+    `${extractVerify().replace(/\|/g, '/').slice(0, 60)} | ${commit.files.length} <!-- commit:${short} --> |`;
 
   if (!text.includes(heading)) {
     text = text.trimEnd() + '\n\n---\n\n' + heading + '\n\n' +
       '> 由 post-commit 钩子自动追加：只记事实（分支、提交、摘要、验证、文件数）。人工总结写在上面的会话记录里。\n\n' +
       '| 时间 | 分支 | 提交 | 摘要 | 验证 | 文件数 |\n| --- | --- | --- | --- | --- | --- |\n' +
-      block[1] + '\n';
+      row + '\n';
     writeFileSync(file, text, 'utf8');
     return 'ok: 新建流水区块并写入首条';
   }
@@ -72,7 +72,7 @@ function appendCommitLog() {
     if (lines[i].startsWith('|')) lastRow = i;
     else if (lastRow > start && !lines[i].startsWith('|')) break;
   }
-  lines.splice(lastRow + 1, 0, block[1]);
+  lines.splice(lastRow + 1, 0, row);
   writeFileSync(file, lines.join('\n'), 'utf8');
   return 'ok: 追加一条流水';
 }

@@ -22,7 +22,7 @@
 
 | 钩子 | 拦截什么 | 放行条件 |
 | --- | --- | --- |
-| `pre-commit` | main 上直接提交、`node_modules`/`dist`/`fixtures`/ffmpeg 目录、>50 MiB 文件、密钥字面量、冲突标记、Markdown 的 oil-tone FAIL | 合并 / rebase 中、`FFSHIFT_ALLOW_MAIN_COMMIT=1`、首次提交 |
+| `pre-commit` | main 上直接提交、分支名不在前缀白名单、`node_modules`/`dist`/`fixtures`/ffmpeg 目录、>50 MiB 文件、密钥字面量、冲突标记、Markdown 的 oil-tone FAIL | 合并 / rebase 中、`FFSHIFT_ALLOW_MAIN_COMMIT=1`、首次提交 |
 | `commit-msg` | 缺 area 前缀、area 不在白名单、首行过宽、句号结尾、正文缺失或空话 | 合并 / Revert / 修订提交自动跳过 |
 | `pre-push` | 推 `refs/heads/main` | `FFSHIFT_ALLOW_MAIN_PUSH=1`；推功能分支与 tag 不受限 |
 | `post-commit` | 不拦截任何东西 | 只负责后台触发沉淀 |
@@ -64,7 +64,7 @@
 
 ```bash
 npm run hooks:install    # 装钩子（新克隆仓库后跑一次）
-npm run hooks:verify     # 16 条冒烟用例：拦截与放行是否都正确
+npm run hooks:verify     # 17 条冒烟用例：拦截与放行是否都正确
 npm run docs:sync        # 手动补跑一次沉淀
 npm run docs:digest      # 看 AI 草稿；--show 看全文，--apply 归档已采纳
 npm run lint:commit      # 校验最近一次提交信息（改历史后用）
