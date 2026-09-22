@@ -11,7 +11,8 @@
     "docs:digest": "node scripts/docs-digest.mjs",
     "lint:commit": "node scripts/lint-commit.mjs",
     "test": "vitest run",
-    "test:unit": "vitest run src/",
+    "test:unit": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },

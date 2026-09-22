@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseMediaInfo, parseFrameRate } from './ffprobe';
+import { assessConvertibility, parseMediaInfo, parseFrameRate } from './ffprobe';
 
 const probeJson = {
   streams: [
@@ -104,5 +104,74 @@ describe('parseMediaInfo', () => {
     const info = parseMediaInfo(weird, meta);
     expect(info.width).toBeNull();
     expect(info.height).toBeNull();
+  });
+});
+
+describe('assessConvertibility', () => {
+  const video = parseMediaInfo(probeJson, meta);
+
+  it('有视频轨的文件可以转换', () => {
+    expect(assessConvertibility(video)).toEqual({ ok: true, reason: null });
+  });
+
+  it('没有视频轨的文件不能转换，并说明原因', () => {
+    const audioOnly = parseMediaInfo(
+      {
+        streams: [{ codec_type: 'audio', codec_name: 'adpcm_dtk', channels: 1 }],
+        format: { duration: '5', format_name: 'mp4' },
+      },
+      meta,
+    );
+    const result = assessConvertibility(audioOnly);
+    expect(result.ok).toBe(false);
+    expect(result.reason).toMatch(/没有视频/);
+  });
+
+  it('ffprobe 猜出来的假视频（cdg 容器）会被拦下', () => {
+    // 实测：64 KiB 的 0x09 数据被 ffprobe 识别成 cdg 容器的 cdgraphics 视频，
+    // 还带 9.1 秒时长，退出码为 0——只能靠容器白名单识别
+    const guessed = parseMediaInfo(
+      {
+        streams: [{ codec_type: 'video', codec_name: 'cdgraphics', width: 300, height: 216 }],
+        format: { format_name: 'cdg', duration: '9.1' },
+      },
+      meta,
+    );
+    const result = assessConvertibility(guessed);
+    expect(result.ok).toBe(false);
+    expect(result.reason).toMatch(/容器|视频文件/);
+  });
+
+  it('ffprobe 猜出来的假音频（adp 容器）也会被拦下', () => {
+    const guessed = parseMediaInfo(
+      {
+        streams: [{ codec_type: 'audio', codec_name: 'adpcm_dtk' }],
+        format: { format_name: 'adp' },
+      },
+      meta,
+    );
+    expect(assessConvertibility(guessed).ok).toBe(false);
+  });
+
+  it('冷门但正常的专业容器（mxf）仍然放行', () => {
+    const pro = parseMediaInfo(
+      {
+        streams: [{ codec_type: 'video', codec_name: 'mpeg2video', width: 1920, height: 1080 }],
+        format: { format_name: 'mxf', duration: '60' },
+      },
+      meta,
+    );
+    expect(assessConvertibility(pro).ok).toBe(true);
+  });
+
+  it('时长未知但有视频轨时仍可转换（只是进度显示降级）', () => {
+    const noDuration = parseMediaInfo(
+      {
+        streams: [{ codec_type: 'video', codec_name: 'h264', width: 1280, height: 720 }],
+        format: { format_name: 'matroska,webm' },
+      },
+      meta,
+    );
+    expect(assessConvertibility(noDuration).ok).toBe(true);
   });
 });
