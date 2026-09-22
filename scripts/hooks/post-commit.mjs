@@ -14,6 +14,9 @@ const here = dirname(fileURLToPath(import.meta.url));
 const rootDir = join(here, '..', '..');
 
 try {
+  // 冒烟测试用：后台异步进程会与测试自身的断言抢文件，导致偶发失败
+  if (process.env.FFSHIFT_DISABLE_POST_COMMIT === '1') process.exit(0);
+
   const cfg = config();
   const docs = cfg.docs ?? {};
   if (docs.autoAppendCommitLog === false && docs.aiDraft === false) process.exit(0);

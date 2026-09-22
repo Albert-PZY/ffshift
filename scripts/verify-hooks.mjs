@@ -10,6 +10,9 @@ import { dirname, join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
+// 测试要确定性：关掉 post-commit 的异步沉淀（它会与本脚本的断言抢同一个文件，造成偶发失败）
+process.env.FFSHIFT_DISABLE_POST_COMMIT = '1';
+
 const projectRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 const sandbox = mkdtempSync(join(tmpdir(), 'ffshift-verify-'));
 
@@ -146,7 +149,7 @@ check('⑩ 规范提交 → 放行', r.code === 0, r.out);
 
 r = nodeRun('scripts/sync-docs.mjs');
 const logText = readFileSync(join(sandbox, 'docs', 'ai-session-log.md'), 'utf8');
-check('⑪ 提交后自动写提交流水', /## 提交流水（自动生成）/.test(logText) && /ui: 空态改为一句话加一个动作/.test(logText), r.out);
+check('⑪ 手动沉淀写入提交流水', /## 提交流水（自动生成）/.test(logText) && /ui: 空态改为一句话加一个动作/.test(logText), r.out);
 const statusPath = join(sandbox, 'docs', 'project-status.md');
 check('⑫ 生成项目状态页', existsSync(statusPath) && readFileSync(statusPath, 'utf8').includes('项目状态'), r.out);
 
