@@ -111,3 +111,4 @@
 | 09-23 03:41 | feat/app-skeleton | `2b976c7` | lib: 补 ffprobe 解析与缩略图缓存键 | npm run test:unit → 6 个文件 70 条用例通过 | 7 <!-- commit:2b976c7 --> |
 | 09-23 03:43 | feat/app-skeleton | `2706be3` | media: 接入 ffprobe 与可转换性判断 | 单测 76 条、集成测试 6 条（含中文空格路径、截断文件、垃圾数据）全绿 | 8 <!-- commit:2706be3 --> |
 | 09-23 03:46 | feat/app-skeleton | `4b4f10a` | media: 加上缩略图抽帧与转换引擎 | 单测 87 条、集成测试 15 条（真实转码、取消、目标体积、缓存命中）全绿 | 13 <!-- commit:4b4f10a --> |
+| 09-23 03:50 | feat/app-skeleton | `91a247a` | main: 搭起 Electron 应用骨架与 IPC 白名单 | 构建通过；冒烟自检窗口正常；端到端自检完成探测到转换全链路（799ms） | 8 <!-- commit:91a247a --> |
