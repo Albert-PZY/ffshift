@@ -105,3 +105,4 @@
 | 09-23 03:23 | chore/repo-bootstrap | `22854bb` | tool: 接入 oil-tone 文风检查到提交钩子 | 探针提交被正确拦下；docs 下 8 份文档全量 PASS | 8 |
 | 09-23 03:23 | chore/repo-bootstrap | `0cef19e` | tool: 分支保护对管理员同样生效 | — | 1 |
 | 09-23 03:25 | docs/readme | `8815d08` | docs: 补 README，写清现状与上手方式 | oil-tone 对 README 报 PASS；hooks:verify 保持 16 条全绿 | 1 |
+| 09-23 03:28 | tool/branch-policy | `bdc0c71` | tool: 补上分支命名检查并修掉沉淀两处缺陷 | hooks:verify 17 条用例全绿 | 10 <!-- commit:bdc0c71 --> |

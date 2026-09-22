@@ -68,3 +68,4 @@ $bytes = [System.IO.File]::ReadAllBytes("fixture_10s.mp4")[0..1048575]
 | 日期 | 提交 / 版本 | 执行的用例 | 结果（含失败与返工） |
 | --- | --- | --- | --- |
 | 2026-09-22 | `82bf7d4` chore: 建立仓库骨架与工程规范 | 77 个文件 | 待人工确认（验证信息：npm run hooks:verify 16 条用例全绿） <!-- commit:82bf7d4 --> |
+| 2026-09-22 | `bdc0c71` tool: 补上分支命名检查并修掉沉淀两处缺陷 | 10 个文件 | 待人工确认（验证信息：hooks:verify 17 条用例全绿） <!-- commit:bdc0c71 --> |
