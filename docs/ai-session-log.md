@@ -103,3 +103,4 @@
 | 09-23 03:08 | chore/repo-bootstrap | `29dd103` | docs: 自动沉淀 5971f4c | — | 2 |
 | 09-23 03:09 | chore/repo-bootstrap | `d568a93` | docs: 自动沉淀 2e7cc10 | — | 2 |
 | 09-23 03:09 | chore/repo-bootstrap | `01c3d58` | tool: 断掉自动沉淀提交的递归触发 | 提交后只应新增一条自动沉淀记录，且不再级联 | 6 |
+| 09-23 03:23 | chore/repo-bootstrap | `22854bb` | tool: 接入 oil-tone 文风检查到提交钩子 | 探针提交被正确拦下；docs 下 8 份文档全量 PASS | 8 |
