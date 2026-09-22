@@ -66,6 +66,7 @@ Refs: ADR-003
 | `main` | `electron/`：窗口、托盘、对话框、子进程托管 |
 | `docs` | `docs/`、`README.md` |
 | `test` | 测试代码、`scripts/gen-fixtures.ps1` |
+| `tool` | 钩子与自动化脚本（`.githooks/`、`scripts/`）、工程配置 |
 | `build` | 依赖、打包配置（electron-builder、`package.json`） |
 | `chore` | `.gitignore`、格式化等杂项 |
 

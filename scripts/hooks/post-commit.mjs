@@ -18,6 +18,9 @@ try {
   const docs = cfg.docs ?? {};
   if (docs.autoAppendCommitLog === false && docs.aiDraft === false) process.exit(0);
 
+  // 机器提交不再触发沉淀：否则 autoCommit 会自己触发自己，产生级联提交
+  if (/^docs: 自动沉淀/.test(lastCommit().subject)) process.exit(0);
+
   mkdirSync(join(rootDir, '.ffshift', 'logs'), { recursive: true });
   const syncScript = join(rootDir, 'scripts', 'sync-docs.mjs');
   if (!existsSync(syncScript)) process.exit(0);

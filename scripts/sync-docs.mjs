@@ -28,6 +28,12 @@ mkdirSync(join(rootDir, cfg.docs?.pendingDir ?? '.ffshift/pending'), { recursive
 const log = (msg) => appendFileSync(logPath, `[${new Date().toISOString()}] ${msg}\n`, 'utf8');
 const rel = (p) => join(rootDir, p);
 
+// 第二道保险：自动沉淀提交不再递归（第一道在 post-commit 钩子里）
+if (/^docs: 自动沉淀/.test(commit.subject)) {
+  log(`${short} skip: 机器提交不触发沉淀`);
+  process.exit(0);
+}
+
 const stamp = () => {
   const d = new Date();
   const p = (n) => String(n).padStart(2, '0');
@@ -206,8 +212,14 @@ function autoCommitDocs() {
   try {
     git(['add', 'docs']);
     if (git(['diff', '--cached', '--quiet'], { allowFail: true }) !== null) return 'skip: 文档无变化';
-    // --no-verify：机器提交不再触发钩子，避免递归
-    git(['commit', '-m', `docs: 自动沉淀 ${short}`, '--no-verify']);
+    // 机器提交也守规范：带正文，且不绕开钩子校验
+    git([
+      'commit',
+      '-m',
+      `docs: 自动沉淀 ${short}`,
+      '-m',
+      '由 post-commit 钩子自动生成：提交流水、测试登记、项目状态页。',
+    ]);
     return 'ok: 沉淀产物已自动提交';
   } catch (err) {
     return `失败 ${err.message}`;

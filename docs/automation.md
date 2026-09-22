@@ -86,6 +86,7 @@ npm run lint:commit      # 校验最近一次提交信息（改历史后用）
 | `hooks 没生效` | `npm run hooks:install`，再 `git config --get core.hooksPath` 应为 `.githooks` |
 | 提示找不到 node | 钩子会读 `.githooks/.node-path`；重跑 `hooks:install` 会重写它 |
 | 沉淀没反应 | 看 `.ffshift/logs/sync.log`；AI 部分失败不影响前三条 |
+| 历史里出现一串 `docs: 自动沉淀` | 机器提交递归触发沉淀（已修：`post-commit` 与 `sync-docs` 都会跳过自动沉淀提交）；旧历史保留不重写 |
 | 沙箱验证报 EBUSY | 后台沉淀进程还占着临时目录，稍后手动删即可，不影响结论 |
 
 ## 8. 配置

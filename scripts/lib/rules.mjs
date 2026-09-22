@@ -15,6 +15,7 @@ export const AREAS = {
   main: 'Electron 主进程：窗口、托盘、对话框、子进程托管',
   docs: '文档与 README',
   test: '测试代码与素材脚本',
+  tool: '钩子、自动化脚本、工程配置',
   build: '依赖与打包配置',
   chore: '杂项：.gitignore、格式化',
 };
