@@ -137,6 +137,24 @@ FFSHIFT_ALLOW_MAIN_PUSH=1 git push origin main
 ```
 用之前先问自己：是不是因为偷懒？用了就在 `docs/decisions.md` 记一条。
 
+### 远程仓库一次性设置（只做一次）
+
+本机钩子只能管住你这台机器；GitHub 侧要再上一道锁。
+
+```bash
+# 1) 首次建立主干：把本地 main 推上去（唯一一次直推 main）
+git push -u origin main
+
+# 2) 打开分支保护：main 必须经 PR，禁止强推与删除，要求线性历史
+gh api -X PUT repos/Albert-PZY/ffshift/branches/main/protection \
+  --input scripts/remote-protection.json
+
+# 3) 确认
+gh api repos/Albert-PZY/ffshift/branches/main/protection --jq '.required_pull_request_reviews'
+```
+
+`required_approving_review_count: 0` 是给单人项目用的：**必须有 PR 流程，但不强制别人批准**（否则自己永远合不进去）。做完这一步，`main` 在本地和远程都推不动了。
+
 ## 6. 仓库红线（本项目踩坑点，务必照做）
 
 | 项 | 规则 | 依据 |

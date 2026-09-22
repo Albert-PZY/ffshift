@@ -91,3 +91,7 @@ npm run lint:commit      # 校验最近一次提交信息（改历史后用）
 ## 8. 配置
 
 `.ffshift/config.json` 是唯一开关入口：保护分支名单、体积上限、禁提交路径、禁词表、沉淀开关、AI 参数都在这里。改完不用重装钩子。
+
+## 9. 远程侧保护
+
+本机钩子只管这台机器。GitHub 上还要开分支保护（`scripts/remote-protection.json` + `gh api`，命令见 `docs/git-workflow.md` §5"远程仓库一次性设置"）。两边都开之后：本地提交被拦、远程推送被拒，规则才真正成立。
