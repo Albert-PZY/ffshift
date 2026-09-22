@@ -107,3 +107,4 @@
 | 09-23 03:25 | docs/readme | `8815d08` | docs: 补 README，写清现状与上手方式 | oil-tone 对 README 报 PASS；hooks:verify 保持 16 条全绿 | 1 |
 | 09-23 03:28 | tool/branch-policy | `bdc0c71` | tool: 补上分支命名检查并修掉沉淀两处缺陷 | hooks:verify 17 条用例全绿 | 10 <!-- commit:bdc0c71 --> |
 | 09-23 03:39 | feat/app-skeleton | `158f82a` | tool: 建立 TDD 链路与提交前单测关卡 | npm run test:unit 通过；钩子实际拦下过未通过的单测 | 5 <!-- commit:158f82a --> |
+| 09-23 03:39 | feat/app-skeleton | `7ccad2d` | lib: 实现四个纯函数模块（含测试） | npm run test:unit → 4 个文件 51 条用例通过 | 8 <!-- commit:7ccad2d --> |
