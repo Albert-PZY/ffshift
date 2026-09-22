@@ -95,6 +95,7 @@ npm run lint:commit      # 校验最近一次提交信息（改历史后用）
 | 沉淀没反应 | 看 `.ffshift/logs/sync.log`；AI 部分失败不影响前三条 |
 | 历史里出现一串 `docs: 自动沉淀` | 机器提交递归触发沉淀（已修：`post-commit` 与 `sync-docs` 都会跳过自动沉淀提交）；旧历史保留不重写 |
 | 沙箱验证报 EBUSY | 后台沉淀进程还占着临时目录，稍后手动删即可，不影响结论 |
+| `hooks:verify` 偶发失败 | 后台沉淀进程与测试断言抢同一个文件。验证脚本已默认设置 `FFSHIFT_DISABLE_POST_COMMIT=1` 关掉它；真实提交不受影响 |
 
 ## 8. 配置
 
