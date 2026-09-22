@@ -1,0 +1,6 @@
+#!/bin/sh
+# FFShift · pre-commit：确定性快检查（不联网、不调 AI）
+# 规则见 docs/git-workflow.md，实现在 scripts/hooks/pre-commit.mjs
+set -e
+ROOT="$(git rev-parse --show-toplevel)"
+exec node "$ROOT/scripts/hooks/pre-commit.mjs"

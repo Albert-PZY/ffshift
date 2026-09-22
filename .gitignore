@@ -1,0 +1,34 @@
+# 依赖与构建产物
+node_modules/
+dist/
+out/
+release/
+*.log
+
+# 密钥（绝不入库）
+.env
+.env.*
+!.env.example
+
+# 测试素材：用 scripts/gen-fixtures.ps1 现场生成
+fixtures/
+*.mp4
+*.mov
+*.mkv
+
+# ffmpeg 二进制：走 Release 附件，不进仓库
+resources/ffmpeg/
+*.exe
+
+# hooks / 自动化运行时产物
+.githooks/.node-path
+.ffshift/pending/
+.ffshift/logs/
+.ffshift/*.txt
+
+# 编辑器与系统
+.vscode/*
+!.vscode/extensions.json
+.idea/
+Thumbs.db
+desktop.ini

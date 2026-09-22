@@ -1,0 +1,18 @@
+# 统一换行符：仓库内与工作区都用 LF（Node 工具链一致）
+* text=auto eol=lf
+
+# git hooks 由 sh 执行，必须 LF，否则报 bad interpreter
+.githooks/* text eol=lf
+
+# Windows 脚本保持 CRLF
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 二进制：不做任何转换
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.exe binary
+*.dll binary

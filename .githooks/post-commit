@@ -1,0 +1,5 @@
+#!/bin/sh
+# FFShift · post-commit：异步触发文档沉淀（AI 草稿），不阻塞提交
+set -e
+ROOT="$(git rev-parse --show-toplevel)"
+exec node "$ROOT/scripts/hooks/post-commit.mjs"

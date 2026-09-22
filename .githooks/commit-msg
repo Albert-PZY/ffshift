@@ -1,0 +1,6 @@
+#!/bin/sh
+# FFShift · commit-msg：提交信息规范校验
+# 规则见 docs/git-workflow.md §2 §3，实现在 scripts/hooks/commit-msg.mjs
+set -e
+ROOT="$(git rev-parse --show-toplevel)"
+exec node "$ROOT/scripts/hooks/commit-msg.mjs" "$1"

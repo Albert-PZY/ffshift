@@ -1,0 +1,47 @@
+{
+  "$comment": "FFShift 自动化配置。规则文案见 docs/git-workflow.md，实现见 scripts/。",
+  "version": 1,
+  "branchPolicy": {
+    "protected": ["main"],
+    "allowedPrefixes": ["feat/", "fix/", "docs/", "chore/", "refactor/", "test/"],
+    "blockDirectCommit": true,
+    "blockDirectPush": true
+  },
+  "commit": {
+    "subjectMaxWidth": 60,
+    "requireBody": true,
+    "bodyMinChars": 12,
+    "banWords": [
+      "优化了性能", "提升了体验", "完善了功能", "修复了一些问题", "代码优化",
+      "细节优化", "相关调整", "若干优化", "整体优化", "各种优化", "做了一些改动",
+      "update code", "fix bug", "improve performance"
+    ]
+  },
+  "precommit": {
+    "maxFileMiB": 50,
+    "warnFileMiB": 10,
+    "blockedPathPatterns": [
+      "node_modules/", "dist/", "out/", "release/",
+      "fixtures/", "resources/ffmpeg/"
+    ]
+  },
+  "docs": {
+    "autoAppendCommitLog": true,
+    "autoAppendTestLog": true,
+    "aiDraft": true,
+    "autoApplyAiDraft": false,
+    "commitLogFile": "docs/ai-session-log.md",
+    "testingFile": "docs/testing.md",
+    "decisionsFile": "docs/decisions.md",
+    "styleFile": "docs/writing-style.md",
+    "pendingDir": ".ffshift/pending",
+    "logFile": ".ffshift/logs/sync.log"
+  },
+  "ai": {
+    "baseUrl": "https://wb.albert-go.top/v1",
+    "model": "global:fast-model",
+    "keyEnv": "WORKBUDDY_API_KEY",
+    "maxTokens": 1200,
+    "timeoutMs": 90000
+  }
+}

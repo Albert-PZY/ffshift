@@ -1,0 +1,5 @@
+#!/bin/sh
+# FFShift · pre-push：禁止直接推送主分支（必须走 PR 合并）
+set -e
+ROOT="$(git rev-parse --show-toplevel)"
+exec node "$ROOT/scripts/hooks/pre-push.mjs" "$@"
