@@ -198,6 +198,22 @@ async function aiDraft() {
   return `ok: 草稿 → .ffshift/pending/${short}.md`;
 }
 
+// ── 5. 可选：把沉淀产物提交掉，避免工作区永远挂着未提交的文档 ───────────────
+function autoCommitDocs() {
+  if (cfg.docs?.autoCommit !== true) return 'skip: 未开启 autoCommit';
+  const protectedBranches = cfg.branchPolicy?.protected ?? ['main'];
+  if (protectedBranches.includes(branchName)) return `skip: ${branchName} 受保护，不自动提交`;
+  try {
+    git(['add', 'docs']);
+    if (git(['diff', '--cached', '--quiet'], { allowFail: true }) !== null) return 'skip: 文档无变化';
+    // --no-verify：机器提交不再触发钩子，避免递归
+    git(['commit', '-m', `docs: 自动沉淀 ${short}`, '--no-verify']);
+    return 'ok: 沉淀产物已自动提交';
+  } catch (err) {
+    return `失败 ${err.message}`;
+  }
+}
+
 // ── 执行 ───────────────────────────────────────────────────────────────────
 const results = [];
 try {
@@ -221,6 +237,12 @@ try {
     } catch (err) {
       results.push(`AI 草稿: 失败 ${err.message}`);
     }
+  }
+
+  try {
+    results.push(`自动提交: ${autoCommitDocs()}`);
+  } catch (err) {
+    results.push(`自动提交: 失败 ${err.message}`);
   }
 } catch (err) {
   results.push(`未预期错误: ${err.stack ?? err.message}`);

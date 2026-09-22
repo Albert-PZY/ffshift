@@ -38,7 +38,7 @@
 | `docs/project-status.md` | 提交总数、模块进度、冒烟完成度、规格清单（全部确定性数据） | 每次覆盖重建 |
 | `.ffshift/pending/<sha>.md` | AI 草稿：摘要、影响面、规格补充建议、待办、风险 | 每提交一份 |
 
-沉淀产物落在工作区、**不自动提交**——你下一次提交时把它们一起带上去，或先跑 `npm run docs:digest` 看一遍。
+沉淀产物默认由脚本自己提交（`.ffshift/config.json` 里 `docs.autoCommit`，当前为 `true`）：提交信息形如 `docs: 自动沉淀 <sha>`，走 `--no-verify` 不触发钩子，且**在受保护分支上一律不提交**。想手动掌控就设为 `false`，产物会留在工作区等你下次提交带上。
 
 ## 4. AI 的边界
 

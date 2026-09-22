@@ -30,6 +30,7 @@
     "autoAppendTestLog": true,
     "aiDraft": true,
     "autoApplyAiDraft": false,
+    "autoCommit": true,
     "commitLogFile": "docs/ai-session-log.md",
     "testingFile": "docs/testing.md",
     "decisionsFile": "docs/decisions.md",
