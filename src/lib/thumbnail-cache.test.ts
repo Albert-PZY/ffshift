@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { hashKey, thumbnailCacheKey, thumbnailPath, type CachePaths } from './thumbnail-cache';
+import {
+  hashKey,
+  thumbnailCacheKey,
+  thumbnailPath,
+  thumbnailSeekSeconds,
+  type CachePaths,
+} from './thumbnail-cache';
 
 const paths: CachePaths = {
   cacheDir: 'C:\\Users\\me\\AppData\\Roaming\\ffshift\\thumbnails',
@@ -52,5 +58,26 @@ describe('thumbnailPath', () => {
 
   it('键不同则文件不同，避免互相覆盖', () => {
     expect(thumbnailPath(paths, 'abc123')).not.toBe(thumbnailPath(paths, 'def456'));
+  });
+});
+
+describe('thumbnailSeekSeconds', () => {
+  it('取时长的 10%，避开片头黑场与台标', () => {
+    expect(thumbnailSeekSeconds(10)).toBeCloseTo(1, 3);
+    expect(thumbnailSeekSeconds(600)).toBeCloseTo(60, 3);
+  });
+
+  it('很短的视频取 0.1 秒，不做超出时长的跳转', () => {
+    expect(thumbnailSeekSeconds(0.5)).toBe(0.1);
+    expect(thumbnailSeekSeconds(0)).toBe(0.1);
+  });
+
+  it('时长未知时取 1 秒这个保守值', () => {
+    expect(thumbnailSeekSeconds(null)).toBe(1);
+    expect(thumbnailSeekSeconds(Number.NaN)).toBe(1);
+  });
+
+  it('结果不超过 60 秒，避免长时间视频每次都从头解码', () => {
+    expect(thumbnailSeekSeconds(36000)).toBeLessThanOrEqual(60);
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computePercent, computeRemaining, parseProgressBlock } from './progress';
+import { ProgressChunker, computePercent, computeRemaining, parseProgressBlock } from './progress';
 
 /** ffmpeg -progress pipe:1 的真实输出片段 */
 const block = [
@@ -83,5 +83,49 @@ describe('computeRemaining', () => {
   it('已完成时返回 0，不出现负数', () => {
     expect(computeRemaining(60, 60, 2)).toBe(0);
     expect(computeRemaining(70, 60, 2)).toBe(0);
+  });
+});
+
+describe('ProgressChunker', () => {
+  const blockA = 'frame=1\nout_time_us=1000000\nspeed=1.0x\nprogress=continue\n';
+  const blockB = 'frame=2\nout_time_us=2000000\nspeed=1.2x\nprogress=end\n';
+
+  it('一次推送里含两个完整块时返回两个', () => {
+    const chunker = new ProgressChunker();
+    expect(chunker.push(blockA + blockB)).toHaveLength(2);
+  });
+
+  it('跨多次推送的半个块会被拼起来', () => {
+    const chunker = new ProgressChunker();
+    const half = Math.floor(blockA.length / 2);
+    expect(chunker.push(blockA.slice(0, half))).toHaveLength(0);
+    const blocks = chunker.push(blockA.slice(half) + blockB);
+
+    expect(blocks).toHaveLength(2);
+    expect(blocks[0]).toContain('out_time_us=1000000');
+    expect(blocks[1]).toContain('progress=end');
+  });
+
+  it('推来的块能直接交给 parseProgressBlock 使用', () => {
+    const chunker = new ProgressChunker();
+    const [block] = chunker.push(blockA);
+    expect(block).toBeDefined();
+    expect(parseProgressBlock(block ?? '').outTimeSec).toBeCloseTo(1, 3);
+  });
+
+  it('没有 progress 结束行的内容不会提前返回', () => {
+    const chunker = new ProgressChunker();
+    expect(chunker.push('frame=1\nfps=0.00\n')).toHaveLength(0);
+  });
+
+  it('空推送不抛错也不产出块', () => {
+    const chunker = new ProgressChunker();
+    expect(chunker.push('')).toHaveLength(0);
+  });
+
+  it('Windows 换行也能正确切块', () => {
+    const chunker = new ProgressChunker();
+    const crlf = 'frame=1\r\nout_time_us=500000\r\nprogress=continue\r\n';
+    expect(chunker.push(crlf)).toHaveLength(1);
   });
 });

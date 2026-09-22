@@ -84,3 +84,34 @@ export function computeRemaining(
   if (speed === null || !Number.isFinite(speed) || speed <= 0) return null;
   return Math.max(0, (durationSec - outTimeSec) / speed);
 }
+
+/**
+ * 把流式 stdout 切成一个个完整的进度块。
+ *
+ * ffmpeg 的进度是持续的 key=value 流，块之间用 `progress=continue|end` 分隔，
+ * 而网络/管道给到的 chunk 可能从任意位置切断，所以必须缓冲半个块。
+ */
+export class ProgressChunker {
+  private pendingLines: string[] = [];
+  private partialLine = '';
+
+  /** 推入一段原始输出，返回这次攒够的完整块（可能 0 个或多个）。 */
+  push(chunk: string): string[] {
+    if (chunk.length === 0) return [];
+
+    const blocks: string[] = [];
+    const lines = (this.partialLine + chunk).split(/\r?\n/);
+    // 最后一段可能被切断，留到下次拼接
+    this.partialLine = lines.pop() ?? '';
+
+    for (const line of lines) {
+      this.pendingLines.push(line);
+      if (line.startsWith('progress=')) {
+        blocks.push(this.pendingLines.join('\n'));
+        this.pendingLines = [];
+      }
+    }
+
+    return blocks;
+  }
+}

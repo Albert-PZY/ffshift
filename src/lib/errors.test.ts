@@ -23,6 +23,16 @@ describe('translateError', () => {
     expect(result.title).toMatch(/写入/);
   });
 
+  it('输出目录不存在时不要误判成找不到输入文件', () => {
+    const raw =
+      '[out#0/mp4 @ 0x1] Error opening output D:\\没有这个目录\\out.mp4: No such file or directory\n' +
+      'Error opening output file D:\\没有这个目录\\out.mp4.\n' +
+      'Error opening output files: No such file or directory';
+    const result = translateError(raw, 1);
+    expect(result.kind).toBe('output-permission');
+    expect(result.title).toMatch(/输出/);
+  });
+
   it('磁盘空间不足', () => {
     const result = translateError('av_interleaved_write_frame(): No space left on device', 1);
     expect(result.kind).toBe('disk-full');

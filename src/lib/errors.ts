@@ -40,9 +40,11 @@ const RULES: ErrorRule[] = [
   },
   {
     kind: 'output-permission',
-    test: /permission denied|read-only file system|access is denied/i,
+    // 必须排在 input-missing 之前：输出打不开时的文案里也可能出现 No such file or directory，
+    // 若先匹配到输入规则，用户会照着"重新导入"白忙一场
+    test: /error opening output|permission denied|read-only file system|access is denied/i,
     title: '输出位置不能写入',
-    hint: '换一个有写权限的目录；如果文件正被播放器占用，先关掉它。',
+    hint: '确认输出目录存在并有写权限；如果文件正被播放器或资源管理器占用，先关掉它。',
   },
   {
     kind: 'encoder',

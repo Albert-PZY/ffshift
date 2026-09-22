@@ -109,3 +109,4 @@
 | 09-23 03:39 | feat/app-skeleton | `158f82a` | tool: 建立 TDD 链路与提交前单测关卡 | npm run test:unit 通过；钩子实际拦下过未通过的单测 | 5 <!-- commit:158f82a --> |
 | 09-23 03:39 | feat/app-skeleton | `7ccad2d` | lib: 实现四个纯函数模块（含测试） | npm run test:unit → 4 个文件 51 条用例通过 | 8 <!-- commit:7ccad2d --> |
 | 09-23 03:41 | feat/app-skeleton | `2b976c7` | lib: 补 ffprobe 解析与缩略图缓存键 | npm run test:unit → 6 个文件 70 条用例通过 | 7 <!-- commit:2b976c7 --> |
+| 09-23 03:43 | feat/app-skeleton | `2706be3` | media: 接入 ffprobe 与可转换性判断 | 单测 76 条、集成测试 6 条（含中文空格路径、截断文件、垃圾数据）全绿 | 8 <!-- commit:2706be3 --> |

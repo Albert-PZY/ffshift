@@ -42,3 +42,14 @@ export function thumbnailCacheKey(input: {
 export function thumbnailPath(paths: CachePaths, key: string): string {
   return join(paths.cacheDir, `${key}.jpg`);
 }
+
+/**
+ * 抽帧时间点：取时长 10%，避开片头黑场与台标。
+ * 上限 60 秒——再往后没有额外价值，却会让 ffmpeg 多解码很久。
+ * 时长未知时取 1 秒这个保守值。
+ */
+export function thumbnailSeekSeconds(durationSec: number | null): number {
+  if (durationSec === null || !Number.isFinite(durationSec)) return 1;
+  if (durationSec < 1) return 0.1;
+  return Math.min(60, durationSec * 0.1);
+}

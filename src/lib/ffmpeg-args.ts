@@ -20,9 +20,9 @@ export interface ConvertOptions {
   /** 源文件是否有音轨；无音轨时不能带音频参数，否则 ffmpeg 直接报错 */
   hasAudio?: boolean;
   /** 目标体积（MiB）；给出后改用码率模式 */
-  targetSizeMiB?: number;
-  /** 源时长（秒）；目标体积模式必需 */
-  durationSec?: number;
+  targetSizeMiB?: number | null;
+  /** 源时长（秒）；目标体积模式必需。null 表示未知 */
+  durationSec?: number | null;
 }
 
 interface PresetSpec {
@@ -80,8 +80,8 @@ export function buildArgs(options: ConvertOptions): string[] {
     videoEncoder(preset, hw),
   ];
 
-  if (targetSizeMiB !== undefined) {
-    if (durationSec === undefined || !Number.isFinite(durationSec) || durationSec <= 0) {
+  if (targetSizeMiB !== undefined && targetSizeMiB !== null) {
+    if (durationSec === undefined || durationSec === null || !Number.isFinite(durationSec) || durationSec <= 0) {
       throw new Error('目标体积模式需要时长（durationSec），否则无法反推码率');
     }
     args.push('-b:v', `${estimateVideoBitrateKbps(targetSizeMiB, durationSec, spec.audioKbps)}k`);
