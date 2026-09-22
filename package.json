@@ -2,9 +2,12 @@
   "name": "ffshift",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
   "description": "FFShift —— ffmpeg 的换挡键：不用懂参数，也能转好视频",
+  "main": "out/main/index.js",
   "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
     "hooks:install": "node scripts/install-hooks.mjs",
     "hooks:verify": "node scripts/verify-hooks.mjs",
     "docs:sync": "node scripts/sync-docs.mjs",
