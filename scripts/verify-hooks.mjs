@@ -150,10 +150,11 @@ check('⑪ 提交后自动写提交流水', /## 提交流水（自动生成）/.
 const statusPath = join(sandbox, 'docs', 'project-status.md');
 check('⑫ 生成项目状态页', existsSync(statusPath) && readFileSync(statusPath, 'utf8').includes('项目状态'), r.out);
 
-// 幂等：再跑一次不应重复写
+// 幂等：再跑一次不应重复写（重复运行多少次，流水都只该有一条）
 nodeRun('scripts/sync-docs.mjs');
 const again = readFileSync(join(sandbox, 'docs', 'ai-session-log.md'), 'utf8');
-check('⑬ 沉淀幂等（不重复追加）', (again.match(/ui: 空态改为一句话加一个动作/g) ?? []).length === 2, `${(again.match(/ui: 空态改为一句话加一个动作/g) ?? []).length} 次`);
+const rows = (again.match(/ui: 空态改为一句话加一个动作/g) ?? []).length;
+check('⑬ 沉淀幂等（重复运行不追加）', rows === 1, `流水行出现 ${rows} 次，应为 1 次`);
 
 // ── 6. 主分支推送保护 ───────────────────────────────────────────────────────
 r = nodeRun('scripts/hooks/pre-push.mjs', [], 'refs/heads/main 0000000000000000000000000000000000000000 refs/heads/main 1111111111111111111111111111111111111111\n');
@@ -161,6 +162,16 @@ check('⑭ 推送 main → 拦截', r.code !== 0 && /禁止直接推送/.test(r.
 
 r = nodeRun('scripts/hooks/pre-push.mjs', [], 'refs/heads/feat/cli-skeleton 0000000000000000000000000000000000000000 refs/heads/feat/cli-skeleton 1111111111111111111111111111111111111111\n');
 check('⑮ 推送功能分支 → 放行', r.code === 0, r.out);
+
+// ── 7. 分支命名 ─────────────────────────────────────────────────────────────
+gitRun(['switch', '-c', 'random-branch-name']);
+writeFileSync(join(sandbox, 'app.txt'), 'naming\n', 'utf8');
+gitRun(['add', 'app.txt']);
+r = commit(writeMsg('naming.txt', 'ui: 测试分支命名检查\n\n分支名不合规范时应当被拦住，这是本用例要验证的行为。\n'));
+check('⑯ 分支名不合规范 → 拦截', r.code !== 0 && /不符合规范/.test(r.out), r.out);
+gitRun(['reset', '--hard', 'HEAD']);
+gitRun(['switch', 'feat/cli-skeleton']);
+gitRun(['branch', '-D', 'random-branch-name']);
 
 // ── 汇总 ────────────────────────────────────────────────────────────────────
 console.log(results.join('\n'));

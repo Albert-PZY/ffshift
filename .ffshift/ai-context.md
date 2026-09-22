@@ -23,7 +23,7 @@
 
 ```
 npm run hooks:install   # 装钩子
-npm run hooks:verify     # 16 条钩子冒烟用例
+npm run hooks:verify     # 17 条钩子冒烟用例
 npm run docs:sync        # 手动补跑沉淀
 npm run docs:digest      # 查看/归档 AI 草稿
 npm run lint:commit      # 校验最近一次提交信息

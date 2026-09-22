@@ -102,8 +102,9 @@ Refs: ADR-003
 | 合并只能由 PR 完成 | GitHub 上开 PR、自己 review、Squash 合并 |
 | 合并后删分支 | 历史留在 PR 里，本地 `git branch -d` |
 
-分支前缀：`feat/`（新功能）`fix/`（修缺陷）`refactor/` `test/` `docs/` `chore/`。
-示例：`feat/media-probe`、`feat/convert-presets`、`fix/queue-cancel-leftover`、`docs/git-workflow`。
+分支前缀：`feat/`（新功能）`fix/`（修缺陷）`refactor/` `test/` `docs/` `chore/` `tool/`（脚本与钩子）。
+示例：`feat/media-probe`、`feat/convert-presets`、`fix/queue-cancel-leftover`、`docs/readme`。
+前缀白名单在 `.ffshift/config.json`，`pre-commit` 会实际检查——分支名不合规范提交不上去。
 
 ### 标准动作（照抄）
 
@@ -214,15 +215,17 @@ git push origin v0.2.0                     # 推 tag 不受 main 保护限制
 ### Release
 
 - **安装包放 Release 附件**，不进仓库：正好绕开 §6 的 100 MiB 限制（【GitHub】明确推荐用 Release 分发大二进制）。
-- **自动 Release Notes 按 PR 标签分类**，不认提交前缀——所以**开 PR 时顺手打标签**。建 `.github/release.yml` 后即可自动成文：
+- **自动 Release Notes 按 PR 标签分类**，不认提交前缀——所以**开 PR 时顺手打标签**。标签名必须与仓库实际存在的标签一致（`gh label list` 可查），写错等于不分类。GitHub 默认自带 `bug`、`enhancement`、`documentation`，本仓库按这三个配置：
 
 ```yaml
 changelog:
   categories:
     - title: 新功能
-      labels: [enhancement, Semver-Minor]
+      labels: [enhancement]
     - title: 修复
-      labels: [bug, Semver-Patch]
+      labels: [bug]
+    - title: 文档与规范
+      labels: [documentation]
     - title: 其他
       labels: ['*']
 ```

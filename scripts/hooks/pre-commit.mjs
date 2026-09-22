@@ -38,6 +38,21 @@ if (protectedBranches.includes(currentBranch) && cfg.branchPolicy?.blockDirectCo
 const files = stagedFiles();
 info(`暂存文件 ${files.length} 个`);
 
+// 1.5) 分支命名：按模块开分支是规范的一部分，不能只写在文档里
+const prefixes = cfg.branchPolicy?.allowedPrefixes ?? [];
+if (
+  prefixes.length &&
+  !protectedBranches.includes(currentBranch) &&
+  currentBranch !== '(detached)' &&
+  !prefixes.some((p) => currentBranch.startsWith(p))
+) {
+  errors.push(
+    `分支名 "${currentBranch}" 不符合规范。\n` +
+      `   → 应以这些前缀开头：${prefixes.join('  ')}\n` +
+      `   → 例：git switch -c feat/media-probe（模块名取自提交 area 表）`,
+  );
+}
+
 const TEXT_EXT = /\.(ts|tsx|js|mjs|cjs|jsx|json|ya?ml|md|ps1|sh|bat|cmd|css|html|txt|env|toml|ini)$/i;
 const SKIP_SECRET_FILE = /(^|\/)(package-lock\.json|pnpm-lock\.yaml)$/;
 

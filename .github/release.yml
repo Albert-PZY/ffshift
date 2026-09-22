@@ -1,4 +1,5 @@
 # Release Notes 分类：GitHub 只按 PR 标签归类，不认提交前缀（docs/git-workflow.md §7）
+# 标签名必须与仓库里实际存在的标签一致（gh label list 可查），写错等于不分类。
 changelog:
   exclude:
     labels:
@@ -7,19 +8,12 @@ changelog:
     - title: 新功能
       labels:
         - enhancement
-        - Semver-Minor
     - title: 修复
       labels:
         - bug
-        - Semver-Patch
-    - title: 破坏性改动
-      labels:
-        - breaking-change
-        - Semver-Major
     - title: 文档与规范
       labels:
-        - docs
-        - chore
+        - documentation
     - title: 其他
       labels:
         - '*'
