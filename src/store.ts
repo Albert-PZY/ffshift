@@ -345,10 +345,12 @@ export const useStore = create<State>((set, get) => {
 
     setAdvanced(patch) {
       set((state) => ({ advanced: { ...state.advanced, ...patch } }));
+      void persistSettings(get());
     },
 
     resetAdvanced() {
       set({ advanced: { ...DEFAULT_ADVANCED } });
+      void persistSettings(get());
     },
 
     savePreset(name) {
@@ -359,6 +361,7 @@ export const useStore = create<State>((set, get) => {
 
     applyPreset(preset) {
       set({ advanced: { ...DEFAULT_ADVANCED, ...preset.params } });
+      void persistSettings(get());
     },
 
     deletePreset(id) {
@@ -395,6 +398,7 @@ export const useStore = create<State>((set, get) => {
           history: settings.history,
           presets: settings.presets,
           theme: settings.theme,
+          advanced: settings.advanced,
         });
         // 首帧的主题来自 argv（main.tsx 已应用过）。这里再应用一次是为了兜住
         // 两者不一致的情况——比如设置文件在第一帧之后才被外部改动过
@@ -412,6 +416,7 @@ async function persistSettings(state: {
   history: HistoryEntry[];
   presets: CustomPreset[];
   theme: Theme;
+  advanced: AdvancedParams;
 }): Promise<void> {
   await api()?.saveSettings({
     version: SETTINGS_VERSION,
@@ -422,6 +427,7 @@ async function persistSettings(state: {
     history: state.history,
     presets: state.presets,
     theme: state.theme,
+    advanced: state.advanced,
   });
 }
 

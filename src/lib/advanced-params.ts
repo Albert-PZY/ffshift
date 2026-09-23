@@ -6,7 +6,7 @@
  *   - 校验只看真实约束（CRF 区间随编码器变、WebM 不收 H.264 等），不猜用户意图；
  *   - 错误拦下、警告放行——像"无损格式上设码率"这种只是没意义，不该阻止转换。
  */
-import { videoCodecFor, type ContainerSpec } from './ffmpeg-args';
+import { resolveContainer, videoCodecFor, type ContainerSpec, type OutputFormat } from './ffmpeg-args';
 
 export interface AdvancedParams {
   /** 视频编码器；null 表示跟随容器与档位 */
@@ -64,6 +64,62 @@ export const DEFAULT_ADVANCED: AdvancedParams = {
   threads: null,
   extraArgs: null,
 };
+
+/* ── 持久化解析 ──────────────────────────────────────────────────── */
+
+const asText = (value: unknown): string | null =>
+  typeof value === 'string' && value.trim().length > 0 ? value : null;
+
+const asNumber = (value: unknown): number | null =>
+  typeof value === 'number' && Number.isFinite(value) ? value : null;
+
+const asOneOf = <T extends string>(value: unknown, allowed: readonly T[]): T | null =>
+  typeof value === 'string' && (allowed as readonly string[]).includes(value) ? (value as T) : null;
+
+/**
+ * 从设置文件里解析专业参数。
+ *
+ * 逐字段校验、逐字段回落默认值：一条被手改坏的值不该让整份参数报废，
+ * 也不该让应用起不来——态度与 parseSettings 对其它字段一致。
+ * 枚举类字段还兼作白名单：设置文件是纯文本，谁都能往里写一个不存在的编码器名。
+ */
+export function parseAdvanced(raw: unknown): AdvancedParams {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { ...DEFAULT_ADVANCED };
+  const stored = raw as Record<string, unknown>;
+
+  const sampleRate = asNumber(stored.sampleRate);
+  const channels = stored.channels === 1 || stored.channels === 2 ? stored.channels : null;
+
+  return {
+    videoCodec: asOneOf(
+      stored.videoCodec,
+      VIDEO_CODECS.map((codec) => codec.value),
+    ),
+    rateControl: asOneOf(stored.rateControl, ['crf', 'bitrate'] as const),
+    crf: asNumber(stored.crf),
+    videoBitrateKbps: asNumber(stored.videoBitrateKbps),
+    encoderPreset: asOneOf(stored.encoderPreset, ENCODER_PRESETS),
+    tune: asOneOf(stored.tune, TUNES),
+    profile: asOneOf(stored.profile, PROFILES),
+    pixelFormat: asOneOf(stored.pixelFormat, PIXEL_FORMATS),
+    gop: asNumber(stored.gop),
+    scale: asText(stored.scale),
+    fps: asNumber(stored.fps),
+    scaleAlgorithm: asOneOf(stored.scaleAlgorithm, SCALE_ALGORITHMS),
+    audioMode: asOneOf(stored.audioMode, ['copy', 'encode', 'none'] as const),
+    audioCodec: asOneOf(
+      stored.audioCodec,
+      AUDIO_CODECS.map((codec) => codec.value),
+    ),
+    audioBitrateKbps: asNumber(stored.audioBitrateKbps),
+    sampleRate:
+      sampleRate !== null && (SAMPLE_RATES as readonly number[]).includes(sampleRate) ? sampleRate : null,
+    channels,
+    faststart: typeof stored.faststart === 'boolean' ? stored.faststart : null,
+    threads: asNumber(stored.threads),
+    extraArgs: asText(stored.extraArgs),
+  };
+}
 
 /* ── 选项表：界面下拉与校验共用同一份 ─────────────────────────────── */
 
@@ -200,6 +256,16 @@ function checkExtraArgs(raw: string): string | null {
     return '额外参数必须以 - 开头的开关，例如 -movflags +faststart';
   }
   return null;
+}
+
+/**
+ * 按输出格式校验专业参数。
+ *
+ * 纯函数，容器由输出格式推导——界面上的校验入口（设置页与主界面的开始按钮）
+ * 必须问同一个问题，各推导一次迟早会不一致。
+ */
+export function validateForFormat(advanced: AdvancedParams, outputFormat: OutputFormat): ValidationResult {
+  return validateAdvanced(advanced, resolveContainer(outputFormat, 'x.mkv'));
 }
 
 export function validateAdvanced(params: AdvancedParams, container: ContainerSpec): ValidationResult {

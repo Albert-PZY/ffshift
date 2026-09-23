@@ -4,7 +4,9 @@ import {
   DEFAULT_ADVANCED,
   describeAdvanced,
   isAdvancedEmpty,
+  parseAdvanced,
   validateAdvanced,
+  validateForFormat,
   type AdvancedParams,
 } from './advanced-params';
 
@@ -173,5 +175,72 @@ describe('describeAdvanced', () => {
     const text = describeAdvanced(base({ scale: '1280x720', fps: 30 })).join(' ');
     expect(text).toContain('1280x720');
     expect(text).toContain('30');
+  });
+});
+
+describe('parseAdvanced', () => {
+  it('空值与非对象回到全默认，不让坏设置卡住启动', () => {
+    expect(parseAdvanced(null)).toEqual(DEFAULT_ADVANCED);
+    expect(parseAdvanced(undefined)).toEqual(DEFAULT_ADVANCED);
+    expect(parseAdvanced('不是对象')).toEqual(DEFAULT_ADVANCED);
+    expect(parseAdvanced([])).toEqual(DEFAULT_ADVANCED);
+    expect(parseAdvanced({})).toEqual(DEFAULT_ADVANCED);
+  });
+
+  it('合法值原样读回来', () => {
+    const stored = base({ crf: 18, videoCodec: 'libx265', scale: '1920x1080', extraArgs: '-movflags +faststart' });
+    expect(parseAdvanced(stored)).toEqual(stored);
+  });
+
+  it('枚举类字段当白名单用：写了不存在的名字就当没填', () => {
+    const parsed = parseAdvanced({ videoCodec: 'libx264_fake', encoderPreset: 'turbo', audioMode: 'transcode' });
+    expect(parsed.videoCodec).toBeNull();
+    expect(parsed.encoderPreset).toBeNull();
+    expect(parsed.audioMode).toBeNull();
+  });
+
+  it('一条坏值只毁它自己，其余照常读回来', () => {
+    const parsed = parseAdvanced({ crf: 'CRF 是数字', gop: 60, fps: Number.NaN, threads: 4 });
+    expect(parsed.crf).toBeNull();
+    expect(parsed.fps).toBeNull();
+    expect(parsed.gop).toBe(60);
+    expect(parsed.threads).toBe(4);
+  });
+
+  it('声道只认 1 与 2；采样率只认白名单里的值', () => {
+    expect(parseAdvanced({ channels: 1 }).channels).toBe(1);
+    expect(parseAdvanced({ channels: 2 }).channels).toBe(2);
+    expect(parseAdvanced({ channels: 6 }).channels).toBeNull();
+    expect(parseAdvanced({ sampleRate: 44100 }).sampleRate).toBe(44100);
+    expect(parseAdvanced({ sampleRate: 12345 }).sampleRate).toBeNull();
+    // 界面上传的是字符串，落盘的是数字——两种形状都要认，但只认白名单内的
+    expect(parseAdvanced({ sampleRate: '44100' }).sampleRate).toBeNull();
+  });
+
+  it('faststart 只认真正的布尔值', () => {
+    expect(parseAdvanced({ faststart: false }).faststart).toBe(false);
+    expect(parseAdvanced({ faststart: 'true' }).faststart).toBeNull();
+  });
+
+  it('空字符串当没填，不留一个空串进 ffmpeg 参数', () => {
+    expect(parseAdvanced({ scale: '   ', extraArgs: '' }).scale).toBeNull();
+    expect(parseAdvanced({ scale: '   ', extraArgs: '' }).extraArgs).toBeNull();
+  });
+});
+
+describe('validateForFormat', () => {
+  it('按输出格式推导容器，与直接传容器结果一致', () => {
+    const params = base({ videoCodec: 'libx264' });
+    expect(validateForFormat(params, 'webm').errors).toEqual(validateAdvanced(params, webm).errors);
+  });
+
+  it('最常用的那条能拦住：WebM 上选 H.264', () => {
+    const result = validateForFormat(base({ videoCodec: 'libx264' }), 'webm');
+    expect(result.errors.length).toBeGreaterThan(0);
+    expect(result.errors[0]).toContain('WEBM');
+  });
+
+  it('保持原格式时按 mp4 兜底，不出错', () => {
+    expect(validateForFormat(DEFAULT_ADVANCED, 'same').errors).toHaveLength(0);
   });
 });

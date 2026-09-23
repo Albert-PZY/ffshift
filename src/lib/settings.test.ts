@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_ADVANCED } from './advanced-params';
 import {
   DEFAULT_SETTINGS,
   HISTORY_LIMIT,
@@ -11,7 +12,7 @@ import {
 describe('parseSettings', () => {
   it('完整设置原样返回', () => {
     const stored = {
-      version: 4,
+      version: 5,
       preset: 'small',
       outputFormat: 'mp4',
       outputDir: 'D:\\输出',
@@ -19,6 +20,7 @@ describe('parseSettings', () => {
       history: [],
       presets: [],
       theme: 'dark',
+      advanced: { ...DEFAULT_ADVANCED, crf: 18 },
     };
     expect(parseSettings(stored)).toEqual(stored);
   });
@@ -81,12 +83,13 @@ describe('parseSettings', () => {
 
   it('旧版本能升级：偏好留着，新字段给默认值', () => {
     const parsed = parseSettings({ version: 1, preset: 'clear', outputFormat: 'mp3' });
-    expect(parsed.version).toBe(4);
+    expect(parsed.version).toBe(5);
     expect(parsed.preset).toBe('clear');
     expect(parsed.outputFormat).toBe('mp3');
     expect(parsed.history).toEqual([]);
     expect(parsed.presets).toEqual([]);
     expect(parsed.theme).toBe('light');
+    expect(parsed.advanced).toEqual(DEFAULT_ADVANCED);
   });
 });
 
@@ -138,7 +141,7 @@ describe('历史记录', () => {
 describe('serializeSettings', () => {
   it('写出的 JSON 能被读回来，字段不丢', () => {
     const settings = {
-      version: 4,
+      version: 5,
       preset: 'small' as const,
       outputFormat: 'webm' as const,
       outputDir: 'D:\\输出',
@@ -146,6 +149,7 @@ describe('serializeSettings', () => {
       history: [],
       presets: [],
       theme: 'dark' as const,
+      advanced: { ...DEFAULT_ADVANCED, gop: 60, audioMode: 'copy' as const },
     };
     expect(parseSettings(JSON.parse(serializeSettings(settings)))).toEqual(settings);
   });

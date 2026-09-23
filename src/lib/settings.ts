@@ -4,10 +4,11 @@
  * 容错优先：设置文件可能被手改坏、可能是旧版本写的，
  * 任何一种情况都不能让应用起不来——解析不了就回到默认值。
  */
+import { DEFAULT_ADVANCED, parseAdvanced, type AdvancedParams } from './advanced-params';
 import { ALL_FORMATS, type OutputFormat, type Preset } from './ffmpeg-args';
 import { parsePresets, type CustomPreset } from './presets';
 
-export const SETTINGS_VERSION = 4;
+export const SETTINGS_VERSION = 5;
 
 /** 历史记录最多留这么多条，超出丢最旧的 */
 export const HISTORY_LIMIT = 50;
@@ -50,6 +51,11 @@ export interface AppSettings {
   presets: CustomPreset[];
   /** 界面主题；默认亮色 */
   theme: Theme;
+  /**
+   * 专业参数。字段为 null 表示"不干预"，由档位决定。
+   * v1.5.0 起持久化：它从对话框搬进了设置页，就该按设置的语义走（ADR-018）。
+   */
+  advanced: AdvancedParams;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -61,6 +67,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   history: [],
   presets: [],
   theme: 'light',
+  advanced: { ...DEFAULT_ADVANCED },
 };
 
 const PRESETS: readonly Preset[] = ['clear', 'balanced', 'small'];
@@ -135,6 +142,7 @@ export function parseSettings(raw: unknown): AppSettings {
     history,
     presets: parsePresets(stored.presets),
     theme,
+    advanced: parseAdvanced(stored.advanced),
   };
 }
 
