@@ -170,3 +170,4 @@
 | 09-23 18:51 | test/e2e-suite | `2c4110f` | test: 真正的端到端测试（9 条，驱动真实界面） | e2e 9 条全绿（29.7s）、typecheck 通过 | 8 <!-- commit:2c4110f --> |
 | 09-23 18:51 | test/e2e-suite | `2bb53a4` | docs: 把 e2e 的结果写回测试清单 | — | 3 <!-- commit:2bb53a4 --> |
 | 09-23 18:53 | docs/e2e-status | `7fabda2` | docs: 把 e2e 的结果写回测试清单 | — | 1 <!-- commit:7fabda2 --> |
+| 09-23 19:06 | docs/e2e-hook | `3b78307` | docs: 把端到端测试的分工与钩子位置写进文档 | 钩子自测 18 条、端到端 9 条全绿 | 3 <!-- commit:3b78307 --> |
