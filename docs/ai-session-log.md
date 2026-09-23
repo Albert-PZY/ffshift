@@ -190,3 +190,4 @@
 | 09-23 23:04 | refactor/ui-enso-language | `98b1552` | docs: 记下字号做成整体缩放的取舍 | pre-commit 文风检查通过；openspec 的 spec 更新与归档（工具移动目录时遇到 | 12 <!-- commit:98b1552 --> |
 | 09-23 23:05 | refactor/ui-enso-language | `fe0d1f1` | settings: 界面字号档位与窗口下限 | 单测 254 条全绿（新增 9 条） | 5 <!-- commit:fe0d1f1 --> |
 | 09-23 23:05 | refactor/ui-enso-language | `0b2e88a` | main: 字号与主题一起在建窗口之前读出 | 实测 940×600 下选「更大」，窗口撑到 1076×689、下限 1074×686； | 5 <!-- commit:0b2e88a --> |
+| 09-23 23:29 | refactor/ui-enso-language | `aeab77d` | docs: 记下字号的返工与原因 | pre-commit 文风检查通过；openspec spec 用 REMOVED + ADDED 两条换两条 | 12 <!-- commit:aeab77d --> |
