@@ -187,3 +187,4 @@
 | 09-23 22:15 | refactor/ui-enso-language | `313c386` | lib: 专业参数可持久化，校验改按输出格式 | 单测 245 条全绿（新增 10 条） | 5 <!-- commit:313c386 --> |
 | 09-23 22:15 | refactor/ui-enso-language | `f08593f` | ui: 新增设置页，主界面只留转换 | typecheck、build 通过；单测 245 条全绿；e2e 15 条全绿（57.3s）； | 17 <!-- commit:f08593f --> |
 | 09-23 22:16 | refactor/ui-enso-language | `18c3160` | main: 自动截图支持拍到设置页 | docs/screenshots/settings.png 由它生成，人工看过 | 1 <!-- commit:18c3160 --> |
+| 09-23 23:04 | refactor/ui-enso-language | `98b1552` | docs: 记下字号做成整体缩放的取舍 | pre-commit 文风检查通过；openspec 的 spec 更新与归档（工具移动目录时遇到 | 12 <!-- commit:98b1552 --> |
