@@ -14,6 +14,10 @@ describe('持久化：设置与预设', () => {
   let running: LaunchedApp | null = null;
   const dirs: string[] = [];
 
+  /** 参数面板里的 CRF 是第一个数字输入框；限定在对话框与 param-field 之内 */
+  const CRF = '[data-slot="dialog-popup"] [data-slot="param-field"] input[type="number"]';
+  const USER_CHIP = '[data-slot="preset-chip"][data-owner="user"]';
+
   const freshDir = (): string => {
     const dir = mkdtempSync(join(tmpdir(), 'ffshift-e2e-'));
     dirs.push(dir);
@@ -38,22 +42,22 @@ describe('持久化：设置与预设', () => {
 
     running = await launchApp({ userDataDir });
     await running.page.getByRole('button', { name: '专业参数' }).click();
-    await running.page.waitForSelector('.modal');
+    await running.page.waitForSelector('[data-slot="dialog-popup"]');
 
     // 填一个 CRF，起个名字存下来
-    await running.page.locator('.param-field input[type="number"]').first().fill('27');
+    await running.page.locator(CRF).first().fill('27');
     await running.page.getByPlaceholder('给这套参数起个名字').fill('压缩测试档');
     await running.page.getByRole('button', { name: '存为预设' }).click();
 
-    await running.page.waitForSelector('.preset-chip.is-user');
-    expect(await running.page.locator('.preset-chip.is-user').innerText()).toContain('压缩测试档');
+    await running.page.waitForSelector(USER_CHIP);
+    expect(await running.page.locator(USER_CHIP).innerText()).toContain('压缩测试档');
 
     // 重启：同一个 user-data-dir
     await restart(userDataDir);
 
     await running.page.getByRole('button', { name: '专业参数' }).click();
-    await running.page.waitForSelector('.preset-chip.is-user');
-    expect(await running.page.locator('.preset-chip.is-user').innerText()).toContain('压缩测试档');
+    await running.page.waitForSelector(USER_CHIP);
+    expect(await running.page.locator(USER_CHIP).innerText()).toContain('压缩测试档');
   }, 180_000);
 
   it('应用预设后，参数真的填进了面板；重启后参数不会跟着跑（预设是模板，不是设置）', async () => {
@@ -61,26 +65,26 @@ describe('持久化：设置与预设', () => {
 
     running = await launchApp({ userDataDir });
     await running.page.getByRole('button', { name: '专业参数' }).click();
-    await running.page.waitForSelector('.modal');
+    await running.page.waitForSelector('[data-slot="dialog-popup"]');
 
     // 内置预设「高画质存档」会把 CRF 填成 18
     await running.page.getByRole('button', { name: '高画质存档' }).click();
-    expect(await running.page.locator('.param-field input[type="number"]').first().inputValue()).toBe('18');
+    expect(await running.page.locator(CRF).first().inputValue()).toBe('18');
 
     await restart(userDataDir);
     await running.page.getByRole('button', { name: '专业参数' }).click();
-    await running.page.waitForSelector('.modal');
+    await running.page.waitForSelector('[data-slot="dialog-popup"]');
 
     // 参数本身不持久化——它是"这次要用什么"，不是"以后都用什么"。
     // 预设列表持久化就够了，用户想复用点一下预设即可。
-    expect(await running.page.locator('.param-field input[type="number"]').first().inputValue()).toBe('');
+    expect(await running.page.locator(CRF).first().inputValue()).toBe('');
   }, 180_000);
 
   it('档位与输出格式改过之后，重启还记着', async () => {
     const userDataDir = freshDir();
 
     running = await launchApp({ userDataDir });
-    // 档位与输出格式都是自定义下拉（不是原生 select，也不是按钮组）
+    // 档位与输出格式都是下拉（不是原生 select，也不是按钮组）
     await running.page.locator('#preset-menu').click();
     await running.page.getByRole('option', { name: '更小' }).click();
     await running.page.locator('#format-menu').click();
@@ -99,7 +103,7 @@ describe('持久化：设置与预设', () => {
 
     running = await launchApp({ userDataDir });
     // 先确认默认状态
-    expect(await running.page.locator('.path-button span').innerText()).toBe('与源文件同目录');
+    expect(await running.page.locator('[data-slot="path-button"] span').innerText()).toBe('与源文件同目录');
 
     // 原生目录选择框没法自动点，直接走 store 的写入路径验证持久化本身
     await running.page.evaluate(() => {
@@ -109,6 +113,6 @@ describe('持久化：设置与预设', () => {
     await running.page.waitForTimeout(800);
     await restart(userDataDir);
 
-    expect(await running.page.locator('.path-button span').innerText()).toContain('测试输出目录');
+    expect(await running.page.locator('[data-slot="path-button"] span').innerText()).toContain('测试输出目录');
   }, 180_000);
 });

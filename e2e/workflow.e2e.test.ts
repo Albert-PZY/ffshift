@@ -30,6 +30,10 @@ const importFiles = async (running: LaunchedApp, paths: string[]): Promise<void>
 const readState = (running: LaunchedApp): Promise<ReturnType<DebugHook['state']>> =>
   running.page.evaluate(() => (window as unknown as { __ffshift?: DebugHook }).__ffshift?.state() as never);
 
+/** 队列行；详情栏与历史行共用 data-slot，所以断言一律带上行这一层 */
+const ROW = '[data-slot="task-row"]';
+const DONE_ROW = '[data-slot="task-row"] [data-slot="task-status"][data-status="done"]';
+
 describe('工作流：导入 → 转换 → 历史', () => {
   let running: LaunchedApp | null = null;
 
@@ -48,10 +52,10 @@ describe('工作流：导入 → 转换 → 历史', () => {
     await importFiles(running, [fixture]);
     await waitForTaskStatus(running.page, '待转换', 60_000);
 
-    const meta = await running.page.locator('.queue-meta').first().innerText();
+    const meta = await running.page.locator('[data-slot="task-meta"]').first().innerText();
     // 素材是 640x360 生成的，界面该照实显示
     expect(meta).toContain('640×360');
-    expect(await running.page.locator('.thumb img').count()).toBe(1);
+    expect(await running.page.locator('[data-slot="thumb"] img').count()).toBe(1);
 
     const state = await readState(running);
     expect(state.tasks[0]?.info?.width).toBe(640);
@@ -77,17 +81,17 @@ describe('工作流：导入 → 转换 → 历史', () => {
     expect(state.tasks[0]?.outcome?.outputSizeBytes ?? 0).toBeGreaterThan(0);
 
     // 切到历史视图，记录应该已经在了
-    await (running as LaunchedApp).page.getByRole('button', { name: '看历史' }).click();
-    await (running as LaunchedApp).page.waitForSelector('.queue-row');
-    expect(await (running as LaunchedApp).page.locator('.queue-row').count()).toBeGreaterThan(0);
+    await (running as LaunchedApp).page.getByRole('tab', { name: '历史' }).click();
+    await (running as LaunchedApp).page.waitForSelector(ROW);
+    expect(await (running as LaunchedApp).page.locator(ROW).count()).toBeGreaterThan(0);
 
     // 重启：历史能读回来，说明真的落盘了而不是只在内存里
     await (running as LaunchedApp).close();
     running = await launchApp({ userDataDir });
 
-    await (running as LaunchedApp).page.getByRole('button', { name: '看历史' }).click();
-    await (running as LaunchedApp).page.waitForSelector('.queue-row');
-    expect(await (running as LaunchedApp).page.locator('.queue-row').count()).toBeGreaterThan(0);
+    await (running as LaunchedApp).page.getByRole('tab', { name: '历史' }).click();
+    await (running as LaunchedApp).page.waitForSelector(ROW);
+    expect(await (running as LaunchedApp).page.locator(ROW).count()).toBeGreaterThan(0);
   }, 240_000);
 
   it('两个文件依次排队，最后都完成（队列是串行的）', async () => {
@@ -97,13 +101,13 @@ describe('工作流：导入 → 转换 → 历史', () => {
     running = await launchApp();
     await importFiles(running, [first, second]);
     await waitForTaskStatus(running.page, '待转换', 60_000);
-    expect(await running.page.locator('.queue-row').count()).toBe(2);
+    expect(await running.page.locator(ROW).count()).toBe(2);
 
     await running.page.getByRole('button', { name: '开始转换' }).click();
 
     await running.page.waitForFunction(
-      () => document.querySelectorAll('.queue-row .status-done').length === 2,
-      undefined,
+      (selector) => document.querySelectorAll(selector).length === 2,
+      DONE_ROW,
       { timeout: 180_000 },
     );
 
@@ -112,20 +116,26 @@ describe('工作流：导入 → 转换 → 历史', () => {
   }, 240_000);
 
   it('参数面板：非法值被拦下，主按钮跟着禁用', async () => {
+    const CRF = '[data-slot="dialog-popup"] [data-slot="param-field"] input[type="number"]';
+
     running = await launchApp();
     await running.page.getByRole('button', { name: '专业参数' }).click();
-    await running.page.waitForSelector('.modal');
+    await running.page.waitForSelector('[data-slot="dialog-popup"]');
 
     // CRF 填 99，超出 x264 的 0–51
-    await running.page.locator('.param-field input[type="number"]').first().fill('99');
-    await running.page.waitForSelector('.reason');
+    await running.page.locator(CRF).first().fill('99');
+    await running.page.waitForSelector('[data-slot="dialog-popup"] [data-slot="reason"]');
 
-    expect(await running.page.locator('.reason').first().innerText()).toContain('CRF');
+    expect(await running.page.locator('[data-slot="dialog-popup"] [data-slot="reason"]').first().innerText()).toContain(
+      'CRF',
+    );
     expect(await running.page.getByRole('button', { name: '参数有误' }).isDisabled()).toBe(true);
 
     // 改成合法值，错误消失、按钮恢复
-    await running.page.locator('.param-field input[type="number"]').first().fill('23');
-    await running.page.waitForFunction(() => document.querySelectorAll('.modal .reason').length === 0);
+    await running.page.locator(CRF).first().fill('23');
+    await running.page.waitForFunction(
+      () => document.querySelectorAll('[data-slot="dialog-popup"] [data-slot="reason"]').length === 0,
+    );
     // exact：界面里还有个「清空已完成」，不精确匹配会同时命中两个
     expect(await running.page.getByRole('button', { name: '完成', exact: true }).isDisabled()).toBe(false);
   }, 180_000);
@@ -140,6 +150,6 @@ describe('工作流：导入 → 转换 → 历史', () => {
     await importFiles(running, [fixture]);
     await running.page.waitForTimeout(1000);
 
-    expect(await running.page.locator('.queue-row').count()).toBe(1);
+    expect(await running.page.locator(ROW).count()).toBe(1);
   }, 180_000);
 });

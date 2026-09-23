@@ -31,7 +31,7 @@ export async function launchApp(options: { userDataDir?: string } = {}): Promise
 
   const page = await app.firstWindow();
   // 界面挂载完成：app-shell 是根容器
-  await page.waitForSelector('.app-shell', { timeout: 30_000 });
+  await page.waitForSelector('[data-slot="app-shell"]', { timeout: 30_000 });
 
   return {
     app,
@@ -75,10 +75,18 @@ export function makeFixture(name: string, options: { durationSec?: number; withA
   return target;
 }
 
-/** 等某个状态文字出现在队列行上（转换完成、失败等） */
+/**
+ * 等某个状态文字出现在队列行上（转换完成、失败等）。
+ *
+ * 选择器限定在行内：详情栏也渲染同一套状态标签，不限定会数出多余的一份。
+ * 状态标签带 data-status，判"完成"这类断言不必再读文字。
+ */
 export async function waitForTaskStatus(page: Page, label: string, timeout = 120_000): Promise<void> {
   await page.waitForFunction(
-    (text) => [...document.querySelectorAll('.queue-row .status')].some((node) => node.textContent?.includes(text)),
+    (text) =>
+      [...document.querySelectorAll('[data-slot="task-row"] [data-slot="task-status"]')].some((node) =>
+        node.textContent?.includes(text),
+      ),
     label,
     { timeout },
   );
