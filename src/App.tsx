@@ -1,3 +1,10 @@
+/**
+ * 主界面：导入的文件排成一列，选档位与输出格式，按顺序转换。
+ *
+ * 布局对应 docs/design-system.md：顶栏放运行状态，工具栏放档位与格式，
+ * 中间是任务列表，底部只有一个主动作（开始转换）。
+ * 所有 ffmpeg 相关的事都走 window.ffshift（preload 暴露的白名单），界面不碰 Node。
+ */
 import { useState, type DragEvent } from 'react';
 import { describeSuggestion, type Suggestion } from './lib/ai-suggest';
 import { formatBytes, formatDuration, formatPercent, formatRemaining, formatSpeed } from './lib/format';
@@ -46,6 +53,10 @@ const STATUS_LABEL: Record<TaskItem['status'], string> = {
   unsupported: '不支持',
 };
 
+/**
+ * AI 建议区：一句话描述用途，拿到档位建议。
+ * 界面上会标出建议来自模型还是本地规则——降级发生时用户有权知道。
+ */
 function Assistant({ onApply }: { onApply: (preset: Preset, targetSizeMiB: number | null) => void }) {
   const [idea, setIdea] = useState('');
   const [advice, setAdvice] = useState<{ suggestion: Suggestion; text: string; note: string } | null>(null);
@@ -109,6 +120,7 @@ function Assistant({ onApply }: { onApply: (preset: Preset, targetSizeMiB: numbe
   );
 }
 
+/** 进度条：时长未知时走不确定态（来回滑动），不让用户误以为卡在某个固定百分比 */
 function ProgressBar({ task }: { task: TaskItem }) {
   const percent = task.progress?.percent ?? null;
   const width = percent === null ? 100 : Math.round(percent * 100);
@@ -124,6 +136,7 @@ function ProgressBar({ task }: { task: TaskItem }) {
   );
 }
 
+/** 一行任务：缩略图 + 媒体信息 + 状态 + 该状态下可用的动作 */
 function TaskRow({ task }: { task: TaskItem }) {
   const cancelTask = useStore((s) => s.cancelTask);
   const removeTask = useStore((s) => s.removeTask);

@@ -1,12 +1,17 @@
 /**
- * 界面状态：任务列表 + 档位 + 设置。
- * 队列一次只跑一个任务（架构约定）；界面不直接碰 ffmpeg，全部走 window.ffshift。
+ * 界面状态与队列调度。
+ *
+ * 三条约定：
+ *   - 队列一次只跑一个任务，跑完一个自动取下一个（硬件编码器够快时也不会打满 CPU）；
+ *   - 界面不直接碰 ffmpeg，全部走 window.ffshift（preload 白名单）；
+ *   - 档位、输出格式、输出目录改动后立刻落盘，下次启动还在。
  */
 import { create } from 'zustand';
 import type { ConvertOutcome, ProgressUpdate } from '../electron/ffmpeg/convert';
 import { outputPathFor, type OutputFormat, type Preset } from './lib/ffmpeg-args';
 import type { MediaInfo } from './lib/ffprobe';
 
+/** 任务状态；界面上的五个状态词与这里一一对应 */
 export type TaskStatus = 'reading' | 'ready' | 'queued' | 'running' | 'done' | 'failed' | 'cancelled' | 'unsupported';
 
 export interface TaskItem {

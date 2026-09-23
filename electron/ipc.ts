@@ -4,13 +4,12 @@
  */
 import { app, dialog, ipcMain, shell, type BrowserWindow } from 'electron';
 import { execFile } from 'node:child_process';
-import { existsSync, statSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { buildArgs } from '../src/lib/ffmpeg-args';
 import { fallbackSuggestion } from '../src/lib/ai-suggest';
 import { assessConvertibility } from '../src/lib/ffprobe';
-import { hashKey } from '../src/lib/thumbnail-cache';
 import type {
   ConvertRequest,
   ConvertResponse,
@@ -184,19 +183,13 @@ export function registerIpc({ getWindow }: Deps): void {
     return { ok: true };
   });
 
-  // 供测试与排错：主进程启动时把二进制来源写进日志
+  // 记一行来源：出问题时能一眼看出用的是随包二进制还是系统里那个
   const sourceLabel = binaries.source === 'bundled' ? '随包分发' : '系统 PATH';
   console.log(`[ffshift] ffmpeg 来源：${sourceLabel}（${binaries.ffmpeg}）`);
-  console.log(`[ffshift] 缓存目录：${cachePaths.cacheDir}（键示例 ${hashKey(cachePaths.cacheDir)}）`);
+  console.log(`[ffshift] 缩略图缓存：${cachePaths.cacheDir}`);
 }
 
 export function disposeIpc(): void {
   for (const handle of runningTasks.values()) handle.cancel();
   runningTasks.clear();
-}
-
-/** 输出路径里带上源文件哈希，避免同名不同源互相覆盖。 */
-export function uniqueOutputSuffix(inputPath: string): string {
-  const stats = statSync(inputPath);
-  return hashKey(`${inputPath}|${stats.size}`).slice(0, 6);
 }
