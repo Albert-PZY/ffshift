@@ -905,6 +905,276 @@ button {
   min-width: 130px;
 }
 
+/* ── 下拉菜单 ───────────────────────────────────────────────────── */
+.menu {
+  position: relative;
+}
+
+.menu-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  width: 100%;
+  min-height: 33px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-soft);
+  color: var(--ink);
+  font-size: 11px;
+  text-align: left;
+}
+
+.menu-trigger:hover {
+  border-color: var(--blue);
+}
+
+.menu-trigger svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--muted);
+  transition: transform 0.15s;
+}
+
+.menu-trigger svg.is-open {
+  transform: rotate(180deg);
+}
+
+.menu-popover {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 40;
+  min-width: 100%;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-raised);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 11px;
+  text-align: left;
+}
+
+.menu-item:hover {
+  background: color-mix(in srgb, var(--blue) 12%, transparent);
+}
+
+.menu-item.active {
+  color: var(--blue);
+}
+
+.menu-item small {
+  color: var(--dim);
+  font-size: 10px;
+}
+
+.menu-item svg {
+  width: 13px;
+  height: 13px;
+  margin-left: auto;
+}
+
+/* ── 专业参数面板 ─────────────────────────────────────────────────── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(4, 6, 9, 0.66);
+}
+
+.modal {
+  display: flex;
+  flex-direction: column;
+  width: min(760px, 100%);
+  max-height: min(780px, calc(100vh - 48px));
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.modal-head h2 {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.modal-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: auto;
+  padding: 14px 20px;
+  border-top: 1px solid var(--line);
+  background: var(--panel-soft);
+}
+
+.param-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.param-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+  color: var(--dim);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.param-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+.param-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.param-field > span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.param-field input {
+  min-height: 32px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-soft);
+  color: var(--ink);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.param-field input::placeholder {
+  color: var(--dim);
+}
+
+.param-field input:focus {
+  outline: none;
+  border-color: var(--blue);
+}
+
+.param-field.wide {
+  grid-column: 1 / -1;
+}
+
+.param-hint {
+  margin: 0;
+  color: var(--dim);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.preset-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.preset-chip:hover {
+  border-color: var(--blue);
+  color: var(--ink);
+}
+
+.preset-chip.is-user {
+  padding-right: 4px;
+  border-color: color-mix(in srgb, var(--blue) 40%, var(--line));
+  color: var(--ink);
+}
+
+.preset-chip.is-user > button:first-child {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: inherit;
+}
+
+.preset-remove {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--dim);
+}
+
+.preset-remove svg {
+  width: 11px;
+  height: 11px;
+}
+
+.preset-remove:hover {
+  background: var(--panel-raised);
+  color: var(--red);
+}
+
+.preset-save {
+  display: flex;
+  flex: 1;
+  gap: 8px;
+}
+
 /* 拖拽覆盖层 */
 .drop-overlay {
   position: fixed;

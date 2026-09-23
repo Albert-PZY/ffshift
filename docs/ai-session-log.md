@@ -163,3 +163,6 @@
 | 09-23 15:22 | feat/settings-and-folder | `f6840ff` | ui: 失败的原始日志可展开复制，连续失败两次就停下 | 单测 172 条、集成测试 22 条全绿（新增断言：失败时 error.raw 非空） | 4 <!-- commit:f6840ff --> |
 | 09-23 15:24 | feat/settings-and-folder | `2d13d18` | ui: 转换完成后发系统通知，并显示体积变化 | typecheck 通过；端到端实测 outputSizeBytes = 2311319（约 2.3 MB） | 7 <!-- commit:2d13d18 --> |
 | 09-23 15:37 | docs/spec-and-testing | `51f33b5` | docs: 把八项功能写进规格，并更新测试清单 | openspec validate 通过（3 个能力、0 失败） | 5 <!-- commit:51f33b5 --> |
+| 09-23 16:12 | feat/advanced-params | `afd7fd9` | convert: 专业参数的数据层、校验与参数构造 | 单测 222 条全绿（新增 42 条：校验 27、构造 15） | 11 <!-- commit:afd7fd9 --> |
+| 09-23 16:13 | feat/advanced-params | `61ab1df` | test: 预设层的边界用例 | 单测 237 条全绿（新增 15 条） | 1 <!-- commit:61ab1df --> |
+| 09-23 16:19 | feat/advanced-params | `7744e61` | ui: 专业参数面板 | typecheck 通过、单测 237 条全绿、端到端回归成功、两张截图已生成 | 5 <!-- commit:7744e61 --> |

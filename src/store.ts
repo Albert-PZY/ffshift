@@ -14,6 +14,8 @@ import {
   appendHistory,
   type HistoryEntry,
 } from './lib/settings';
+import { createPreset, exportPresets, importPresets, type CustomPreset } from './lib/presets';
+import { DEFAULT_ADVANCED, type AdvancedParams } from './lib/advanced-params';
 import type { MediaInfo } from './lib/ffprobe';
 
 /** 任务状态；界面上的五个状态词与这里一一对应 */
@@ -71,6 +73,10 @@ interface State {
   history: HistoryEntry[];
   /** 工作区当前显示队列还是历史 */
   view: 'queue' | 'history';
+  /** 专业参数：字段为 null 表示不干预，由档位决定 */
+  advanced: AdvancedParams;
+  /** 用户保存的参数预设 */
+  presets: CustomPreset[];
   hardware: string[];
   ffmpegVersion: string | null;
   addFiles: (paths: string[]) => Promise<void>;
@@ -95,6 +101,16 @@ interface State {
   /** 清空转换历史 */
   clearHistory: () => void;
   setView: (view: 'queue' | 'history') => void;
+  /** 改专业参数；只传要改的字段，其余保持 */
+  setAdvanced: (patch: Partial<AdvancedParams>) => void;
+  /** 一键回到"不干预" */
+  resetAdvanced: () => void;
+  savePreset: (name: string) => void;
+  applyPreset: (preset: CustomPreset) => void;
+  deletePreset: (id: string) => void;
+  /** 从 JSON 导入预设；返回新增与跳过的条数 */
+  importPresetFile: () => Promise<{ added: number; skipped: number }>;
+  exportPresetFile: () => Promise<void>;
   detectHardware: () => Promise<void>;
   loadSettings: () => Promise<void>;
 }
@@ -138,6 +154,7 @@ export const useStore = create<State>((set, get) => {
         fps: next.info.fps,
         hasAlpha: next.info.hasAlpha,
       },
+      advanced: get().advanced,
     });
 
     if (response && !response.ok) {
@@ -158,6 +175,8 @@ export const useStore = create<State>((set, get) => {
     outputDir: null,
     history: [],
     view: 'queue',
+    advanced: { ...DEFAULT_ADVANCED },
+    presets: [],
     hardware: [],
     ffmpegVersion: null,
     targetSizeMiB: null,
@@ -316,6 +335,43 @@ export const useStore = create<State>((set, get) => {
       set({ view });
     },
 
+    setAdvanced(patch) {
+      set((state) => ({ advanced: { ...state.advanced, ...patch } }));
+    },
+
+    resetAdvanced() {
+      set({ advanced: { ...DEFAULT_ADVANCED } });
+    },
+
+    savePreset(name) {
+      const preset = createPreset(name, get().advanced, get().presets);
+      set((state) => ({ presets: [...state.presets, preset] }));
+      void persistSettings(get());
+    },
+
+    applyPreset(preset) {
+      set({ advanced: { ...DEFAULT_ADVANCED, ...preset.params } });
+    },
+
+    deletePreset(id) {
+      set((state) => ({ presets: state.presets.filter((item) => item.id !== id) }));
+      void persistSettings(get());
+    },
+
+    async importPresetFile() {
+      const text = await api()?.readPresetsFile();
+      if (!text) return { added: 0, skipped: 0 };
+
+      const result = importPresets(text, get().presets);
+      set({ presets: result.presets });
+      void persistSettings(get());
+      return { added: result.added, skipped: result.skipped };
+    },
+
+    async exportPresetFile() {
+      await api()?.writePresetsFile(exportPresets(get().presets));
+    },
+
     async detectHardware() {
       const report = await api()?.detectHardware();
       if (report) set({ hardware: report.available });
@@ -329,6 +385,7 @@ export const useStore = create<State>((set, get) => {
           outputFormat: settings.outputFormat,
           outputDir: settings.outputDir,
           history: settings.history,
+          presets: settings.presets,
         });
       }
     },
@@ -341,6 +398,7 @@ async function persistSettings(state: {
   outputFormat: OutputFormat;
   outputDir: string | null;
   history: HistoryEntry[];
+  presets: CustomPreset[];
 }): Promise<void> {
   await api()?.saveSettings({
     version: SETTINGS_VERSION,
@@ -349,6 +407,7 @@ async function persistSettings(state: {
     outputDir: state.outputDir,
     hw: 'none',
     history: state.history,
+    presets: state.presets,
   });
 }
 

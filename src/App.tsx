@@ -19,14 +19,28 @@ import {
   Play,
   Plus,
   RotateCcw,
+  SlidersHorizontal,
   Sparkles,
   Trash2,
   Upload,
   X,
 } from 'lucide-react';
 import { describeSuggestion, type Suggestion } from './lib/ai-suggest';
+import {
+  AUDIO_CODECS,
+  ENCODER_PRESETS,
+  PIXEL_FORMATS,
+  PROFILES,
+  SAMPLE_RATES,
+  SCALE_ALGORITHMS,
+  SCALE_PRESETS,
+  TUNES,
+  VIDEO_CODECS,
+  validateAdvanced,
+} from './lib/advanced-params';
 import { formatBytes, formatDuration, formatPercent, formatRemaining, formatSpeed } from './lib/format';
-import type { OutputFormat, Preset } from './lib/ffmpeg-args';
+import { resolveContainer, type OutputFormat, type Preset } from './lib/ffmpeg-args';
+import { BUILTIN_PRESETS } from './lib/presets';
 import type { HistoryEntry } from './lib/settings';
 import { useStore, type TaskItem } from './store';
 
@@ -414,6 +428,343 @@ function HistoryRow({ entry }: { entry: HistoryEntry }) {
   );
 }
 
+/**
+ * 专业参数面板：给懂行的人一个入口。
+ *
+ * 三条原则：
+ *   - 「不干预」永远是个选项（字段为 null），所以只用档位时产出的命令与本面板存在之前一致；
+ *   - 校验结果显示在底部，有错时不让关——不带着非法参数去转换；
+ *   - 预设既能一键套用，也能把自己的组合存下来、导出给同事。
+ */
+function AdvancedPanel({ onClose }: { onClose: () => void }) {
+  const {
+    advanced,
+    presets,
+    outputFormat,
+    setAdvanced,
+    resetAdvanced,
+    savePreset,
+    applyPreset,
+    deletePreset,
+    importPresetFile,
+    exportPresetFile,
+  } = useStore();
+  const [name, setName] = useState('');
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const container = resolveContainer(outputFormat, 'x.mkv');
+  const { errors, warnings } = validateAdvanced(advanced, container);
+
+  /** 数字输入：留空就是不干预 */
+  const numberField = (
+    label: string,
+    value: number | null,
+    onChange: (next: number | null) => void,
+    placeholder: string,
+  ) => (
+    <label className="param-field">
+      <span>{label}</span>
+      <input
+        type="number"
+        value={value ?? ''}
+        placeholder={placeholder}
+        onChange={(event) => {
+          const raw = event.target.value.trim();
+          if (raw.length === 0) return onChange(null);
+          const parsed = Number(raw);
+          onChange(Number.isFinite(parsed) ? parsed : null);
+        }}
+      />
+    </label>
+  );
+
+  const textField = (
+    label: string,
+    value: string | null,
+    onChange: (next: string | null) => void,
+    placeholder: string,
+  ) => (
+    <label className="param-field wide">
+      <span>{label}</span>
+      <input
+        type="text"
+        value={value ?? ''}
+        placeholder={placeholder}
+        onChange={(event) => onChange(event.target.value.trim().length > 0 ? event.target.value : null)}
+      />
+    </label>
+  );
+
+  /** 下拉：第一项固定是「不干预」 */
+  const menuField = <T extends string>(
+    label: string,
+    value: T | null,
+    options: Array<{ value: T; label: string }>,
+    onChange: (next: T | null) => void,
+  ) => (
+    <div className="param-field">
+      <span>{label}</span>
+      <Menu<T | 'auto'>
+        ariaLabel={label}
+        value={value ?? 'auto'}
+        onChange={(next) => onChange(next === 'auto' ? null : (next as T))}
+        options={[{ value: 'auto' as const, label: '不干预' }, ...options]}
+      />
+    </div>
+  );
+
+  return (
+    <div className="modal-backdrop" onClick={onClose} role="presentation">
+      <div className="modal" role="dialog" aria-label="专业参数" onClick={(event) => event.stopPropagation()}>
+        <header className="modal-head">
+          <div>
+            <span className="kicker">专业参数</span>
+            <h2>不填的项按档位走</h2>
+          </div>
+          <button type="button" className="icon-button" aria-label="关闭" onClick={onClose}>
+            <X />
+          </button>
+        </header>
+
+        <div className="modal-body">
+          <section className="param-group">
+            <div className="param-group-head">
+              <span>预设</span>
+              <div className="head-actions">
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={async () => {
+                    const result = await importPresetFile();
+                    setNotice(
+                      result.added > 0
+                        ? `导入 ${result.added} 个预设${result.skipped > 0 ? `，跳过 ${result.skipped} 个` : ''}`
+                        : '没有导入任何预设（文件为空、格式不对或名称重复）',
+                    );
+                  }}
+                >
+                  导入
+                </button>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  disabled={presets.length === 0}
+                  onClick={() => void exportPresetFile()}
+                >
+                  导出
+                </button>
+              </div>
+            </div>
+
+            <div className="preset-row">
+              {BUILTIN_PRESETS.map((preset) => (
+                <button key={preset.id} type="button" className="preset-chip" onClick={() => applyPreset(preset)}>
+                  {preset.name}
+                </button>
+              ))}
+            </div>
+
+            {presets.length > 0 && (
+              <div className="preset-row">
+                {presets.map((preset) => (
+                  <span key={preset.id} className="preset-chip is-user">
+                    <button type="button" onClick={() => applyPreset(preset)}>
+                      {preset.name}
+                    </button>
+                    <button
+                      type="button"
+                      className="preset-remove"
+                      aria-label={`删除预设 ${preset.name}`}
+                      onClick={() => deletePreset(preset.id)}
+                    >
+                      <X />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="param-group">
+            <p className="param-group-head">视频编码</p>
+            <div className="param-grid">
+              {menuField(
+                '编码器',
+                advanced.videoCodec,
+                VIDEO_CODECS.map((item) => ({ value: item.value as string, label: item.label })),
+                (next) => setAdvanced({ videoCodec: next }),
+              )}
+              {numberField('CRF', advanced.crf, (next) => setAdvanced({ crf: next }), '如 23')}
+              {numberField(
+                '目标码率 kbps',
+                advanced.videoBitrateKbps,
+                (next) => setAdvanced({ videoBitrateKbps: next, rateControl: next === null ? null : 'bitrate' }),
+                '如 4000',
+              )}
+              {menuField(
+                '编码速度',
+                advanced.encoderPreset,
+                ENCODER_PRESETS.map((item) => ({ value: item as string, label: item })),
+                (next) => setAdvanced({ encoderPreset: next }),
+              )}
+              {menuField(
+                'tune',
+                advanced.tune,
+                TUNES.map((item) => ({ value: item as string, label: item })),
+                (next) => setAdvanced({ tune: next }),
+              )}
+              {menuField(
+                'profile',
+                advanced.profile,
+                PROFILES.map((item) => ({ value: item as string, label: item })),
+                (next) => setAdvanced({ profile: next }),
+              )}
+              {menuField(
+                '像素格式',
+                advanced.pixelFormat,
+                PIXEL_FORMATS.map((item) => ({ value: item as string, label: item })),
+                (next) => setAdvanced({ pixelFormat: next }),
+              )}
+              {numberField('关键帧间隔', advanced.gop, (next) => setAdvanced({ gop: next }), '如 60')}
+            </div>
+          </section>
+
+          <section className="param-group">
+            <p className="param-group-head">画面</p>
+            <div className="param-grid">
+              {menuField(
+                '缩放',
+                advanced.scale,
+                SCALE_PRESETS.map((item) => ({ value: item as string, label: item })),
+                (next) => setAdvanced({ scale: next }),
+              )}
+              {menuField<'bicubic' | 'lanczos' | 'neighbor' | 'bilinear'>(
+                '缩放算法',
+                advanced.scaleAlgorithm,
+                SCALE_ALGORITHMS.map((item) => ({ value: item, label: item })),
+                (next) => setAdvanced({ scaleAlgorithm: next }),
+              )}
+              {numberField('帧率', advanced.fps, (next) => setAdvanced({ fps: next }), '如 30')}
+            </div>
+            <p className="param-hint">缩放也可以直接手填宽高，例如 1920x1080（不一定是上面那几档）</p>
+          </section>
+
+          <section className="param-group">
+            <p className="param-group-head">音频</p>
+            <div className="param-grid">
+              {menuField<'copy' | 'encode' | 'none'>(
+                '处理方式',
+                advanced.audioMode,
+                [
+                  { value: 'encode', label: '重新编码' },
+                  { value: 'copy', label: '保持原样' },
+                  { value: 'none', label: '移除音轨' },
+                ],
+                (next) => setAdvanced({ audioMode: next }),
+              )}
+              {menuField(
+                '编码器',
+                advanced.audioCodec,
+                AUDIO_CODECS.map((item) => ({ value: item.value as string, label: item.label })),
+                (next) => setAdvanced({ audioCodec: next }),
+              )}
+              {numberField(
+                '码率 kbps',
+                advanced.audioBitrateKbps,
+                (next) => setAdvanced({ audioBitrateKbps: next }),
+                '如 192',
+              )}
+              {menuField(
+                '采样率',
+                advanced.sampleRate === null ? null : String(advanced.sampleRate),
+                SAMPLE_RATES.map((item) => ({ value: String(item), label: `${item} Hz` })),
+                (next) => setAdvanced({ sampleRate: next === null ? null : Number(next) }),
+              )}
+              {menuField(
+                '声道',
+                advanced.channels === null ? null : String(advanced.channels),
+                [
+                  { value: '1', label: '单声道' },
+                  { value: '2', label: '立体声' },
+                ],
+                (next) => setAdvanced({ channels: next === null ? null : (Number(next) as 1 | 2) }),
+              )}
+            </div>
+          </section>
+
+          <section className="param-group">
+            <p className="param-group-head">容器与性能</p>
+            <div className="param-grid">
+              {menuField(
+                'faststart',
+                advanced.faststart === null ? null : String(advanced.faststart),
+                [
+                  { value: 'true', label: '开' },
+                  { value: 'false', label: '关' },
+                ],
+                (next) => setAdvanced({ faststart: next === null ? null : next === 'true' }),
+              )}
+              {numberField('线程数', advanced.threads, (next) => setAdvanced({ threads: next }), '自动')}
+              {textField(
+                '额外参数',
+                advanced.extraArgs,
+                (next) => setAdvanced({ extraArgs: next }),
+                '如 -movflags +faststart',
+              )}
+            </div>
+          </section>
+
+          {(errors.length > 0 || warnings.length > 0 || notice) && (
+            <section className="param-group">
+              {notice && <p className="param-hint">{notice}</p>}
+              {errors.map((error) => (
+                <p key={error} className="reason">
+                  {error}
+                </p>
+              ))}
+              {warnings.map((warning) => (
+                <p key={warning} className="param-hint">
+                  {warning}
+                </p>
+              ))}
+            </section>
+          )}
+        </div>
+
+        <footer className="modal-foot">
+          <button type="button" className="secondary-button" onClick={resetAdvanced}>
+            全部重置
+          </button>
+          <div className="preset-save">
+            <input
+              type="text"
+              className="idea-input"
+              placeholder="给这套参数起个名字"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+            />
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={name.trim().length === 0}
+              onClick={() => {
+                savePreset(name);
+                setName('');
+                setNotice('已存为预设');
+              }}
+            >
+              存为预设
+            </button>
+          </div>
+          <button type="button" className="primary-button" disabled={errors.length > 0} onClick={onClose}>
+            {errors.length > 0 ? '参数有误' : '完成'}
+          </button>
+        </footer>
+      </div>
+    </div>
+  );
+}
+
 /** AI 建议：一句话说用途；降级到本地规则时如实标注来源 */
 function Assistant({ onApply }: { onApply: (preset: Preset, targetSizeMiB: number | null) => void }) {
   const [idea, setIdea] = useState('');
@@ -511,6 +862,7 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [railOpen, setRailOpen] = useState(true);
   const [inspectorOpen, setInspectorOpen] = useState(true);
+  const [panelOpen, setPanelOpen] = useState(false);
 
   const selected = tasks.find((task) => task.id === selectedId) ?? tasks[0] ?? null;
   const runnableCount = tasks.filter((task) => task.status === 'ready' || task.status === 'failed').length;
@@ -624,6 +976,10 @@ export default function App() {
 
             <div className="rail-spacer" />
 
+            <button type="button" className="secondary-button full" onClick={() => setPanelOpen(true)}>
+              <SlidersHorizontal />
+              专业参数
+            </button>
             <button type="button" className="secondary-button full" onClick={() => void pickFiles()}>
               <Plus />
               添加视频
@@ -739,6 +1095,8 @@ export default function App() {
           </button>
         </footer>
       </div>
+
+      {panelOpen && <AdvancedPanel onClose={() => setPanelOpen(false)} />}
 
       {dragging && (
         <div className="drop-overlay">

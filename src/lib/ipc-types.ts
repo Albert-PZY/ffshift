@@ -3,6 +3,7 @@
  * 两侧共用这一份类型，改名时编译期就会报错，不用靠记忆对齐字符串。
  */
 import type { ConvertOutcome, ProgressUpdate } from '../../electron/ffmpeg/convert';
+import type { AdvancedParams } from './advanced-params';
 import type { Suggestion } from './ai-suggest';
 import type { MediaInfo } from './ffprobe';
 import type { OutputFormat, Preset } from './ffmpeg-args';
@@ -46,6 +47,8 @@ export interface ConvertRequest {
     fps: number | null;
     hasAlpha: boolean;
   };
+  /** 专业参数；缺省表示全部不干预，由档位决定 */
+  advanced?: AdvancedParams | null;
 }
 
 export type ConvertResponse = { ok: true } | { ok: false; reason: string };
@@ -67,6 +70,10 @@ export interface HardwareReport {
 
 export interface FfshiftApi {
   pickFiles: () => Promise<string[]>;
+  /** 读一个 JSON 文件（导入预设用）；取消或读取失败返回 null */
+  readPresetsFile: () => Promise<string | null>;
+  /** 把内容写成 JSON 文件（导出预设用） */
+  writePresetsFile: (content: string) => Promise<{ ok: boolean }>;
   /** 选一个文件夹（用于批量导入，或指定输出目录） */
   pickFolder: (title?: string) => Promise<string[]>;
   /** 扫描文件夹里的视频文件（按扩展名过滤，不递归） */

@@ -15,6 +15,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildArgs, suggestOutputPath } from '../../src/lib/ffmpeg-args';
+import { DEFAULT_ADVANCED, type AdvancedParams } from '../../src/lib/advanced-params';
 import { isAvailable, resolveBinaries } from './binary';
 import { startConvert, type ProgressUpdate } from './convert';
 import { probeFile } from './probe';
@@ -382,6 +383,84 @@ describe.skipIf(!ready)('缩略图与转换集成', () => {
       expect(pixel[0] ?? 0).toBeGreaterThan(150); // 红分量高
       expect(pixel[1] ?? 0).toBeGreaterThan(80); // 绿分量说明叠了白底
     }, 180_000);
+  });
+
+  describe('专业参数真的改变了输出', () => {
+    const advanced = (patch: Partial<AdvancedParams>) => ({ ...DEFAULT_ADVANCED, ...patch });
+
+    it('缩放参数落到画面上：输出分辨率真的变了', async () => {
+      const output = join(outDir, '缩放输出.mp4');
+      const handle = startConvert({
+        ffmpegPath: paths.ffmpeg,
+        args: buildArgs({
+          input: source,
+          output,
+          preset: 'balanced',
+          format: 'mp4',
+          advanced: advanced({ scale: '640x360' }),
+        }),
+        outputPath: output,
+        durationSec: 4,
+      });
+      const outcome = await handle.promise;
+      expect(outcome.status, outcome.status === 'failed' ? outcome.error.raw : '').toBe('done');
+
+      const info = await probeFile(paths.ffprobe, output);
+      expect(info.width).toBe(640);
+      expect(info.height).toBe(360);
+    }, 120_000);
+
+    it('CRF 越大体积越小：质量参数真的在起作用', async () => {
+      const small = join(outDir, 'CRF40.mp4');
+      const large = join(outDir, 'CRF18.mp4');
+      const sizes: number[] = [];
+
+      for (const [output, crf] of [
+        [small, 40],
+        [large, 18],
+      ] as const) {
+        const handle = startConvert({
+          ffmpegPath: paths.ffmpeg,
+          args: buildArgs({
+            input: source,
+            output,
+            preset: 'balanced',
+            format: 'mp4',
+            advanced: advanced({ crf, encoderPreset: 'ultrafast' }),
+          }),
+          outputPath: output,
+          durationSec: 4,
+        });
+        const outcome = await handle.promise;
+        expect(outcome.status, outcome.status === 'failed' ? outcome.error.raw : '').toBe('done');
+        sizes.push(statSync(output).size);
+      }
+
+      const [smallSize, largeSize] = sizes as [number, number];
+      expect(largeSize).toBeGreaterThan(smallSize);
+    }, 180_000);
+
+    it('移除音轨：产物里真的没有音频流了', async () => {
+      const output = join(outDir, '无音轨.mp4');
+      const handle = startConvert({
+        ffmpegPath: paths.ffmpeg,
+        args: buildArgs({
+          input: source,
+          output,
+          preset: 'balanced',
+          format: 'mp4',
+          hasAudio: true,
+          advanced: advanced({ audioMode: 'none' }),
+        }),
+        outputPath: output,
+        durationSec: 4,
+      });
+      const outcome = await handle.promise;
+      expect(outcome.status, outcome.status === 'failed' ? outcome.error.raw : '').toBe('done');
+
+      const info = await probeFile(paths.ffprobe, output);
+      expect(info.hasAudio).toBe(false);
+    }, 120_000);
   });
 
   describe('输出路径', () => {

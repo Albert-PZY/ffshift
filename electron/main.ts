@@ -97,6 +97,14 @@ function createWindow(): void {
           await new Promise((resolve) => setTimeout(resolve, 4000));
         }
 
+        if (process.env.FFSHIFT_SMOKE_PANEL) {
+          // 按文字找按钮：界面文案改了这里也跟着走，不用维护选择器
+          await mainWindow?.webContents.executeJavaScript(
+            `[...document.querySelectorAll('button')].find((b) => b.textContent?.includes('专业参数'))?.click()`,
+          );
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+
         const image = await mainWindow?.webContents.capturePage();
         if (image) writeFileSync(target, image.toPNG());
         console.log('[shot] 截图已保存：', target);

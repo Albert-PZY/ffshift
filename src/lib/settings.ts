@@ -5,8 +5,9 @@
  * 任何一种情况都不能让应用起不来——解析不了就回到默认值。
  */
 import { ALL_FORMATS, type OutputFormat, type Preset } from './ffmpeg-args';
+import { parsePresets, type CustomPreset } from './presets';
 
-export const SETTINGS_VERSION = 2;
+export const SETTINGS_VERSION = 3;
 
 /** 历史记录最多留这么多条，超出丢最旧的 */
 export const HISTORY_LIMIT = 50;
@@ -37,6 +38,8 @@ export interface AppSettings {
   outputDir: string | null;
   hw: HardwareChoice;
   history: HistoryEntry[];
+  /** 用户保存的参数预设 */
+  presets: CustomPreset[];
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -46,6 +49,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   outputDir: null,
   hw: 'none',
   history: [],
+  presets: [],
 };
 
 const PRESETS: readonly Preset[] = ['clear', 'balanced', 'small'];
@@ -86,9 +90,9 @@ export function parseSettings(raw: unknown): AppSettings {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { ...DEFAULT_SETTINGS };
 
   const stored = raw as Record<string, unknown>;
-  // 版本号对不上才整体回到默认；缺版本号当成手写的设置，逐项补默认值。
-  // v1 → v2 只是多了历史记录，删掉这一条反而能把用户的历史全清了，所以旧版本按逐项解析处理。
-  if (stored.version !== undefined && stored.version !== SETTINGS_VERSION && stored.version !== 1) {
+  // 只对"比当前更新的版本"认输：那可能是未来写的文件，字段含义说不准。
+  // 旧版本逐项解析补默认值就行——升版本是为了加字段，没必要顺手清掉用户数据。
+  if (typeof stored.version === 'number' && stored.version > SETTINGS_VERSION) {
     return { ...DEFAULT_SETTINGS };
   }
 
@@ -109,7 +113,15 @@ export function parseSettings(raw: unknown): AppSettings {
         .slice(0, HISTORY_LIMIT)
     : [];
 
-  return { version: SETTINGS_VERSION, preset, outputFormat, outputDir, hw, history };
+  return {
+    version: SETTINGS_VERSION,
+    preset,
+    outputFormat,
+    outputDir,
+    hw,
+    history,
+    presets: parsePresets(stored.presets),
+  };
 }
 
 /** 把一条新记录插到最前面，并裁到上限 */
