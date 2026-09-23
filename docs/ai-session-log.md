@@ -181,3 +181,4 @@
 | 09-23 20:34 | refactor/ui-enso-language | `62726ec` | ui: 加亮暗两套主题，默认亮色 | 单测 257 条全绿、typecheck 通过、build 通过、e2e 12 条全绿（新增 1 条守"默认 | 22 <!-- commit:62726ec --> |
 | 09-23 20:36 | refactor/ui-enso-language | `d71af2e` | docs: 把沉淀钩子卷走暂存内容这条记准 | 只有一份文档改动，pre-commit 文风检查通过 | 1 <!-- commit:d71af2e --> |
 | 09-23 21:05 | refactor/ui-enso-language | `6831d93` | ui: 移除 AI 参数建议 | src/、electron/、e2e/ 三处搜不到 ai-suggest / Suggestion / WORKBUDD | 15 <!-- commit:6831d93 --> |
+| 09-23 21:05 | refactor/ui-enso-language | `4e3aa3d` | tool: 提交 area 表去掉 ai | npm run lint:commit 通过（本条提交自己就是一次校验） | 1 <!-- commit:4e3aa3d --> |
