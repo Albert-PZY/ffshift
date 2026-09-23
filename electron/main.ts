@@ -130,10 +130,15 @@ function createWindow(): void {
           await new Promise((resolve) => setTimeout(resolve, 600));
         }
 
-        if (process.env.FFSHIFT_SMOKE_PANEL) {
-          // 按文字找按钮：界面文案改了这里也跟着走，不用维护选择器
+        if (process.env.FFSHIFT_SMOKE_SETTINGS) {
+          // 设置页只有图标入口与分类文字可用：齿轮认 data-slot，分类按文字找
+          const category = JSON.stringify(process.env.FFSHIFT_SMOKE_SETTINGS);
           await mainWindow?.webContents.executeJavaScript(
-            `[...document.querySelectorAll('button')].find((b) => b.textContent?.includes('专业参数'))?.click()`,
+            `document.querySelector('[data-slot="settings-button"]')?.click()`,
+          );
+          await new Promise((resolve) => setTimeout(resolve, 300));
+          await mainWindow?.webContents.executeJavaScript(
+            `[...document.querySelectorAll('[data-slot="settings-nav-item"]')].find((b) => b.textContent?.trim() === ${category})?.click()`,
           );
           await new Promise((resolve) => setTimeout(resolve, 500));
         }
