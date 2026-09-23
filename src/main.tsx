@@ -6,14 +6,14 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
-import { applyFontSize } from './lib/font-scale';
+import { applyFontSize, FONT_SIZE_DEFAULT } from './lib/font-scale';
 import type { FontSize, Theme } from './lib/settings';
 import { applyTheme } from './lib/theme';
 import { bindIpcEvents } from './store';
 import './styles/globals.css';
 
 const initialTheme: Theme = window.ffshift?.initialTheme ?? 'light';
-const initialFontSize: FontSize = window.ffshift?.initialFontSize ?? 'default';
+const initialFontSize: FontSize = window.ffshift?.initialFontSize ?? FONT_SIZE_DEFAULT;
 applyTheme(initialTheme);
 applyFontSize(initialFontSize);
 

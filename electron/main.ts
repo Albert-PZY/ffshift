@@ -1,7 +1,7 @@
 import { app, BrowserWindow, shell } from 'electron';
 import { rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { FONT_SIZE_ARG_PREFIX, minWindowSize } from '../src/lib/font-scale';
+import { FONT_SIZE_ARG_PREFIX } from '../src/lib/font-scale';
 import { THEME_ARG_PREFIX, windowBackground } from '../src/lib/theme';
 import { disposeIpc, registerIpc } from './ipc';
 import { loadSettings } from './settings';
@@ -26,14 +26,14 @@ function createWindow(): void {
   // 晚一步就是每次启动闪一下另一个颜色、或者界面先小后大地跳一下
   const settings = loadSettings();
   const theme = settings.theme;
-  // 最小尺寸跟着字号走：三栏按当前字号排得下才叫"能用"（见 font-scale.ts）
-  const minSize = minWindowSize(settings.fontSize);
 
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    minWidth: minSize.width,
-    minHeight: minSize.height,
+    // 固定下限：面板宽度不随字号变（见 docs/design-system.md），所以三栏骨架
+    // 需要的地方与字号无关；字号很大时顶栏与底栏会折行，那是内容自己的事
+    minWidth: 940,
+    minHeight: 600,
     // 与当前主题的 --background 同一个值：窗口先出来时不该闪一下另一个颜色
     backgroundColor: windowBackground(theme),
     show: false,

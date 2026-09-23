@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 export function SectionLabel({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
     <p
-      className={cn('text-[10px] font-medium tracking-wide text-muted-foreground uppercase', className)}
+      className={cn('text-label font-medium tracking-wide text-muted-foreground uppercase', className)}
       data-slot="section-label"
     >
       {children}

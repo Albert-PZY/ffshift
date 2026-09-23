@@ -61,7 +61,8 @@ function FrameButton({
             aria-label={label}
             className={cn(
               NO_DRAG,
-              'flex h-full w-12 items-center justify-center text-muted-foreground transition-colors hover:text-foreground',
+              // 窗口控制按钮的宽度写死像素：它要和系统一致，不能随根字号缩放
+              'flex h-full w-[48px] items-center justify-center text-muted-foreground transition-colors hover:text-foreground',
               danger ? 'hover:bg-destructive hover:text-destructive-foreground' : 'hover:bg-accent',
             )}
             onClick={onClick}
@@ -124,7 +125,7 @@ export function TitleBar({
           </button>
 
           <span className="ml-2 flex items-center gap-2">
-            <span className="grid size-5 place-items-center rounded-[5px] bg-primary text-[10px] font-bold text-primary-foreground">
+            <span className="grid size-5 place-items-center rounded-[5px] bg-primary text-label font-bold text-primary-foreground">
               F
             </span>
             <span className="text-sm font-medium">FFShift</span>

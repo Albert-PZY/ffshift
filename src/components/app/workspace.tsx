@@ -57,18 +57,20 @@ export function Workspace({
       <header className="flex h-12 shrink-0 items-center gap-3 border-b px-3">
         {/* 标题就是这两个标签本身，不再另起一行「转换队列 / 转换历史」——
             同一件事说两遍只会让顶栏看起来更挤 */}
-        <Tabs className="gap-0" onValueChange={(value) => setView(value as 'queue' | 'history')} value={view}>
+        <Tabs className="shrink-0 gap-0" onValueChange={(value) => setView(value as 'queue' | 'history')} value={view}>
           <TabsList>
             <TabsTab value="queue">队列</TabsTab>
             <TabsTab value="history">历史</TabsTab>
           </TabsList>
         </Tabs>
 
-        <span className="text-xs text-muted-foreground tabular-nums">
+        {/* 条数截断、按钮不缩：字号大到这一行放不下时，宁可少显示几个字，
+            也不能让它们各自压成一列一个字 */}
+        <span className="min-w-0 truncate text-xs text-muted-foreground tabular-nums">
           {view === 'queue' ? `共 ${tasks.length} 个文件` : `${history.length} 条记录`}
         </span>
 
-        <div className="ml-auto flex items-center gap-1">
+        <div className="ml-auto flex shrink-0 items-center gap-1">
           {view === 'history' && history.length > 0 && (
             <Button onClick={clearHistory} size="sm" variant="ghost">
               <Trash2 className="h-3.5 w-3.5" />
@@ -96,7 +98,7 @@ export function Workspace({
       </div>
 
       <div
-        className="flex shrink-0 items-center gap-2.5 border-t px-3 py-2 text-[11px] text-muted-foreground"
+        className="flex shrink-0 items-center gap-2.5 border-t px-3 py-2 text-metric text-muted-foreground"
         data-slot="status-bar"
       >
         {/* 看历史时不再报队列的数：那两行数字属于队列，摆在历史下面会读错 */}
@@ -106,26 +108,31 @@ export function Workspace({
               aria-hidden="true"
               className={cn('size-1.5 shrink-0 rounded-full', queuedCount > 0 ? 'animate-pulse bg-info' : 'bg-muted-foreground')}
             />
-            <span className="tabular-nums">
+            <span className="min-w-0 truncate tabular-nums">
               {tasks.length === 0 ? '还没有文件' : `共 ${tasks.length} 个 · 待转换 ${runnableCount} 个`}
               {runningCount > 0 ? ` · 正在进行 ${runningCount} 个` : ''}
             </span>
           </>
         ) : (
-          <span className="tabular-nums">共 {history.length} 条记录</span>
+          <span className="min-w-0 truncate tabular-nums">共 {history.length} 条记录</span>
         )}
 
-        <Separator className="h-3 w-px" orientation="vertical" />
+        <Separator className="h-3 w-px shrink-0" orientation="vertical" />
 
         {paramsBroken ? (
-          <span className="truncate text-destructive">专业参数有误，去设置里改完再开始</span>
+          <span className="min-w-0 flex-1 truncate text-destructive">专业参数有误，去设置里改完再开始</span>
         ) : (
-          <span className="truncate" title={outputDir ?? '与源文件同目录'}>
+          <span className="min-w-0 flex-1 truncate" title={outputDir ?? '与源文件同目录'}>
             {outputDir ? `输出到 ${outputDir}` : '输出到源文件同目录'}
           </span>
         )}
 
-        <Button className="ml-auto" disabled={runnableCount === 0 || paramsBroken} onClick={() => void startAll()} size="default">
+        <Button
+          className="shrink-0"
+          disabled={runnableCount === 0 || paramsBroken}
+          onClick={() => void startAll()}
+          size="default"
+        >
           <Play className="h-3.5 w-3.5" />
           {runningCount > 0 ? '继续排队' : '开始转换'}
         </Button>

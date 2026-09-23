@@ -132,6 +132,55 @@ describe('持久化：设置与预设', () => {
     expect(await isDark()).toBe(false);
   }, 180_000);
 
+  it('字号：默认 14px，改过之后重启还是那一档', async () => {
+    const userDataDir = freshDir();
+    const rootPx = (): Promise<string> =>
+      running ? running.page.evaluate(() => getComputedStyle(document.documentElement).fontSize) : Promise.resolve('');
+
+    running = await launchApp({ userDataDir });
+    expect(await rootPx()).toBe('14px');
+
+    await openSettings(running.page, '外观');
+    await running.page
+      .locator('[data-slot="settings-row"]', { hasText: '字号' })
+      .locator('[data-slot="select-trigger"]')
+      .click();
+    await running.page.getByRole('option', { name: '18px' }).click();
+    await running.page.waitForTimeout(800);
+    expect(await rootPx()).toBe('18px');
+    expect(await running.page.locator('[data-slot="font-size-preview"]').innerText()).toContain('正文 15.8px');
+
+    // 重启后首帧就是 18px：字号与主题一样，在主进程建窗口之前就读出来了
+    await restart(userDataDir);
+    expect(await rootPx()).toBe('18px');
+    expect(await running.page.evaluate(() => window.__ffshift.state().fontSize)).toBe(18);
+  }, 180_000);
+
+  it('字号拉到最大也不动窗口下限：外壳尺寸不跟字号走', async () => {
+    // 这条守的是一个取舍：面板宽度要是跟着字号缩放，24px 下三栏骨架要占 1600px，
+    // 普通笔记本装不下。所以外壳固定、只有内容缩放。
+    running = await launchApp();
+    const minSize = (): Promise<number[]> =>
+      running
+        ? running.app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.getMinimumSize() ?? [0, 0])
+        : Promise.resolve([0, 0]);
+
+    expect(await minSize()).toEqual([940, 600]);
+
+    await openSettings(running.page, '外观');
+    await running.page
+      .locator('[data-slot="settings-row"]', { hasText: '字号' })
+      .locator('[data-slot="select-trigger"]')
+      .click();
+    await running.page.getByRole('option', { name: '24px' }).click();
+    await running.page.waitForTimeout(500);
+
+    expect(await minSize()).toEqual([940, 600]);
+    expect(
+      await running.page.evaluate(() => getComputedStyle(document.documentElement).fontSize),
+    ).toBe('24px');
+  }, 180_000);
+
   it('输出目录也是记忆项：设完之后重启仍显示', async () => {
     const userDataDir = freshDir();
 

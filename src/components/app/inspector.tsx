@@ -89,7 +89,7 @@ export function Inspector({ task, onClose }: { task: TaskItem; onClose: () => vo
             <summary className="cursor-pointer px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground">
               查看原始日志
             </summary>
-            <pre className="select-text max-h-56 overflow-auto border-t p-2.5 font-mono text-[11px]/relaxed break-all whitespace-pre-wrap text-muted-foreground">
+            <pre className="select-text max-h-56 overflow-auto border-t p-2.5 font-mono text-metric/relaxed break-all whitespace-pre-wrap text-muted-foreground">
               {task.errorRaw}
             </pre>
             <div className="border-t p-1.5">

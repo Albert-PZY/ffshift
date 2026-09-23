@@ -5,10 +5,11 @@
  * 任何一种情况都不能让应用起不来——解析不了就回到默认值。
  */
 import { DEFAULT_ADVANCED, parseAdvanced, type AdvancedParams } from './advanced-params';
+import { clampFontSize, FONT_SIZE_DEFAULT, fontSizeFromLegacyName } from './font-scale';
 import { ALL_FORMATS, type OutputFormat, type Preset } from './ffmpeg-args';
 import { parsePresets, type CustomPreset } from './presets';
 
-export const SETTINGS_VERSION = 6;
+export const SETTINGS_VERSION = 7;
 
 /** 历史记录最多留这么多条，超出丢最旧的 */
 export const HISTORY_LIMIT = 50;
@@ -24,13 +25,12 @@ export type HardwareChoice = 'none' | 'nvenc' | 'qsv' | 'amf';
 export type Theme = 'light' | 'dark';
 
 /**
- * 界面字号档位。
+ * 界面字号：根字号的像素值，范围见 `src/lib/font-scale.ts` 的 10–24。
  *
- * 存档位名而不是像素值：档位表改了（比如把"大"从 15px 调到 15.5px），
- * 老设置文件还能对上；存像素值的话用户会停在表外的某个数上。
- * 像素值本身在 `src/lib/font-scale.ts`。
+ * 存数值而不是档位名：它本来就是一个"多少像素"的连续量，中间再放一层档位表，
+ * 只会让"我设的 15px 对应哪一档"这种问题变得难解释。范围与收敛都在解析边界上做。
  */
-export type FontSize = 'small' | 'default' | 'large' | 'larger';
+export type FontSize = number;
 
 /** 一条转换记录：转换完成（成功或失败）时追加 */
 export interface HistoryEntry {
@@ -78,14 +78,25 @@ export const DEFAULT_SETTINGS: AppSettings = {
   history: [],
   presets: [],
   theme: 'light',
-  fontSize: 'default',
+  fontSize: FONT_SIZE_DEFAULT,
   advanced: { ...DEFAULT_ADVANCED },
 };
 
 const PRESETS: readonly Preset[] = ['clear', 'balanced', 'small'];
 const HARDWARE: readonly HardwareChoice[] = ['none', 'nvenc', 'qsv', 'amf'];
 const THEMES: readonly Theme[] = ['light', 'dark'];
-const FONT_SIZES: readonly FontSize[] = ['small', 'default', 'large', 'larger'];
+
+/**
+ * 字号解析：先认旧档位名，再认数字，越界收敛。
+ *
+ * 版本 6 存的是 `small | default | large | larger`，版本 7 起存像素值；
+ * 认一下老名字，升级的用户不会莫名其妙回到默认字号。
+ */
+function parseFontSize(value: unknown): FontSize {
+  const legacy = fontSizeFromLegacyName(value);
+  if (legacy !== null) return legacy;
+  return typeof value === 'number' ? clampFontSize(value) : FONT_SIZE_DEFAULT;
+}
 
 /** 解析单条历史记录；字段缺失或类型不对就丢弃这一条，而不是让整份设置作废 */
 function parseHistoryEntry(raw: unknown): HistoryEntry | null {
@@ -138,9 +149,7 @@ export function parseSettings(raw: unknown): AppSettings {
   const outputDir =
     typeof stored.outputDir === 'string' && stored.outputDir.length > 0 ? stored.outputDir : null;
   const theme = THEMES.includes(stored.theme as Theme) ? (stored.theme as Theme) : DEFAULT_SETTINGS.theme;
-  const fontSize = FONT_SIZES.includes(stored.fontSize as FontSize)
-    ? (stored.fontSize as FontSize)
-    : DEFAULT_SETTINGS.fontSize;
+  const fontSize = parseFontSize(stored.fontSize);
 
   const history = Array.isArray(stored.history)
     ? stored.history

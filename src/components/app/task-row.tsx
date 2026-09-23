@@ -17,7 +17,7 @@ import { useStore, type TaskItem } from '@/store';
 function Thumb({ task }: { task: TaskItem }) {
   return (
     <div
-      className="relative h-[54px] w-24 shrink-0 overflow-hidden rounded-md border bg-muted/30"
+      className="relative h-[49px] w-24 shrink-0 overflow-hidden rounded-md border bg-muted/30"
       data-slot="thumb"
     >
       {task.thumbnail ? (
@@ -25,7 +25,7 @@ function Thumb({ task }: { task: TaskItem }) {
       ) : task.status === 'reading' ? (
         <Skeleton className="size-full rounded-none" />
       ) : (
-        <span className="grid h-full place-items-center text-[10px] text-muted-foreground">无预览</span>
+        <span className="grid h-full place-items-center text-label text-muted-foreground">无预览</span>
       )}
     </div>
   );
@@ -87,7 +87,7 @@ export function TaskRow({ task, selected, onSelect }: { task: TaskItem; selected
         {running && (
           <div className="mt-1.5 flex items-center gap-2">
             <Progress className="max-w-80" value={percent === null ? null : percent * 100} />
-            <span className="shrink-0 text-[11px] text-info tabular-nums">
+            <span className="shrink-0 text-metric text-info tabular-nums">
               {percent !== null ? formatPercent(percent) : '进行中'}
               {task.progress?.remainingSec != null ? ` · 剩余 ${formatRemaining(task.progress.remainingSec)}` : ''}
               {task.progress?.speed ? ` · ${formatSpeed(task.progress.speed)}` : ''}

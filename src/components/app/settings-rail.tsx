@@ -42,7 +42,7 @@ function RailRow({
     >
       {children}
       {label}
-      {trailing && <span className="ml-auto text-[10px] tabular-nums text-muted-foreground">{trailing}</span>}
+      {trailing && <span className="ml-auto text-label tabular-nums text-muted-foreground">{trailing}</span>}
     </button>
   );
 }
@@ -129,7 +129,7 @@ export function SettingsRail({ onOpenSettings }: { onOpenSettings: () => void })
               type="number"
               value={targetSizeMiB ?? ''}
             />
-            <p className="text-[11px] leading-relaxed text-muted-foreground">
+            <p className="text-metric leading-relaxed text-muted-foreground">
               留空就按档位走恒定质量；填了就按目标体积反推码率。只对这一批生效，不记忆。
             </p>
           </div>

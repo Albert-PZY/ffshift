@@ -66,6 +66,15 @@
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', 'Menlo', Consolas, ui-monospace, monospace;
 
+  /*
+   * 两档小字号，用 rem 而不是 px——它们要跟着根字号一起放大。
+   * 写死 px 的话，选"更大"档的人会发现正文大了、标签还是原来那么小，
+   * 而需要放大字号的用户，往往正是看不清这些小字的人。
+   *   0.714rem ≈ 14px 基准下的 10px；0.786rem ≈ 11px
+   */
+  --text-label: 0.714rem;
+  --text-metric: 0.786rem;
+
   --animate-skeleton: skeleton 2s -1s infinite linear;
   --animate-indeterminate: indeterminate 1.4s var(--ease-smooth-out) infinite;
 
