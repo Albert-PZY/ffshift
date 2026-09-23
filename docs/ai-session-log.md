@@ -195,3 +195,4 @@
 | 09-24 00:18 | refactor/ui-enso-language | `0163551` | docs: 记下浅黑主题的取舍与两个连带发现 | pre-commit 文风检查通过；openspec 归档通过 | 13 <!-- commit:0163551 --> |
 | 09-24 00:19 | refactor/ui-enso-language | `fa64163` | ui: 加浅黑主题，表单底色改成语义令牌 | typecheck、build 通过；单测 257 条全绿；e2e 17 条全绿（68.3s，主题用例扩到 | 10 <!-- commit:fa64163 --> |
 | 09-24 01:17 | refactor/ui-enso-language | `3f084b9` | docs: 默认值定成浅黑 + 15px 的取舍与同步 | pre-commit 文风检查通过；openspec 归档通过 | 14 <!-- commit:3f084b9 --> |
+| 09-24 01:18 | refactor/ui-enso-language | `ac40630` | settings: 默认字号 15px、默认主题浅黑 | typecheck、build 通过；单测 258 条全绿；一次快速冒烟通过 | 8 <!-- commit:ac40630 --> |
