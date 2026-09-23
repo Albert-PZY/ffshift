@@ -1,4 +1,4 @@
-/* FFShift 界面样式：严格按 design-system/ffshift/MASTER.md 的变量与规则。
+/* FFShift 界面样式：严格按 docs/design-system.md 的变量与规则。
    颜色只表达状态和唯一主按钮，层级靠间距、字重和 1px 边框。 */
 
 :root {

@@ -68,9 +68,11 @@ export function collectStatus() {
   const shortstat = git(['diff', '--shortstat', `${git(['rev-list', '--max-parents=0', 'HEAD'], { allowFail: true }) ?? 'HEAD'}..HEAD`], { allowFail: true }) ?? '';
 
   const testing = readIfExists(join(rootDir, 'docs', 'testing.md'));
-  const docsFiles = listDirs(join(rootDir, 'docs'));
-  const designFiles = existsSync(join(rootDir, 'design-system'))
-    ? readdirSync(join(rootDir, 'design-system'), { withFileTypes: true }).filter((d) => d.isFile()).map((d) => d.name)
+  const docsDir = join(rootDir, 'docs');
+  const docsFiles = existsSync(docsDir)
+    ? readdirSync(docsDir, { withFileTypes: true })
+        .filter((entry) => entry.isFile() && entry.name.endsWith('.md'))
+        .map((entry) => entry.name)
     : [];
 
   return {
@@ -81,7 +83,7 @@ export function collectStatus() {
     modules: moduleStats(rootDir),
     specs: specStats(rootDir),
     smoke: smokeStats(testing),
-    docs: { count: docsFiles.length, designSystem: designFiles.length },
+    docs: { count: docsFiles.length },
   };
 }
 
@@ -103,7 +105,7 @@ export function renderStatus(s) {
   L.push(`| 累计改动 | ${s.commits.shortstat || '—'} |`);
   L.push(`| 分支 | ${s.branches.join('、') || '—'} |`);
   L.push(`| 版本 Tag | ${s.tags.join('、') || '未打 tag'} |`);
-  L.push(`| 文档数 | ${s.docs.count} 份（design-system ${s.docs.designSystem} 份） |`);
+  L.push(`| 文档数 | ${s.docs.count} 份 |`);
   L.push(`| 能力规格 | ${s.specs.capabilities.length} 个 |`);
   L.push(`| 在途变更 | ${s.specs.changes.length} 个（已归档 ${s.specs.archived.length} 个） |`);
   L.push('');
