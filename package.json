@@ -1,6 +1,6 @@
 {
   "name": "ffshift",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "FFShift —— ffmpeg 的换挡键：不用懂参数，也能转好视频",
   "main": "out/main/index.js",
