@@ -6,6 +6,7 @@ import type { ConvertOutcome, ProgressUpdate } from '../../electron/ffmpeg/conve
 import type { Suggestion } from './ai-suggest';
 import type { MediaInfo } from './ffprobe';
 import type { Preset } from './ffmpeg-args';
+import type { AppSettings } from './settings';
 
 export interface SuggestResponse {
   suggestion: Suggestion;
@@ -64,6 +65,8 @@ export interface FfshiftApi {
   detectHardware: () => Promise<HardwareReport>;
   ffmpegVersion: () => Promise<string | null>;
   suggest: (description: string) => Promise<SuggestResponse>;
+  loadSettings: () => Promise<AppSettings>;
+  saveSettings: (settings: AppSettings) => Promise<AppSettings>;
   onProgress: (listener: (event: ProgressEvent) => void) => () => void;
   onFinished: (listener: (event: FinishedEvent) => void) => () => void;
   /** 拖放的 File 对象在渲染进程拿不到磁盘路径，必须走它 */

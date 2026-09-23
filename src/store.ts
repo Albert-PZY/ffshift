@@ -42,6 +42,7 @@ interface State {
   setPreset: (preset: Preset) => void;
   pickOutputDir: () => Promise<void>;
   detectHardware: () => Promise<void>;
+  loadSettings: () => Promise<void>;
 }
 
 export const useStore = create<State>((set, get) => {
@@ -58,11 +59,21 @@ export const useStore = create<State>((set, get) => {
       tasks: state.tasks.map((t) => (t.id === next.id ? { ...t, status: 'running', output } : t)),
     }));
 
+    // 探测到硬件编码器就自动用：用户不需要知道 nvenc 和 qsv 的区别
+    const hw: 'none' | 'nvenc' | 'qsv' | 'amf' = get().hardware.includes('nvenc')
+      ? 'nvenc'
+      : get().hardware.includes('qsv')
+        ? 'qsv'
+        : get().hardware.includes('amf')
+          ? 'amf'
+          : 'none';
+
     const response = await api()?.convert({
       taskId: next.id,
       input: next.path,
       output,
       preset,
+      hw,
       hasAudio: next.info.hasAudio,
       durationSec: next.info.durationSec,
     });
@@ -167,19 +178,40 @@ export const useStore = create<State>((set, get) => {
 
     setPreset(preset) {
       set({ preset });
+      void persistSettings(get());
     },
 
     async pickOutputDir() {
       const dir = await api()?.pickFiles();
-      if (dir && dir[0]) set({ outputDir: dir[0] });
+      if (dir && dir[0]) {
+        set({ outputDir: dir[0] });
+        void persistSettings(get());
+      }
     },
 
     async detectHardware() {
       const report = await api()?.detectHardware();
       if (report) set({ hardware: report.available });
     },
+
+    async loadSettings() {
+      const settings = await api()?.loadSettings();
+      if (settings) {
+        set({ preset: settings.preset, outputDir: settings.outputDir });
+      }
+    },
   };
 });
+
+/** 设置改动就落盘，下次启动还在（冒烟清单第 12 条）。 */
+async function persistSettings(state: { preset: Preset; outputDir: string | null }): Promise<void> {
+  await api()?.saveSettings({
+    version: 1,
+    preset: state.preset,
+    outputDir: state.outputDir,
+    hw: 'none',
+  });
+}
 
 /** 主进程推来的进度与结束事件：接一次就够，所以放在模块加载时绑定。 */
 export function bindIpcEvents(): void {
@@ -211,5 +243,6 @@ export function bindIpcEvents(): void {
   });
 
   void useStore.getState().detectHardware();
+  void useStore.getState().loadSettings();
   void ffshift.ffmpegVersion().then((version) => useStore.setState({ ffmpegVersion: version }));
 }

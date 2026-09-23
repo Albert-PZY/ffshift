@@ -20,6 +20,7 @@ import type {
   ThumbnailResponse,
 } from '../src/lib/ipc-types';
 import { requestSuggestion } from './ai';
+import { loadSettings, saveSettings } from './settings';
 import { resolveBinaries } from './ffmpeg/binary';
 import { startConvert, type ConvertHandle } from './ffmpeg/convert';
 import { probeFile } from './ffmpeg/probe';
@@ -170,6 +171,9 @@ export function registerIpc({ getWindow }: Deps): void {
     }
     return requestSuggestion(description);
   });
+
+  ipcMain.handle('ffshift:load-settings', async () => loadSettings());
+  ipcMain.handle('ffshift:save-settings', async (_event, settings: unknown) => saveSettings(settings));
 
   // 供测试与排错：主进程启动时把二进制来源写进日志
   const sourceLabel = binaries.source === 'bundled' ? '随包分发' : '系统 PATH';

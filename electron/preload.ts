@@ -3,6 +3,7 @@
  * 渲染进程拿不到 Node，只能调这里列出的方法。
  */
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
+import type { AppSettings } from '../src/lib/settings';
 import type {
   ConvertRequest,
   ConvertResponse,
@@ -27,6 +28,9 @@ const api: FfshiftApi & { getPathForFile: (file: File) => string } = {
   ffmpegVersion: () => ipcRenderer.invoke('ffshift:ffmpeg-version') as Promise<string | null>,
   suggest: (description) =>
     ipcRenderer.invoke('ffshift:ai-suggest', description) as Promise<SuggestResponse>,
+  loadSettings: () => ipcRenderer.invoke('ffshift:load-settings') as Promise<AppSettings>,
+  saveSettings: (settings: AppSettings) =>
+    ipcRenderer.invoke('ffshift:save-settings', settings) as Promise<AppSettings>,
 
   onProgress: (listener) => {
     const handler = (_event: unknown, payload: ProgressEvent) => listener(payload);
