@@ -68,6 +68,19 @@ export interface HardwareReport {
   checkedAt: string;
 }
 
+/**
+ * 无边框窗口的自绘控制。
+ *
+ * 窗口没有系统边框，最小化 / 最大化 / 关闭必须由界面提供；
+ * `isMaximized` 用来在最大化与还原之间换图标。
+ */
+export interface FrameControls {
+  minimize: () => void;
+  toggleMaximize: () => void;
+  close: () => void;
+  isMaximized: () => Promise<boolean>;
+}
+
 export interface FfshiftApi {
   pickFiles: () => Promise<string[]>;
   /** 读一个 JSON 文件（导入预设用）；取消或读取失败返回 null */
@@ -90,6 +103,8 @@ export interface FfshiftApi {
   loadSettings: () => Promise<AppSettings>;
   saveSettings: (settings: AppSettings) => Promise<AppSettings>;
   revealOutput: (filePath: string) => Promise<{ ok: boolean }>;
+  /** 无边框窗口的自绘控制按钮 */
+  frame: FrameControls;
   onProgress: (listener: (event: ProgressEvent) => void) => () => void;
   onFinished: (listener: (event: FinishedEvent) => void) => () => void;
   /** 拖放的 File 对象在渲染进程拿不到磁盘路径，必须走它 */

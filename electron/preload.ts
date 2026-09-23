@@ -41,6 +41,13 @@ const api: FfshiftApi & { getPathForFile: (file: File) => string } = {
   revealOutput: (filePath: string) =>
     ipcRenderer.invoke('ffshift:reveal-output', filePath) as Promise<{ ok: boolean }>,
 
+  frame: {
+    minimize: () => ipcRenderer.send('ffshift:frame', 'minimize'),
+    toggleMaximize: () => ipcRenderer.send('ffshift:frame', 'toggle-maximize'),
+    close: () => ipcRenderer.send('ffshift:frame', 'close'),
+    isMaximized: () => ipcRenderer.invoke('ffshift:frame-maximized') as Promise<boolean>,
+  },
+
   onProgress: (listener) => {
     const handler = (_event: unknown, payload: ProgressEvent) => listener(payload);
     ipcRenderer.on('ffshift:progress', handler);

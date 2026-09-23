@@ -254,6 +254,21 @@ export function registerIpc({ getWindow }: Deps): void {
   ipcMain.handle('ffshift:load-settings', async () => loadSettings());
   ipcMain.handle('ffshift:save-settings', async (_event, settings: unknown) => saveSettings(settings));
 
+  // 无边框窗口：标题栏是自己画的，三个按钮与最大化状态都得有对应通道。
+  // 用 send 而不是 invoke：这些都是"发出去就完成"的动作，等回执只会让按钮感觉有延迟。
+  ipcMain.on('ffshift:frame', (_event, action: unknown) => {
+    const window = getWindow();
+    if (!window) return;
+
+    if (action === 'minimize') window.minimize();
+    else if (action === 'toggle-maximize') {
+      if (window.isMaximized()) window.unmaximize();
+      else window.maximize();
+    } else if (action === 'close') window.close();
+  });
+
+  ipcMain.handle('ffshift:frame-maximized', async () => getWindow()?.isMaximized() ?? false);
+
   // 转换完成后让用户直接看到文件：在资源管理器里高亮选中，而不是只给个路径
   ipcMain.handle('ffshift:reveal-output', async (_event, filePath: string) => {
     if (typeof filePath !== 'string' || !existsSync(filePath)) return { ok: false };

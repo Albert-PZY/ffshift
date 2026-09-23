@@ -7,13 +7,16 @@ let mainWindow: BrowserWindow | null = null;
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
-    width: 1120,
-    height: 760,
+    width: 1200,
+    height: 800,
     minWidth: 940,
     minHeight: 600,
-    backgroundColor: '#0B0C0E',
+    // 与 --background 同一个值：窗口先出来时不该闪一下另一个颜色
+    backgroundColor: '#090910',
     show: false,
-    autoHideMenuBar: true,
+    // 无边框：标题栏、最小化 / 最大化 / 关闭都由界面自绘，
+    // 这样顶栏才能跟侧栏、工作区用同一套底色与 1px 分隔线，而不是被系统的灰条截断
+    frame: false,
     title: 'FFShift',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
