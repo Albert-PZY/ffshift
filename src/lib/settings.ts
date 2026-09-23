@@ -8,7 +8,7 @@ import { DEFAULT_ADVANCED, parseAdvanced, type AdvancedParams } from './advanced
 import { ALL_FORMATS, type OutputFormat, type Preset } from './ffmpeg-args';
 import { parsePresets, type CustomPreset } from './presets';
 
-export const SETTINGS_VERSION = 5;
+export const SETTINGS_VERSION = 6;
 
 /** 历史记录最多留这么多条，超出丢最旧的 */
 export const HISTORY_LIMIT = 50;
@@ -22,6 +22,15 @@ export type HardwareChoice = 'none' | 'nvenc' | 'qsv' | 'amf';
  * 选过之后记住，下次启动直接是那套（见 electron/main.ts 的提前读取）。
  */
 export type Theme = 'light' | 'dark';
+
+/**
+ * 界面字号档位。
+ *
+ * 存档位名而不是像素值：档位表改了（比如把"大"从 15px 调到 15.5px），
+ * 老设置文件还能对上；存像素值的话用户会停在表外的某个数上。
+ * 像素值本身在 `src/lib/font-scale.ts`。
+ */
+export type FontSize = 'small' | 'default' | 'large' | 'larger';
 
 /** 一条转换记录：转换完成（成功或失败）时追加 */
 export interface HistoryEntry {
@@ -51,6 +60,8 @@ export interface AppSettings {
   presets: CustomPreset[];
   /** 界面主题；默认亮色 */
   theme: Theme;
+  /** 界面字号档位；默认标准 */
+  fontSize: FontSize;
   /**
    * 专业参数。字段为 null 表示"不干预"，由档位决定。
    * v1.5.0 起持久化：它从对话框搬进了设置页，就该按设置的语义走（ADR-018）。
@@ -67,12 +78,14 @@ export const DEFAULT_SETTINGS: AppSettings = {
   history: [],
   presets: [],
   theme: 'light',
+  fontSize: 'default',
   advanced: { ...DEFAULT_ADVANCED },
 };
 
 const PRESETS: readonly Preset[] = ['clear', 'balanced', 'small'];
 const HARDWARE: readonly HardwareChoice[] = ['none', 'nvenc', 'qsv', 'amf'];
 const THEMES: readonly Theme[] = ['light', 'dark'];
+const FONT_SIZES: readonly FontSize[] = ['small', 'default', 'large', 'larger'];
 
 /** 解析单条历史记录；字段缺失或类型不对就丢弃这一条，而不是让整份设置作废 */
 function parseHistoryEntry(raw: unknown): HistoryEntry | null {
@@ -125,6 +138,9 @@ export function parseSettings(raw: unknown): AppSettings {
   const outputDir =
     typeof stored.outputDir === 'string' && stored.outputDir.length > 0 ? stored.outputDir : null;
   const theme = THEMES.includes(stored.theme as Theme) ? (stored.theme as Theme) : DEFAULT_SETTINGS.theme;
+  const fontSize = FONT_SIZES.includes(stored.fontSize as FontSize)
+    ? (stored.fontSize as FontSize)
+    : DEFAULT_SETTINGS.fontSize;
 
   const history = Array.isArray(stored.history)
     ? stored.history
@@ -142,6 +158,7 @@ export function parseSettings(raw: unknown): AppSettings {
     history,
     presets: parsePresets(stored.presets),
     theme,
+    fontSize,
     advanced: parseAdvanced(stored.advanced),
   };
 }

@@ -12,7 +12,7 @@ import {
 describe('parseSettings', () => {
   it('完整设置原样返回', () => {
     const stored = {
-      version: 5,
+      version: 6,
       preset: 'small',
       outputFormat: 'mp4',
       outputDir: 'D:\\输出',
@@ -20,6 +20,7 @@ describe('parseSettings', () => {
       history: [],
       presets: [],
       theme: 'dark',
+      fontSize: 'larger',
       advanced: { ...DEFAULT_ADVANCED, crf: 18 },
     };
     expect(parseSettings(stored)).toEqual(stored);
@@ -49,6 +50,14 @@ describe('parseSettings', () => {
     expect(parseSettings({ theme: 1 }).theme).toBe('light');
     // 选过暗色的要留下来，不能被默认值吃掉
     expect(parseSettings({ theme: 'dark' }).theme).toBe('dark');
+  });
+
+  it('字号默认标准档；存的是档位名不是像素值', () => {
+    expect(DEFAULT_SETTINGS.fontSize).toBe('default');
+    expect(parseSettings({}).fontSize).toBe('default');
+    expect(parseSettings({ fontSize: '16px' }).fontSize).toBe('default');
+    expect(parseSettings({ fontSize: 16 }).fontSize).toBe('default');
+    expect(parseSettings({ fontSize: 'larger' }).fontSize).toBe('larger');
   });
 
   it('旧版本（没有 theme 字段）读出来是亮色，其余字段照旧保留', () => {
@@ -83,7 +92,7 @@ describe('parseSettings', () => {
 
   it('旧版本能升级：偏好留着，新字段给默认值', () => {
     const parsed = parseSettings({ version: 1, preset: 'clear', outputFormat: 'mp3' });
-    expect(parsed.version).toBe(5);
+    expect(parsed.version).toBe(6);
     expect(parsed.preset).toBe('clear');
     expect(parsed.outputFormat).toBe('mp3');
     expect(parsed.history).toEqual([]);
@@ -141,7 +150,7 @@ describe('历史记录', () => {
 describe('serializeSettings', () => {
   it('写出的 JSON 能被读回来，字段不丢', () => {
     const settings = {
-      version: 5,
+      version: 6,
       preset: 'small' as const,
       outputFormat: 'webm' as const,
       outputDir: 'D:\\输出',
@@ -149,6 +158,7 @@ describe('serializeSettings', () => {
       history: [],
       presets: [],
       theme: 'dark' as const,
+      fontSize: 'large' as const,
       advanced: { ...DEFAULT_ADVANCED, gop: 60, audioMode: 'copy' as const },
     };
     expect(parseSettings(JSON.parse(serializeSettings(settings)))).toEqual(settings);
