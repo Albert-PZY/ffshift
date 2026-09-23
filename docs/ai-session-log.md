@@ -162,3 +162,4 @@
 | 09-23 15:17 | feat/settings-and-folder | `165f0fb` | ui: 补上输出目录、目标体积与文件夹导入 | 单测 172 条全绿、typecheck 通过、界面截图已更新 | 11 <!-- commit:165f0fb --> |
 | 09-23 15:22 | feat/settings-and-folder | `f6840ff` | ui: 失败的原始日志可展开复制，连续失败两次就停下 | 单测 172 条、集成测试 22 条全绿（新增断言：失败时 error.raw 非空） | 4 <!-- commit:f6840ff --> |
 | 09-23 15:24 | feat/settings-and-folder | `2d13d18` | ui: 转换完成后发系统通知，并显示体积变化 | typecheck 通过；端到端实测 outputSizeBytes = 2311319（约 2.3 MB） | 7 <!-- commit:2d13d18 --> |
+| 09-23 15:37 | docs/spec-and-testing | `51f33b5` | docs: 把八项功能写进规格，并更新测试清单 | openspec validate 通过（3 个能力、0 失败） | 5 <!-- commit:51f33b5 --> |
