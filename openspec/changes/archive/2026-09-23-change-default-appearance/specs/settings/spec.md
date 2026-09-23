@@ -1,28 +1,4 @@
-# settings Specification
-
-## Purpose
-TBD - created by archiving change 2026-09-23-add-settings-page. Update Purpose after archive.
-
-## Requirements
-
-### Requirement: 设置页
-
-系统 SHALL 提供独立的设置界面，入口 SHALL 在主界面顶栏的右上角，并 SHALL 能返回转换界面。设置界面 SHALL 按分类组织内容：输出、参数预设、外观、关于。设置页与转换界面 SHALL 不同屏显示。
-
-#### Scenario: 打开设置
-
-- **WHEN** 用户在转换界面点击顶栏的设置按钮
-- **THEN** 界面切换到设置页，转换栏、队列与详情栏都不再显示
-
-#### Scenario: 返回
-
-- **WHEN** 用户点击设置页的返回按钮
-- **THEN** 回到转换界面，之前的队列与选中状态不变
-
-#### Scenario: 切换分类
-
-- **WHEN** 用户点击左侧的某个分类
-- **THEN** 右侧内容换成该分类，且当前分类有选中态
+## MODIFIED Requirements
 
 ### Requirement: 主题偏好的入口在设置里
 
@@ -53,29 +29,6 @@ TBD - created by archiving change 2026-09-23-add-settings-page. Update Purpose a
 - **WHEN** 用户第一次启动应用（没有任何设置文件）
 - **THEN** 界面按浅黑渲染
 
-### Requirement: 引擎信息在设置里
-
-系统 SHALL 在设置的「关于」分类里显示应用版本、ffmpeg 版本与硬件加速状态，并 SHALL 提供重新检测硬件加速的入口。主界面顶栏 SHALL 只显示硬件的简短状态与一个说明性圆点。
-
-#### Scenario: 重新检测硬件加速
-
-- **WHEN** 用户点击「重新检测」
-- **THEN** 硬件加速状态按最新结果刷新
-
-#### Scenario: 顶栏保持简短
-
-- **WHEN** 用户停留在转换界面
-- **THEN** 顶栏只出现圆点加一句短标签（如「硬件加速：amf」或「CPU 编码」），不出现完整版本串
-
-### Requirement: 输出位置在设置里改
-
-系统 SHALL 把输出目录的修改入口放在设置的「输出」分类里。主界面 SHALL 只以只读方式显示当前输出位置。
-
-#### Scenario: 改完之后回主界面
-
-- **WHEN** 用户在设置里选了输出目录并返回
-- **THEN** 主界面底栏显示新的输出位置
-
 ### Requirement: 界面字号
 
 系统 SHALL 在设置页的「外观」分类里提供界面字号选择，取值范围 SHALL 为 10–24px 的每一个整数，默认 15px。选择 SHALL 被记住。字号 SHALL 作为根字号生效，全站文字、间距与控件高度 SHALL 一起等比缩放。界面 SHALL 报出由基准派生出的可见字号（正文、元信息、小节标题）。
@@ -104,12 +57,3 @@ TBD - created by archiving change 2026-09-23-add-settings-page. Update Purpose a
 
 - **WHEN** 用户第一次启动应用（没有任何设置文件）
 - **THEN** 根字号为 15px
-
-### Requirement: 外壳尺寸不随字号变化
-
-左右两栏宽度、标题栏高度与窗口最小尺寸 SHALL NOT 随字号变化——只有内容缩放。字号放大而窗口偏小时，顶栏与底栏 SHALL 通过截断文字降级，SHALL NOT 把文字压成一列一个字。
-
-#### Scenario: 最大字号配最小窗口
-
-- **WHEN** 用户在 940×600 的窗口里把字号调到 24px
-- **THEN** 窗口最小尺寸仍是 940×600，两栏宽度不变，顶栏与底栏文字被截断但按钮完整可点

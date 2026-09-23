@@ -6,15 +6,15 @@ Windows 优先的桌面视频格式转换器。界面用 Electron + React + Type
 
 ## 界面
 
-主界面只放"这次要转成什么"——档位、输出格式、目标体积：
+主界面只放"这次要转成什么"——档位、输出格式、目标体积。默认浅黑主题、15px 字号：
 
 ![FFShift 主界面](docs/screenshots/main.png)
 
-浅黑主题（偏灰，长时间看没那么累）：
+亮色主题：
 
-![FFShift 浅黑主题](docs/screenshots/dim.png)
+![FFShift 亮色主题](docs/screenshots/light.png)
 
-暗色主题：
+暗色主题（近黑，对比拉得满）：
 
 ![FFShift 暗色主题](docs/screenshots/dark.png)
 
@@ -39,7 +39,7 @@ Windows 优先的桌面视频格式转换器。界面用 Electron + React + Type
 - **过程可见**：百分比、剩余时间、速度，随时取消并清理半成品
 - **出错说人话**：磁盘满、目录不可写、格式不兼容、文件损坏各有对应说明
 - **专业参数**：20 项可调参数 + 预设管理，给懂行的人一个入口
-- 设置记忆、三套主题（亮色 / 浅黑 / 暗色）、10–24px 可调界面字号、Windows 安装包
+- 设置记忆、三套主题（默认浅黑）、10–24px 可调界面字号（默认 15px）、Windows 安装包
 
 逐条状态见 `docs/testing.md` 的冒烟清单（未实测的条目如实标注）。
 
