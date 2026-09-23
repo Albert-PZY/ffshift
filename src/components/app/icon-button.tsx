@@ -33,7 +33,7 @@ export function IconButton({
       className={cn(
         'flex shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors disabled:pointer-events-none disabled:opacity-64',
         size === 'sm' ? 'h-7 w-7' : 'h-8 w-8',
-        tone === 'danger' ? 'hover:bg-destructive/16 hover:text-destructive' : 'hover:bg-accent/50 hover:text-foreground',
+        tone === 'danger' ? 'hover:bg-destructive/16 hover:text-destructive' : 'hover:bg-accent hover:text-foreground',
         className,
       )}
       onClick={onActivate}

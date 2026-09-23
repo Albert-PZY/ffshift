@@ -7,12 +7,20 @@
 import { ALL_FORMATS, type OutputFormat, type Preset } from './ffmpeg-args';
 import { parsePresets, type CustomPreset } from './presets';
 
-export const SETTINGS_VERSION = 3;
+export const SETTINGS_VERSION = 4;
 
 /** 历史记录最多留这么多条，超出丢最旧的 */
 export const HISTORY_LIMIT = 50;
 
 export type HardwareChoice = 'none' | 'nvenc' | 'qsv' | 'amf';
+
+/**
+ * 界面主题。
+ *
+ * 默认亮色：桌面工具在白天办公环境下用得更多，而且亮色下界面本身不抢注意力。
+ * 选过之后记住，下次启动直接是那套（见 electron/main.ts 的提前读取）。
+ */
+export type Theme = 'light' | 'dark';
 
 /** 一条转换记录：转换完成（成功或失败）时追加 */
 export interface HistoryEntry {
@@ -40,6 +48,8 @@ export interface AppSettings {
   history: HistoryEntry[];
   /** 用户保存的参数预设 */
   presets: CustomPreset[];
+  /** 界面主题；默认亮色 */
+  theme: Theme;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -50,10 +60,12 @@ export const DEFAULT_SETTINGS: AppSettings = {
   hw: 'none',
   history: [],
   presets: [],
+  theme: 'light',
 };
 
 const PRESETS: readonly Preset[] = ['clear', 'balanced', 'small'];
 const HARDWARE: readonly HardwareChoice[] = ['none', 'nvenc', 'qsv', 'amf'];
+const THEMES: readonly Theme[] = ['light', 'dark'];
 
 /** 解析单条历史记录；字段缺失或类型不对就丢弃这一条，而不是让整份设置作废 */
 function parseHistoryEntry(raw: unknown): HistoryEntry | null {
@@ -105,6 +117,7 @@ export function parseSettings(raw: unknown): AppSettings {
     : DEFAULT_SETTINGS.hw;
   const outputDir =
     typeof stored.outputDir === 'string' && stored.outputDir.length > 0 ? stored.outputDir : null;
+  const theme = THEMES.includes(stored.theme as Theme) ? (stored.theme as Theme) : DEFAULT_SETTINGS.theme;
 
   const history = Array.isArray(stored.history)
     ? stored.history
@@ -121,6 +134,7 @@ export function parseSettings(raw: unknown): AppSettings {
     hw,
     history,
     presets: parsePresets(stored.presets),
+    theme,
   };
 }
 

@@ -7,7 +7,7 @@ import type { AdvancedParams } from './advanced-params';
 import type { Suggestion } from './ai-suggest';
 import type { MediaInfo } from './ffprobe';
 import type { OutputFormat, Preset } from './ffmpeg-args';
-import type { AppSettings } from './settings';
+import type { AppSettings, Theme } from './settings';
 
 export interface SuggestResponse {
   suggestion: Suggestion;
@@ -105,6 +105,13 @@ export interface FfshiftApi {
   revealOutput: (filePath: string) => Promise<{ ok: boolean }>;
   /** 无边框窗口的自绘控制按钮 */
   frame: FrameControls;
+  /**
+   * 启动时的主题。
+   *
+   * 主进程在建窗口之前读设置，把它塞进渲染进程的 argv——渲染进程要能**同步**拿到，
+   * 否则第一帧永远是亮色，暗色用户每次启动都会看见一记白闪。
+   */
+  initialTheme: Theme;
   onProgress: (listener: (event: ProgressEvent) => void) => () => void;
   onFinished: (listener: (event: FinishedEvent) => void) => () => void;
   /** 拖放的 File 对象在渲染进程拿不到磁盘路径，必须走它 */

@@ -54,8 +54,11 @@ export function TaskRow({ task, selected, onSelect }: { task: TaskItem; selected
     <article
       aria-label={`${task.name}，${statusLabel(task.status)}`}
       className={cn(
-        'group grid cursor-pointer grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-3 rounded-lg px-3 py-2 transition-colors',
-        selected ? 'bg-muted' : 'hover:bg-muted/50',
+        'group relative grid cursor-pointer grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-3 rounded-lg px-3 py-2 transition-colors',
+        // 选中与 hover 的区别不靠深浅（亮色下深浅差不动），靠左边那条 2px 的竖线
+        selected
+          ? 'bg-muted before:absolute before:inset-y-1.5 before:left-0 before:w-0.5 before:rounded-full before:bg-info'
+          : 'hover:bg-muted/70',
       )}
       data-selected={selected ? 'true' : undefined}
       data-slot="task-row"

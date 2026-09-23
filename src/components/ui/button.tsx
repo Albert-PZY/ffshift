@@ -40,7 +40,9 @@ const buttonVariants = cva(
           'border-border bg-transparent text-destructive hover:border-destructive/32 hover:bg-destructive/8',
         ghost: 'border-transparent hover:bg-accent hover:text-accent-foreground',
         link: 'border-transparent underline-offset-4 hover:underline',
-        outline: 'border-border bg-transparent hover:bg-accent/50',
+        // hover 用满不透明度：亮色下 --accent 是 zin-100 那一档，
+        // 再打一半 alpha 压在白底上就看不见了
+        outline: 'border-border bg-transparent hover:bg-accent',
         secondary: 'border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/90',
       },
     },

@@ -8,20 +8,21 @@
  *
  * 与上游的三处差异，逐条标明原因（本项目文档约定：调整要标出来，不混在"参考"里）：
  *
- *   1. 只有暗色。上游是 :root 亮色 + .dark 暗色两套；本项目是深色单主题
- *      （见 docs/design-system.md），暗色值直接落在 :root。要补亮色时按同样命名
- *      加一个 .light 块，组件层一行都不用改。
+ *   1. ⚠️ 状态色不是逐字照抄的，亮暗两套各调过两处。上游那两个值在原主题里没问题，
+ *      换到本项目的用法上就不够：
+ *        · 暗色的 destructive / success 取更亮的一档——上游那组是配白字做实心按钮用的，
+ *          本项目当正文色压在窗口底上，实测只有 1.97:1 与 4.01:1；
+ *        · 亮色的 warning / info 各压暗一档——上游值压在白底上只有 2.15:1 与 3.76:1。
+ *      调整后是 6.85 / 8.70（暗）与 4.99 / 5.06（亮），都过 4.5:1 的硬线，
+ *      数值由 WCAG 相对亮度公式算出，不是估的。改回去之前先量一遍。
  *
- *   2. destructive / success 取更亮的一档。上游暗色值 oklch(0.396 0.141 25.72)
- *      与 oklch(0.527 0.154 150.07) 是配白字做实心按钮用的；本项目把它们当正文色
- *      压在窗口底上，实测对比度只有 1.97:1 与 4.01:1，低于本项目 4.5:1 的硬线。
- *      换成 0.704 / 0.723 后是 6.85:1 与 8.70:1（数值由 WCAG 相对亮度公式算出，
- *      不是估的）。改回去之前先量一遍。
- *
- *   3. 动效令牌只留用得到的那几组。上游那份 transitions-dev 清单有两百多条，
+ *   2. 动效令牌只留用得到的那几组。上游那份 transitions-dev 清单有两百多条，
  *      没人用的令牌就是没人维护的令牌。这里保留通用刻度（时长 / 缓动 / 位移 /
- *      缩放 / 模糊）与四个真的挂在组件上的过渡：校验抖动、思考流光、骨架揭示、
+ *      缩放 / 模糊）与四个真的挂在组件上的过渡：校验抖动、思考流光、空行落地、
  *      图标互换。
+ *
+ *   3. 首页面同色这一条在上游是绝对的（连亮色下 card 与 background 也是同一个值），
+ *      本项目沿用；差别只在"哪些结构用哪一档"，见 docs/design-system.md 的面层表。
  */
 
 @import 'tailwindcss';
@@ -88,15 +89,61 @@
 
 @layer base {
   /*
-   * 语义令牌。命名与上游一字不差，取值一致（除上面第 2 条标注的两处）。
-   * 底色只有一种，靠 --border 与半透明的 bg-accent / bg-muted 叠出层级。
+   * 语义令牌。命名与上游一字不差，取值在亮/暗两套里各有一份。
+   * 亮色是默认（`<html>` 上没有 `.dark`），选过暗色才挂 `.dark`。
+   *
+   * 层级仍然不靠色块：同一主题里窗口底、面板底、浮层底同色，
+   * 靠 --border 的 1px 与半透明的 bg-accent / bg-muted 叠出层次。
    */
   :root {
-    color-scheme: dark;
+    color-scheme: light;
 
     --font-size-base: 14px;
 
-    /* 窗口底、面板底、卡片底同色：层级不靠色块，靠边框与叠加 */
+    /* 亮色：窗口底、面板底、浮层底都是白 */
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0.014 285.82);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0.014 285.82);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0.014 285.82);
+
+    /* primary 是反白：亮色下是近黑实心，暗色下是近白实心。
+       全屏唯一的实心主按钮用它，所以强调色不参与分层，只留给状态 */
+    --primary: oklch(0.205 0.014 285.82);
+    --primary-foreground: oklch(0.985 0 0);
+
+    --secondary: oklch(0.965 0.003 285.82);
+    --secondary-foreground: oklch(0.205 0.014 285.82);
+    --muted: oklch(0.965 0.003 285.82);
+    --muted-foreground: oklch(0.556 0.014 285.82);
+    --accent: oklch(0.965 0.003 285.82);
+    --accent-foreground: oklch(0.205 0.014 285.82);
+
+    --destructive: oklch(0.577 0.245 27.33);
+    --destructive-foreground: oklch(0.985 0 0);
+    --success: oklch(0.527 0.154 150.07);
+    --success-foreground: oklch(0.985 0 0);
+    /* ⚠️ 调整 ②：warning 与 info 各压暗一档，理由见文件头的标注 */
+    --warning: oklch(0.55 0.155 70.08);
+    --warning-foreground: oklch(0.985 0 0);
+    --info: oklch(0.55 0.22 259.81);
+    --info-foreground: oklch(0.985 0 0);
+
+    --border: oklch(0.922 0.003 285.82);
+    --input: oklch(0.922 0.003 285.82);
+    --ring: oklch(0.708 0.014 285.82);
+
+    --radius: 0.5rem;
+
+    /* 骨架屏的高光：亮色里是白，暗色里是极淡的前景色 */
+    --skeleton-highlight: oklch(1 0 0 / 64%);
+  }
+
+  .dark {
+    color-scheme: dark;
+
+    /* 暗色：窗口底、面板底、浮层底同一个值，层级只由 1px 边框与叠加表达 */
     --background: oklch(0.145 0.014 285.82);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.145 0.014 285.82);
@@ -104,8 +151,6 @@
     --popover: oklch(0.145 0.014 285.82);
     --popover-foreground: oklch(0.985 0 0);
 
-    /* primary 是反白（浅底深字）：全屏唯一的实心主按钮用它，
-       所以强调色不参与分层，只留给状态——对上了本项目的设计立场 */
     --primary: oklch(0.985 0 0);
     --primary-foreground: oklch(0.205 0.014 285.82);
 
@@ -116,8 +161,10 @@
     --accent: oklch(0.269 0.014 285.82);
     --accent-foreground: oklch(0.985 0 0);
 
+    /* ⚠️ 调整 ①：destructive 与 success 取更亮的一档，理由见文件头的标注 */
     --destructive: oklch(0.704 0.191 22.216);
-    --destructive-foreground: oklch(0.985 0 0);
+    /* 反白字压在亮红上只有 2.6:1，配深色字才有 5:1 出头 */
+    --destructive-foreground: oklch(0.205 0.014 285.82);
     --success: oklch(0.723 0.192 149.579);
     --success-foreground: oklch(0.205 0.014 285.82);
     --warning: oklch(0.769 0.189 70.08);
@@ -129,7 +176,7 @@
     --input: oklch(0.269 0.014 285.82);
     --ring: oklch(0.439 0.014 285.82);
 
-    --radius: 0.5rem;
+    --skeleton-highlight: color-mix(in oklab, var(--foreground) 4%, transparent);
   }
 
   /* 默认边框色 = --border：写 border 就够，不用每次点名颜色 */

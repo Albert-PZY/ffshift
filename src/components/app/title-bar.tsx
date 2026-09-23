@@ -1,7 +1,9 @@
-import { Copy, Minus, PanelLeftClose, PanelLeftOpen, Square, X } from 'lucide-react';
+import { Copy, Minus, Moon, PanelLeftClose, PanelLeftOpen, Square, Sun, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipPopup, TooltipTrigger } from '@/components/ui/tooltip';
+import type { Theme } from '@/lib/settings';
+import { otherTheme, themeLabel } from '@/lib/theme';
 import { cn } from '@/lib/utils';
 
 /**
@@ -55,7 +57,7 @@ function FrameButton({
             className={cn(
               NO_DRAG,
               'flex h-full w-12 items-center justify-center text-muted-foreground transition-colors hover:text-foreground',
-              danger ? 'hover:bg-destructive hover:text-destructive-foreground' : 'hover:bg-accent/60',
+              danger ? 'hover:bg-destructive hover:text-destructive-foreground' : 'hover:bg-accent',
             )}
             onClick={onClick}
           />
@@ -71,6 +73,8 @@ function FrameButton({
 export function TitleBar({
   railOpen,
   onToggleRail,
+  theme,
+  onToggleTheme,
   engineLabel,
   engineReady,
   versionLabel,
@@ -78,6 +82,8 @@ export function TitleBar({
 }: {
   railOpen: boolean;
   onToggleRail: () => void;
+  theme: Theme;
+  onToggleTheme: () => void;
   engineLabel: string;
   engineReady: boolean;
   versionLabel: string;
@@ -93,7 +99,7 @@ export function TitleBar({
         aria-label={railOpen ? '收起设置栏' : '展开设置栏'}
         className={cn(
           NO_DRAG,
-          't-icon-swap flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground',
+          't-icon-swap flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
         )}
         data-state={railOpen ? 'a' : 'b'}
         onClick={onToggleRail}
@@ -113,7 +119,8 @@ export function TitleBar({
 
       <span className={cn(NO_DRAG, 'truncate text-sm text-muted-foreground')}>ffmpeg 的换挡键</span>
 
-      {/* 运行环境是只读信息，放在右侧靠窗口按钮；悬停给完整版本串 */}
+      {/* 主题切换贴在窗口控制左边：它跟最大化、关闭一样是"整个窗口"的开关，
+          不属于右边那组只读的运行环境信息 */}
       <div className={cn(NO_DRAG, 'ml-auto flex items-center gap-3 pr-2 text-xs text-muted-foreground')}>
         <Tooltip>
           <TooltipTrigger
@@ -137,6 +144,27 @@ export function TitleBar({
           <TooltipPopup className="max-w-lg" side="bottom">
             {versionTitle}
           </TooltipPopup>
+        </Tooltip>
+      </div>
+
+      <div className={cn(NO_DRAG, 'flex items-center gap-0.5 pr-1')}>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <button
+                type="button"
+                aria-label={`切换到${themeLabel(otherTheme(theme))}主题`}
+                className="t-icon-swap flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                data-state={theme === 'light' ? 'a' : 'b'}
+                onClick={onToggleTheme}
+              />
+            }
+          >
+            {/* 图标表示"点下去会变成什么"，和收起/展开那对图标一个规矩 */}
+            <Moon className="t-icon h-4 w-4" data-icon="a" />
+            <Sun className="t-icon h-4 w-4" data-icon="b" />
+          </TooltipTrigger>
+          <TooltipPopup side="bottom">当前是{themeLabel(theme)}主题，点一下换成{themeLabel(otherTheme(theme))}</TooltipPopup>
         </Tooltip>
       </div>
 

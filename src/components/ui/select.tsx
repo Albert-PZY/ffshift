@@ -21,7 +21,7 @@ function SelectTrigger({
   return (
     <SelectPrimitive.Trigger
       className={cn(
-        "relative inline-flex min-h-9 w-full min-w-0 cursor-pointer items-center justify-between gap-2 rounded-lg border border-input bg-input/32 bg-clip-padding px-2.5 text-left text-base text-foreground shadow-xs outline-none ring-ring/24 transition-shadow select-none focus-visible:border-ring focus-visible:ring-[3px] aria-invalid:border-destructive/36 data-disabled:pointer-events-none data-disabled:opacity-64 sm:min-h-8 sm:text-sm [&_svg:not([class*='opacity-'])]:opacity-80 [&_svg:not([class*='size-'])]:size-4.5 sm:[&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
+        "relative inline-flex min-h-9 w-full min-w-0 cursor-pointer items-center justify-between gap-2 rounded-lg border border-input bg-background bg-clip-padding px-2.5 text-left text-base text-foreground shadow-xs outline-none ring-ring/24 transition-shadow select-none focus-visible:border-ring focus-visible:ring-[3px] aria-invalid:border-destructive/36 data-disabled:pointer-events-none data-disabled:opacity-64 sm:min-h-8 sm:text-sm dark:bg-input/32 [&_svg:not([class*='opacity-'])]:opacity-80 [&_svg:not([class*='size-'])]:size-4.5 sm:[&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
         size === 'sm' && 'min-h-8 gap-1.5 px-2 sm:min-h-7',
         size === 'lg' && 'min-h-10 sm:min-h-9',
         className,

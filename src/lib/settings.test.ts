@@ -11,13 +11,14 @@ import {
 describe('parseSettings', () => {
   it('完整设置原样返回', () => {
     const stored = {
-      version: 3,
+      version: 4,
       preset: 'small',
       outputFormat: 'mp4',
       outputDir: 'D:\\输出',
       hw: 'nvenc',
       history: [],
       presets: [],
+      theme: 'dark',
     };
     expect(parseSettings(stored)).toEqual(stored);
   });
@@ -37,6 +38,22 @@ describe('parseSettings', () => {
   it('档位或硬件加速值不在白名单里时回到默认', () => {
     expect(parseSettings({ preset: 'turbo' }).preset).toBe('balanced');
     expect(parseSettings({ hw: 'cuda' }).hw).toBe('none');
+  });
+
+  it('主题默认亮色：缺字段、写坏了、写了别的词都回到亮色', () => {
+    expect(DEFAULT_SETTINGS.theme).toBe('light');
+    expect(parseSettings({}).theme).toBe('light');
+    expect(parseSettings({ theme: 'solarized' }).theme).toBe('light');
+    expect(parseSettings({ theme: 1 }).theme).toBe('light');
+    // 选过暗色的要留下来，不能被默认值吃掉
+    expect(parseSettings({ theme: 'dark' }).theme).toBe('dark');
+  });
+
+  it('旧版本（没有 theme 字段）读出来是亮色，其余字段照旧保留', () => {
+    const old = parseSettings({ version: 3, preset: 'small', outputDir: 'D:\\输出' });
+    expect(old.theme).toBe('light');
+    expect(old.preset).toBe('small');
+    expect(old.outputDir).toBe('D:\\输出');
   });
 
   it('输出目录不是字符串时置空', () => {
@@ -64,11 +81,12 @@ describe('parseSettings', () => {
 
   it('旧版本能升级：偏好留着，新字段给默认值', () => {
     const parsed = parseSettings({ version: 1, preset: 'clear', outputFormat: 'mp3' });
-    expect(parsed.version).toBe(3);
+    expect(parsed.version).toBe(4);
     expect(parsed.preset).toBe('clear');
     expect(parsed.outputFormat).toBe('mp3');
     expect(parsed.history).toEqual([]);
     expect(parsed.presets).toEqual([]);
+    expect(parsed.theme).toBe('light');
   });
 });
 
@@ -120,13 +138,14 @@ describe('历史记录', () => {
 describe('serializeSettings', () => {
   it('写出的 JSON 能被读回来，字段不丢', () => {
     const settings = {
-      version: 3,
+      version: 4,
       preset: 'small' as const,
       outputFormat: 'webm' as const,
       outputDir: 'D:\\输出',
       hw: 'qsv' as const,
       history: [],
       presets: [],
+      theme: 'dark' as const,
     };
     expect(parseSettings(JSON.parse(serializeSettings(settings)))).toEqual(settings);
   });

@@ -31,7 +31,7 @@ function RailRow({
     <button
       className={cn(
         'flex h-7 w-full items-center gap-2 rounded-md px-2 text-xs font-medium text-muted-foreground transition-colors',
-        danger ? 'hover:bg-muted/50 hover:text-destructive' : 'hover:bg-muted/50 hover:text-foreground',
+        danger ? 'hover:bg-muted/70 hover:text-destructive' : 'hover:bg-muted/70 hover:text-foreground',
       )}
       type="button"
       onClick={onActivate}
@@ -117,7 +117,7 @@ export function SettingsRail({ onOpenAdvanced }: { onOpenAdvanced: () => void })
             </Label>
             {/* 长得像输入框，点开的是系统目录选择框 */}
             <button
-              className="flex h-8 w-full items-center gap-2 overflow-hidden rounded-lg border border-input bg-input/32 px-2.5 text-sm text-foreground shadow-xs transition-shadow hover:border-ring sm:h-7.5"
+              className="flex h-8 w-full items-center gap-2 overflow-hidden rounded-lg border border-input bg-background px-2.5 text-sm text-foreground shadow-xs transition-shadow hover:border-ring sm:h-7.5 dark:bg-input/32"
               data-slot="path-button"
               id="output-dir"
               title={outputDir ?? '与源文件同目录'}

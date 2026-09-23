@@ -4,6 +4,7 @@
  */
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import type { AppSettings } from '../src/lib/settings';
+import { themeFromArgv } from '../src/lib/theme';
 import type {
   ConvertRequest,
   ConvertResponse,
@@ -47,6 +48,9 @@ const api: FfshiftApi & { getPathForFile: (file: File) => string } = {
     close: () => ipcRenderer.send('ffshift:frame', 'close'),
     isMaximized: () => ipcRenderer.invoke('ffshift:frame-maximized') as Promise<boolean>,
   },
+
+  // 主进程在建窗口时写进 argv，所以这里是同步值
+  initialTheme: themeFromArgv(process.argv),
 
   onProgress: (listener) => {
     const handler = (_event: unknown, payload: ProgressEvent) => listener(payload);

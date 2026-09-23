@@ -63,7 +63,7 @@ function DialogPopup({
           {showCloseButton && (
             <DialogPrimitive.Close
               aria-label="关闭"
-              className="absolute end-3 top-2.5 z-50 flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+              className="absolute end-3 top-2.5 z-50 flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             >
               <XIcon className="h-4 w-4" />
             </DialogPrimitive.Close>

@@ -9,8 +9,8 @@ import { cn } from '@/lib/utils';
  * 「有焦点 / 有错 / 有禁用」这些状态可以整体作用于边框而不只是输入框本身。
  * 这里保留同一结构，去掉上游的 Field/Form 包装（本项目没有表单上下文）。
  *
- * 底色统一走 `bg-input/32`：在暗色里输入框比面板亮一点点，
- * 靠的是 border 色的 32% 叠加，不是另一个色值。
+ * 底色分主题：亮色下就是面板白，靠 1px 边框划出边界；暗色下比面板亮一点点，
+ * 来源是 border 色的 32% 叠加，不是另一个色值。
  */
 type InputProps = Omit<InputPrimitive.Props & React.RefAttributes<HTMLInputElement>, 'size'> & {
   size?: 'sm' | 'default' | 'lg';
@@ -20,7 +20,7 @@ function Input({ className, size = 'default', ...props }: InputProps) {
   return (
     <span
       className={cn(
-        'relative inline-flex w-full rounded-lg border border-input bg-input/32 text-base text-foreground shadow-xs ring-ring/24 transition-shadow has-focus-visible:border-ring has-focus-visible:ring-[3px] has-aria-invalid:border-destructive/36 has-focus-visible:has-aria-invalid:border-destructive/64 has-focus-visible:has-aria-invalid:ring-destructive/16 has-disabled:opacity-64 sm:text-sm',
+        'relative inline-flex w-full rounded-lg border border-input bg-background text-base text-foreground shadow-xs ring-ring/24 transition-shadow has-focus-visible:border-ring has-focus-visible:ring-[3px] has-aria-invalid:border-destructive/36 has-focus-visible:has-aria-invalid:border-destructive/64 has-focus-visible:has-aria-invalid:ring-destructive/16 has-disabled:opacity-64 sm:text-sm dark:bg-input/32',
         className,
       )}
       data-size={size}

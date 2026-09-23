@@ -17,12 +17,15 @@ import { TitleBar } from '@/components/app/title-bar';
 import { Workspace } from '@/components/app/workspace';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { shortFfmpegVersion } from '@/lib/ffmpeg-version';
+import { otherTheme } from '@/lib/theme';
 import { useStore } from '@/store';
 
 export default function App() {
   const tasks = useStore((s) => s.tasks);
   const hardware = useStore((s) => s.hardware);
   const ffmpegVersion = useStore((s) => s.ffmpegVersion);
+  const theme = useStore((s) => s.theme);
+  const setTheme = useStore((s) => s.setTheme);
 
   const [dragging, setDragging] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -64,7 +67,9 @@ export default function App() {
           engineLabel={hardware.length > 0 ? `硬件加速：${hardware.join(' / ')}` : 'CPU 编码'}
           engineReady={hardware.length > 0}
           onToggleRail={() => setRailOpen((open) => !open)}
+          onToggleTheme={() => setTheme(otherTheme(theme))}
           railOpen={railOpen}
+          theme={theme}
           versionLabel={shortFfmpegVersion(ffmpegVersion)}
           versionTitle={ffmpegVersion ?? '没有找到可用的 ffmpeg'}
         />

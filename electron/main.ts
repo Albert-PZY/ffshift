@@ -1,18 +1,37 @@
 import { app, BrowserWindow, shell } from 'electron';
-import { writeFileSync } from 'node:fs';
+import { rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { THEME_ARG_PREFIX, windowBackground } from '../src/lib/theme';
 import { disposeIpc, registerIpc } from './ipc';
+import { loadSettings } from './settings';
+
+/**
+ * 自动截图必须从干净状态拍。
+ *
+ * 用开发机上那份真实设置的话，档位、主题、输出目录都会跟着走——
+ * README 里那张图就变成了"某台机器的状态"，而不是"这个版本长什么样"。
+ * 显式传了 --user-data-dir 就听传进来的那个（端到端测试就是这么用的）。
+ */
+const shotProfile = join(app.getPath('temp'), 'ffshift-shot-profile');
+if (process.env.FFSHIFT_SMOKE === 'shot' && !process.argv.some((arg) => arg.startsWith('--user-data-dir'))) {
+  rmSync(shotProfile, { recursive: true, force: true });
+  app.setPath('userData', shotProfile);
+}
 
 let mainWindow: BrowserWindow | null = null;
 
 function createWindow(): void {
+  // 主题要在建窗口之前读出来：窗口底色与首帧都靠它，
+  // 晚一步就是每次启动闪一下另一个颜色（暗色用户尤其明显）
+  const theme = loadSettings().theme;
+
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     minWidth: 940,
     minHeight: 600,
-    // 与 --background 同一个值：窗口先出来时不该闪一下另一个颜色
-    backgroundColor: '#090910',
+    // 与当前主题的 --background 同一个值：窗口先出来时不该闪一下另一个颜色
+    backgroundColor: windowBackground(theme),
     show: false,
     // 无边框：标题栏、最小化 / 最大化 / 关闭都由界面自绘，
     // 这样顶栏才能跟侧栏、工作区用同一套底色与 1px 分隔线，而不是被系统的灰条截断
@@ -23,6 +42,8 @@ function createWindow(): void {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
+      // 渲染进程要能同步拿到主题，见 src/lib/ipc-types.ts 的 initialTheme
+      additionalArguments: [`${THEME_ARG_PREFIX}${theme}`],
     },
   });
 
@@ -98,6 +119,16 @@ function createWindow(): void {
           );
           // 等探测与缩略图落地，让截图里有真实内容
           await new Promise((resolve) => setTimeout(resolve, 4000));
+        }
+
+        if (process.env.FFSHIFT_SMOKE_THEME) {
+          // 主题按钮只有图标，认不了文字，按 aria-label 找
+          const label =
+            process.env.FFSHIFT_SMOKE_THEME === 'dark' ? '切换到暗色主题' : '切换到亮色主题';
+          await mainWindow?.webContents.executeJavaScript(
+            `[...document.querySelectorAll('button')].find((b) => b.getAttribute('aria-label') === ${JSON.stringify(label)})?.click()`,
+          );
+          await new Promise((resolve) => setTimeout(resolve, 600));
         }
 
         if (process.env.FFSHIFT_SMOKE_PANEL) {

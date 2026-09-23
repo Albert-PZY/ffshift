@@ -98,6 +98,31 @@ describe('持久化：设置与预设', () => {
     expect(await running.page.locator('#format-menu').innerText()).toContain('MKV');
   }, 180_000);
 
+  it('默认亮色；切成暗色之后重启还是暗色', async () => {
+    const userDataDir = freshDir();
+    const isDark = (): Promise<boolean> =>
+      running ? running.page.evaluate(() => document.documentElement.classList.contains('dark')) : Promise.resolve(false);
+
+    running = await launchApp({ userDataDir });
+    // 默认亮色：<html> 上没有 dark 类
+    expect(await isDark()).toBe(false);
+
+    await running.page.getByRole('button', { name: '切换到暗色主题' }).click();
+    await running.page.waitForTimeout(800);
+    expect(await isDark()).toBe(true);
+
+    await restart(userDataDir);
+    // 重启后首帧就是暗色：主题在主进程建窗口之前就读出来了，不会先闪一下亮色
+    expect(await isDark()).toBe(true);
+    expect(await running.page.getByRole('button', { name: '切换到亮色主题' }).isVisible()).toBe(true);
+
+    // 切回亮色也要记住
+    await running.page.getByRole('button', { name: '切换到亮色主题' }).click();
+    await running.page.waitForTimeout(800);
+    await restart(userDataDir);
+    expect(await isDark()).toBe(false);
+  }, 180_000);
+
   it('输出目录也是记忆项：设完之后重启仍显示', async () => {
     const userDataDir = freshDir();
 
