@@ -17,6 +17,7 @@ interface DebugHook {
       info: { width: number | null; height: number | null } | null;
       outcome: { status: string; outputSizeBytes?: number | null } | null;
     }>;
+    advanced: { videoCodec: string | null; crf: number | null };
   };
 }
 
@@ -138,6 +139,43 @@ describe('工作流：导入 → 转换 → 历史', () => {
     );
     // exact：界面里还有个「清空已完成」，不精确匹配会同时命中两个
     expect(await running.page.getByRole('button', { name: '完成', exact: true }).isDisabled()).toBe(false);
+  }, 180_000);
+
+  it('参数面板：下拉真的能改，值落到面板上', async () => {
+    // 这条守的是一个具体的坏法：Base UI 的下拉 portal 到 body 上，
+    // 层级排在对话框之下时会被对话框的遮罩盖住——能点开、能看见选项，就是点不中。
+    // 十二个下拉一起坏，用户看到的是"参数大部分都改不了"。
+    running = await launchApp();
+    await running.page.getByRole('button', { name: '专业参数' }).click();
+    await running.page.waitForSelector('[data-slot="dialog-popup"]');
+
+    const encoder = running.page.locator('[data-slot="dialog-popup"] [data-slot="param-field"]').first();
+    await encoder.locator('[data-slot="select-trigger"]').click();
+    await running.page.getByRole('option', { name: 'H.264 (libx264)' }).click();
+    await running.page.waitForTimeout(300);
+
+    expect(await encoder.locator('[data-slot="select-trigger"]').innerText()).toContain('H.264 (libx264)');
+    expect((await readState(running)).advanced.videoCodec).toBe('libx264');
+
+    // 改完一个还能继续改下一个：选中之后对话框不该被关掉
+    expect(await running.page.locator('[data-slot="dialog-popup"]').isVisible()).toBe(true);
+  }, 180_000);
+
+  it('参数面板：数字与文本输入也都改得到', async () => {
+    const NUMBER = '[data-slot="dialog-popup"] [data-slot="param-field"] input[type="number"]';
+    const EXTRA = '[data-slot="dialog-popup"] [data-slot="param-field"] input[type="text"]';
+
+    running = await launchApp();
+    await running.page.getByRole('button', { name: '专业参数' }).click();
+    await running.page.waitForSelector('[data-slot="dialog-popup"]');
+
+    // 第一个数字框是 CRF
+    await running.page.locator(NUMBER).first().fill('27');
+    await running.page.locator(EXTRA).first().fill('-movflags +faststart');
+    await running.page.waitForTimeout(300);
+
+    const state = await readState(running);
+    expect(state.advanced.crf).toBe(27);
   }, 180_000);
 
   it('同一路径导入两次不会重复入队', async () => {

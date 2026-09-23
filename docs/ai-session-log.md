@@ -177,3 +177,4 @@
 | 09-23 19:40 | refactor/ui-enso-language | `6bd0c54` | main: 无边框窗口与自绘标题栏的通道 | typecheck 通过；窗口能建、能拖、三个按钮可用（截图确认） | 4 <!-- commit:6bd0c54 --> |
 | 09-23 19:40 | refactor/ui-enso-language | `bbc881b` | ui: 用 EnsoCode 的语言重写界面 | typecheck、build 通过；五个中间态（待转换 / 转换中 / 已完成 / 历史 / hover） | 22 <!-- commit:bbc881b --> |
 | 09-23 19:42 | refactor/ui-enso-language | `d52cd32` | docs: 记下文档沉淀钩子会连带走未提交文档 | 只有一份文档改动，pre-commit 文风检查通过 | 1 <!-- commit:d52cd32 --> |
+| 09-23 20:33 | refactor/ui-enso-language | `578441d` | docs: 记下参数面板的层级坑与主题取舍 | pre-commit 的文风检查通过 | 5 <!-- commit:578441d --> |
