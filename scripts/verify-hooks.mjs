@@ -160,18 +160,22 @@ const rows = (again.match(/ui: 空态改为一句话加一个动作/g) ?? []).le
 check('⑬ 沉淀幂等（重复运行不追加）', rows === 1, `流水行出现 ${rows} 次，应为 1 次`);
 
 // ── 6. 主分支推送保护 ───────────────────────────────────────────────────────
+// 沙箱里没有构建产物，pre-push 的端到端步骤必须跳过；跳过开关本身单独验一条（⑯）。
+process.env.FFSHIFT_SKIP_E2E = '1';
+
 r = nodeRun('scripts/hooks/pre-push.mjs', [], 'refs/heads/main 0000000000000000000000000000000000000000 refs/heads/main 1111111111111111111111111111111111111111\n');
 check('⑭ 推送 main → 拦截', r.code !== 0 && /禁止直接推送/.test(r.out), r.out);
 
 r = nodeRun('scripts/hooks/pre-push.mjs', [], 'refs/heads/feat/cli-skeleton 0000000000000000000000000000000000000000 refs/heads/feat/cli-skeleton 1111111111111111111111111111111111111111\n');
 check('⑮ 推送功能分支 → 放行', r.code === 0, r.out);
+check('⑯ 端到端步骤的跳过开关生效', /已跳过端到端测试/.test(r.out), r.out);
 
 // ── 7. 分支命名 ─────────────────────────────────────────────────────────────
 gitRun(['switch', '-c', 'random-branch-name']);
 writeFileSync(join(sandbox, 'app.txt'), 'naming\n', 'utf8');
 gitRun(['add', 'app.txt']);
 r = commit(writeMsg('naming.txt', 'ui: 测试分支命名检查\n\n分支名不合规范时应当被拦住，这是本用例要验证的行为。\n'));
-check('⑯ 分支名不合规范 → 拦截', r.code !== 0 && /不符合规范/.test(r.out), r.out);
+check('⑰ 分支名不合规范 → 拦截', r.code !== 0 && /不符合规范/.test(r.out), r.out);
 gitRun(['reset', '--hard', 'HEAD']);
 gitRun(['switch', 'feat/cli-skeleton']);
 gitRun(['branch', '-D', 'random-branch-name']);
