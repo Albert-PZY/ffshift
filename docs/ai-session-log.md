@@ -156,3 +156,4 @@
 | 09-23 13:37 | docs/refresh-screenshot | `66d0cb1` | docs: 更新界面截图（格式下拉已按视频/动图/音频分组） | 截图为最新构建产出 | 1 <!-- commit:66d0cb1 --> |
 | 09-23 13:55 | chore/version-and-cursor | `4f27c77` | tool: 移除 Cursor 的工具配置 | 其余三个工具目录未受影响，openspec 命令仍可用 | 14 <!-- commit:4f27c77 --> |
 | 09-23 13:55 | chore/version-and-cursor | `534a908` | build: 版本号升到 1.1.0 | 重新打包后产物为 FFShift-1.1.0-setup.exe | 1 <!-- commit:534a908 --> |
+| 09-23 14:16 | docs/ui-spec | `dfe6429` | docs: 加一份交给 v0.app 的界面规格 | 文档通过 oil-tone 检查 | 1 <!-- commit:dfe6429 --> |

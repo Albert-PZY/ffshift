@@ -37,14 +37,19 @@
       {
         "from": "resources/ffmpeg",
         "to": "ffmpeg",
-        "filter": ["ffmpeg.exe", "ffprobe.exe"]
+        "filter": [
+          "ffmpeg.exe",
+          "ffprobe.exe"
+        ]
       }
     ],
     "win": {
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "resources/icon.ico"
@@ -61,6 +66,7 @@
     "node": ">=20"
   },
   "dependencies": {
+    "lucide-react": "^1.47.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "zustand": "^5.0.15"
