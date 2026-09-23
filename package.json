@@ -21,11 +21,15 @@
     "typecheck": "tsc --noEmit",
     "make-icon": "node scripts/make-icon.mjs",
     "prepare-ffmpeg": "node scripts/prepare-ffmpeg.mjs",
-    "package": "node scripts/prepare-ffmpeg.mjs && electron-vite build && electron-builder --win --publish never"
+    "package": "node scripts/prepare-ffmpeg.mjs && node scripts/make-icon.mjs && electron-vite build && electron-builder --win --publish never",
+    "package:portable": "node scripts/prepare-ffmpeg.mjs && node scripts/make-icon.mjs && electron-vite build && electron-builder --win portable --publish never",
+    "sign": "node scripts/sign-release.mjs",
+    "verify-sign": "node scripts/sign-release.mjs --verify"
   },
   "build": {
     "appId": "top.albert-go.ffshift",
     "productName": "FFShift",
+    "copyright": "Copyright © 2026 FFShift",
     "directories": {
       "output": "release",
       "buildResources": "resources"
@@ -42,15 +46,21 @@
           "ffmpeg.exe",
           "ffprobe.exe"
         ]
+      },
+      {
+        "from": "LICENSE",
+        "to": "LICENSE"
       }
     ],
     "win": {
       "target": [
         {
           "target": "nsis",
-          "arch": [
-            "x64"
-          ]
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
         }
       ],
       "icon": "resources/icon.ico"
@@ -59,9 +69,22 @@
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
+      "allowElevation": true,
       "artifactName": "FFShift-${version}-setup.${ext}",
-      "shortcutName": "FFShift"
-    }
+      "shortcutName": "FFShift",
+      "uninstallDisplayName": "FFShift ${version}",
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "license": "build/license.txt",
+      "warningsAsErrors": false,
+      "runAfterFinish": true
+    },
+    "portable": {
+      "artifactName": "FFShift-${version}-portable.${ext}",
+      "unicode": true
+    },
+    "compression": "maximum",
+    "asarUnpack": []
   },
   "engines": {
     "node": ">=20"

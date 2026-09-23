@@ -129,9 +129,6 @@ export function SettingsRail({ onOpenSettings }: { onOpenSettings: () => void })
               type="number"
               value={targetSizeMiB ?? ''}
             />
-            <p className="text-metric leading-relaxed text-muted-foreground">
-              留空就按档位走恒定质量；填了就按目标体积反推码率。只对这一批生效，不记忆。
-            </p>
           </div>
         </section>
       </div>

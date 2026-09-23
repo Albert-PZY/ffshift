@@ -63,10 +63,7 @@ export function ParamsSection() {
         </div>
       )}
 
-      <SettingsSection
-        description="预设是一整套参数的组合，一键套用。改动会立刻生效，并记住到下次启动。"
-        title="参数预设"
-      >
+      <SettingsSection title="参数预设">
         <SettingsBlock label="内置预设">
           <div className="flex flex-wrap gap-1.5">
             {BUILTIN_PRESETS.map((preset) => (
@@ -85,7 +82,7 @@ export function ParamsSection() {
         </SettingsBlock>
 
         <SettingsBlock
-          hint="点名字套用，点叉删掉。存的是与默认不同的字段，所以套用之后其余项仍然按档位走。"
+          hint="存的是与默认不同的字段，所以套用之后其余项仍然按档位走。"
           label={`我的预设${presets.length > 0 ? `（${presets.length}）` : ''}`}
         >
           {presets.length === 0 ? (
@@ -135,28 +132,25 @@ export function ParamsSection() {
             >
               存为预设
             </Button>
+            <Button
+              onClick={async () => {
+                const result = await importPresetFile();
+                setNotice(
+                  result.added > 0
+                    ? `导入 ${result.added} 个预设${result.skipped > 0 ? `，跳过 ${result.skipped} 个` : ''}`
+                    : '没有导入任何预设（文件为空、格式不对或名称重复）',
+                );
+              }}
+              size="sm"
+              variant="ghost"
+            >
+              导入
+            </Button>
+            <Button disabled={presets.length === 0} onClick={() => void exportPresetFile()} size="sm" variant="ghost">
+              导出
+            </Button>
           </div>
         </SettingsBlock>
-
-        <SettingsRow hint="导出的 JSON 可以在另一台机器导入，同名预设会跳过。" label="导入 / 导出">
-          <Button
-            onClick={async () => {
-              const result = await importPresetFile();
-              setNotice(
-                result.added > 0
-                  ? `导入 ${result.added} 个预设${result.skipped > 0 ? `，跳过 ${result.skipped} 个` : ''}`
-                  : '没有导入任何预设（文件为空、格式不对或名称重复）',
-              );
-            }}
-            size="sm"
-            variant="outline"
-          >
-            导入
-          </Button>
-          <Button disabled={presets.length === 0} onClick={() => void exportPresetFile()} size="sm" variant="outline">
-            导出
-          </Button>
-        </SettingsRow>
 
         {notice && <p className="pt-3 text-xs text-muted-foreground">{notice}</p>}
       </SettingsSection>

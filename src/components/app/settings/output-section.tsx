@@ -15,12 +15,8 @@ export function OutputSection() {
   const clearOutputDir = useStore((s) => s.clearOutputDir);
 
   return (
-    <SettingsSection description="转换产物的默认保存位置。改过之后所有转换都往这里放。" title="输出">
-      <SettingsRow
-        hint="留空则放在源文件旁边，输出文件名仍是「原名 + .ffshift + 目标扩展名」。"
-        htmlFor="output-dir"
-        label="默认输出目录"
-      >
+    <SettingsSection title="输出">
+      <SettingsRow hint="留空则放在源文件旁边。" htmlFor="output-dir" label="默认输出目录">
         {/* 长得像输入框，点开的是系统目录选择框 */}
         <button
           className="flex h-8 w-56 items-center gap-2 overflow-hidden rounded-lg border border-input bg-field px-2.5 text-sm text-foreground shadow-xs transition-shadow hover:border-ring sm:h-7.5"
