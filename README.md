@@ -6,15 +6,19 @@ Windows 优先的桌面视频格式转换器。界面用 Electron + React + Type
 
 ## 界面
 
-亮色（默认）：
+主界面只放"这次要转成什么"——档位、输出格式、目标体积：
 
 ![FFShift 主界面](docs/screenshots/main.png)
 
-暗色：
+暗色主题：
 
 ![FFShift 暗色主题](docs/screenshots/dark.png)
 
-标题栏右侧一键切换，选过之后记住。界面语言内化自 [EnsoCode](https://github.com/J3n5en/EnsoCode)（MIT）：
+设置一次长期有效的偏好（默认输出目录、参数预设、主题、引擎信息）在设置页里，顶栏右上角齿轮进入：
+
+![FFShift 设置页](docs/screenshots/settings.png)
+
+界面语言内化自 [EnsoCode](https://github.com/J3n5en/EnsoCode)（MIT）：
 同一套 OKLCH 语义令牌、同一套组件配方。两面板之间只有 1px 边框，颜色只表达状态与那一个反白主按钮。
 规则与逐条来源见 `docs/design-system.md`。
 

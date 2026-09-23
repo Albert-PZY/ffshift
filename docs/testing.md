@@ -5,7 +5,7 @@
 
 ## 1. 自动化测试（已落地）
 
-命令：`npm run test:unit`（235 条）、`npm run test:integration`（25 条，真实调用本机 ffmpeg）、`npm run test:e2e`（12 条，驱动真实界面）。
+命令：`npm run test:unit`（245 条）、`npm run test:integration`（25 条，真实调用本机 ffmpeg）、`npm run test:e2e`（15 条，驱动真实界面）。
 集成测试在环境没有 ffmpeg 时整组跳过（`describe.skipIf`），不会挡住协作者。
 
 三层测试的分工：单测盯纯逻辑与参数构造；集成测试盯 ffmpeg 跑不跑得通；端到端盯"界面上点一下，整条链路对不对"。
@@ -19,10 +19,11 @@
 | `src/lib/theme.test.ts` | 主题两态切换、显示名、窗口底色与令牌的对应、从 argv 认主题的兜底 |
 | `src/lib/progress.test.ts` | `key=value` 块解析、`out_time_ms` 实为微秒的坑、流式分块拼接 |
 | `src/lib/ffmpeg-args.test.ts` | 三档预设、硬件加速、无音轨不加音频参数、目标体积反推码率、输出路径 |
+| `src/lib/advanced-params.test.ts` | 参数校验（编码器区间、容器兼容、错误与警告分级）、额外参数边界、设置文件里的容错解析、按输出格式校验 |
 | `src/lib/errors.test.ts` | 五类常见报错转人话、取消、兜底、输出打不开的误判 |
 | `src/lib/ffprobe.test.ts` | 帧率换算、字段缺失、纯音频、可转换性判断（含 ffprobe 猜出来的假格式） |
 | `src/lib/thumbnail-cache.test.ts` | 缓存键归一化、抽帧时间点上限 |
-| `src/lib/settings.test.ts` | 设置解析容错：坏文件、缺字段、版本不符、非法枚举值、主题回落 |
+| `src/lib/settings.test.ts` | 设置解析容错：坏文件、缺字段、版本不符、非法枚举值、主题与专业参数的回落 |
 | `electron/ffmpeg/probe.integration.test.ts` | 真实 ffprobe：中文空格路径、截断文件、垃圾数据、批量探测不中断 |
 | `electron/ffmpeg/media.integration.test.ts` | 真实转码：抽帧与缓存命中、进度单调推进、取消并清理半成品、目标体积、损坏文件 |
 
@@ -33,6 +34,9 @@ FFSHIFT_SMOKE=1 npx electron .          # 窗口能建、页面能加载
 FFSHIFT_SMOKE=e2e FFSHIFT_SMOKE_FILE=<视频> FFSHIFT_SMOKE_OUTPUT=<输出> npx electron .
                                         # 渲染进程 → preload → IPC → ffmpeg 全链路
 ```
+
+界面截图也是自动的，跑在临时 profile 上（不受本机设置影响）：`FFSHIFT_SMOKE=shot`，
+可选 `FFSHIFT_SMOKE_THEME=dark` 切暗色、`FFSHIFT_SMOKE_SETTINGS=参数预设` 进设置页。
 
 ## 2. 冒烟清单（14 条）
 
@@ -137,3 +141,4 @@ $bytes = [System.IO.File]::ReadAllBytes("fixture_10s.mp4")[0..1048575]
 | 2026-09-23 | `62726ec` ui: 加亮暗两套主题，默认亮色 | 22 个文件 | 待人工确认（验证信息：单测 257 条全绿、typecheck 通过、build 通过、e2e 12 条全绿（新增 1 条） <!-- commit:62726ec --> |
 | 2026-09-23 | 移除产品内的 AI 参数建议 | 见 ADR-017 | 待人工确认（验证信息：`src/` `electron/` `e2e/` 三处搜不到 `ai-suggest` / `Suggestion` / `WORKBUDDY` 任何符号；typecheck 通过、build 通过、单测 235 条全绿（减少的 22 条正好是删掉的 AI 用例）、e2e 12 条全绿；界面截图重拍） |
 | 2026-09-23 | `6831d93` ui: 移除 AI 参数建议 | 15 个文件 | 待人工确认（验证信息：src/、electron/、e2e/ 三处搜不到 ai-suggest / Suggestion ） <!-- commit:6831d93 --> |
+| 2026-09-23 | 新增设置页，主界面只留转换 | 见 ADR-018 | 待人工确认（验证信息：typecheck 通过、build 通过、单测 245 条全绿（新增 10 条：参数容错解析与按输出格式校验）、e2e 15 条全绿（58.3s，新增 3 条：设置页导航与返回、参数有误挡住开始转换、参数改动落盘）；设置页四个分类与主界面各自截图人工看过） |
