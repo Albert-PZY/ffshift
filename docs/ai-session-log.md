@@ -135,3 +135,4 @@
 | 09-23 12:21 | build/v1.0.0 | `baeb4ba` | tool: 分支前缀白名单补上 build/ | 改完后 build/ 开头的分支可以正常提交 | 3 <!-- commit:baeb4ba --> |
 | 09-23 12:21 | build/v1.0.0 | `6cdee87` | tool: 分支前缀白名单补上 build/ | 改完后 build/ 开头的分支可以正常提交 | 2 <!-- commit:6cdee87 --> |
 | 09-23 12:21 | build/v1.0.0 | `2f15513` | build: 版本号升到 1.0.0，与首个正式交付对齐 | 重新打包后产物名为 FFShift-1.0.0-setup.exe | 1 <!-- commit:2f15513 --> |
+| 09-23 13:11 | feat/output-format | `180cc93` | convert: 支持选择输出格式，编码跟随容器 | 单测 139 条、集成测试 18 条全绿；端到端实测 mp4 转 webm 产出 VP9 + Opus | 13 <!-- commit:180cc93 --> |
