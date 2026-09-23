@@ -4,11 +4,30 @@
  * 容错优先：设置文件可能被手改坏、可能是旧版本写的，
  * 任何一种情况都不能让应用起不来——解析不了就回到默认值。
  */
-import type { OutputFormat, Preset } from './ffmpeg-args';
+import { ALL_FORMATS, type OutputFormat, type Preset } from './ffmpeg-args';
 
-export const SETTINGS_VERSION = 1;
+export const SETTINGS_VERSION = 2;
+
+/** 历史记录最多留这么多条，超出丢最旧的 */
+export const HISTORY_LIMIT = 50;
 
 export type HardwareChoice = 'none' | 'nvenc' | 'qsv' | 'amf';
+
+/** 一条转换记录：转换完成（成功或失败）时追加 */
+export interface HistoryEntry {
+  id: string;
+  name: string;
+  inputPath: string;
+  outputPath: string | null;
+  inputSizeBytes: number;
+  outputSizeBytes: number | null;
+  format: OutputFormat;
+  preset: Preset;
+  /** ISO 时间字符串 */
+  finishedAt: string;
+  elapsedMs: number;
+  status: 'done' | 'failed';
+}
 
 export interface AppSettings {
   version: number;
@@ -17,6 +36,7 @@ export interface AppSettings {
   outputFormat: OutputFormat;
   outputDir: string | null;
   hw: HardwareChoice;
+  history: HistoryEntry[];
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -25,23 +45,55 @@ export const DEFAULT_SETTINGS: AppSettings = {
   outputFormat: 'same',
   outputDir: null,
   hw: 'none',
+  history: [],
 };
 
 const PRESETS: readonly Preset[] = ['clear', 'balanced', 'small'];
-const FORMATS: readonly OutputFormat[] = ['same', 'mp4', 'mkv', 'mov', 'webm'];
 const HARDWARE: readonly HardwareChoice[] = ['none', 'nvenc', 'qsv', 'amf'];
+
+/** 解析单条历史记录；字段缺失或类型不对就丢弃这一条，而不是让整份设置作废 */
+function parseHistoryEntry(raw: unknown): HistoryEntry | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const entry = raw as Record<string, unknown>;
+
+  const id = typeof entry.id === 'string' && entry.id.length > 0 ? entry.id : null;
+  const name = typeof entry.name === 'string' && entry.name.length > 0 ? entry.name : null;
+  const inputPath = typeof entry.inputPath === 'string' && entry.inputPath.length > 0 ? entry.inputPath : null;
+  if (!id || !name || !inputPath) return null;
+
+  const numberOrZero = (value: unknown): number =>
+    typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : 0;
+
+  return {
+    id,
+    name,
+    inputPath,
+    outputPath: typeof entry.outputPath === 'string' && entry.outputPath.length > 0 ? entry.outputPath : null,
+    inputSizeBytes: numberOrZero(entry.inputSizeBytes),
+    outputSizeBytes:
+      typeof entry.outputSizeBytes === 'number' && Number.isFinite(entry.outputSizeBytes) && entry.outputSizeBytes > 0
+        ? entry.outputSizeBytes
+        : null,
+    format: ALL_FORMATS.includes(entry.format as OutputFormat) ? (entry.format as OutputFormat) : 'same',
+    preset: PRESETS.includes(entry.preset as Preset) ? (entry.preset as Preset) : 'balanced',
+    finishedAt: typeof entry.finishedAt === 'string' ? entry.finishedAt : '',
+    elapsedMs: numberOrZero(entry.elapsedMs),
+    status: entry.status === 'failed' ? 'failed' : 'done',
+  };
+}
 
 export function parseSettings(raw: unknown): AppSettings {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { ...DEFAULT_SETTINGS };
 
   const stored = raw as Record<string, unknown>;
-  // 版本号对不上才整体回到默认；缺版本号当成手写的 v1 设置，逐项补默认值
-  if (stored.version !== undefined && stored.version !== SETTINGS_VERSION) {
+  // 版本号对不上才整体回到默认；缺版本号当成手写的设置，逐项补默认值。
+  // v1 → v2 只是多了历史记录，删掉这一条反而能把用户的历史全清了，所以旧版本按逐项解析处理。
+  if (stored.version !== undefined && stored.version !== SETTINGS_VERSION && stored.version !== 1) {
     return { ...DEFAULT_SETTINGS };
   }
 
   const preset = PRESETS.includes(stored.preset as Preset) ? (stored.preset as Preset) : DEFAULT_SETTINGS.preset;
-  const outputFormat = FORMATS.includes(stored.outputFormat as OutputFormat)
+  const outputFormat = ALL_FORMATS.includes(stored.outputFormat as OutputFormat)
     ? (stored.outputFormat as OutputFormat)
     : DEFAULT_SETTINGS.outputFormat;
   const hw = HARDWARE.includes(stored.hw as HardwareChoice)
@@ -50,7 +102,19 @@ export function parseSettings(raw: unknown): AppSettings {
   const outputDir =
     typeof stored.outputDir === 'string' && stored.outputDir.length > 0 ? stored.outputDir : null;
 
-  return { version: SETTINGS_VERSION, preset, outputFormat, outputDir, hw };
+  const history = Array.isArray(stored.history)
+    ? stored.history
+        .map(parseHistoryEntry)
+        .filter((entry): entry is HistoryEntry => entry !== null)
+        .slice(0, HISTORY_LIMIT)
+    : [];
+
+  return { version: SETTINGS_VERSION, preset, outputFormat, outputDir, hw, history };
+}
+
+/** 把一条新记录插到最前面，并裁到上限 */
+export function appendHistory(history: HistoryEntry[], entry: HistoryEntry): HistoryEntry[] {
+  return [entry, ...history].slice(0, HISTORY_LIMIT);
 }
 
 export function serializeSettings(settings: AppSettings): string {

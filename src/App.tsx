@@ -27,6 +27,7 @@ import {
 import { describeSuggestion, type Suggestion } from './lib/ai-suggest';
 import { formatBytes, formatDuration, formatPercent, formatRemaining, formatSpeed } from './lib/format';
 import type { OutputFormat, Preset } from './lib/ffmpeg-args';
+import type { HistoryEntry } from './lib/settings';
 import { useStore, type TaskItem } from './store';
 
 const PRESETS: Array<{ id: Preset; label: string; note: string }> = [
@@ -365,6 +366,54 @@ function Inspector({ task, onClose }: { task: TaskItem; onClose: () => void }) {
   );
 }
 
+/** 历史记录的一行：文件名、格式、体积变化、时间与结果 */
+function HistoryRow({ entry }: { entry: HistoryEntry }) {
+  const formatLabel = FORMAT_OPTIONS.find((option) => option.value === entry.format)?.label ?? entry.format;
+
+  const delta =
+    entry.outputSizeBytes && entry.inputSizeBytes > 0
+      ? Math.round(((entry.outputSizeBytes - entry.inputSizeBytes) / entry.inputSizeBytes) * 100)
+      : null;
+
+  const when = entry.finishedAt
+    ? new Date(entry.finishedAt).toLocaleString('zh-CN', { hour12: false })
+    : null;
+  const elapsed = entry.elapsedMs > 0 ? `${(entry.elapsedMs / 1000).toFixed(1)} 秒` : null;
+
+  return (
+    <article className="queue-row is-compact">
+      <div className="queue-main">
+        <div className="queue-title">
+          <strong title={entry.inputPath}>{entry.name}</strong>
+          <span className={`status status-${entry.status === 'done' ? 'done' : 'failed'}`}>
+            <i />
+            {entry.status === 'done' ? '已完成' : '失败'}
+          </span>
+        </div>
+        <span className="queue-meta">
+          {[formatLabel, delta !== null ? `${delta > 0 ? '+' : ''}${delta}%` : null, elapsed, when]
+            .filter(Boolean)
+            .join(' · ')}
+        </span>
+      </div>
+
+      <div className="row-actions">
+        {entry.outputPath && (
+          <button
+            type="button"
+            className="row-action"
+            title="打开输出目录"
+            aria-label={`打开 ${entry.name} 的输出目录`}
+            onClick={() => void window.ffshift?.revealOutput(entry.outputPath ?? '')}
+          >
+            <FolderOpen />
+          </button>
+        )}
+      </div>
+    </article>
+  );
+}
+
 /** AI 建议：一句话说用途；降级到本地规则时如实标注来源 */
 function Assistant({ onApply }: { onApply: (preset: Preset, targetSizeMiB: number | null) => void }) {
   const [idea, setIdea] = useState('');
@@ -440,6 +489,8 @@ export default function App() {
     outputFormat,
     outputDir,
     targetSizeMiB,
+    history,
+    view,
     hardware,
     ffmpegVersion,
     addFiles,
@@ -451,6 +502,8 @@ export default function App() {
     pickOutputDir,
     clearOutputDir,
     addFolder,
+    clearHistory,
+    setView,
     clearFinished,
   } = useStore();
 
@@ -590,45 +643,76 @@ export default function App() {
           <div className="workspace-head">
             <div>
               <span className="kicker">工作区</span>
-              <h1>转换队列</h1>
+              <h1>{view === 'queue' ? '转换队列' : '转换历史'}</h1>
             </div>
             <div className="head-actions">
-              <span className="count-pill">{tasks.length} 个文件</span>
+              <span className="count-pill">
+                {view === 'queue' ? `${tasks.length} 个文件` : `${history.length} 条记录`}
+              </span>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => setView(view === 'queue' ? 'history' : 'queue')}
+              >
+                {view === 'queue' ? '看历史' : '回队列'}
+              </button>
+              {view === 'history' && history.length > 0 && (
+                <button type="button" className="secondary-button" onClick={clearHistory}>
+                  清空历史
+                </button>
+              )}
               <button type="button" className="secondary-button" onClick={() => setInspectorOpen((open) => !open)}>
                 {inspectorOpen ? '收起详情' : '打开详情'}
               </button>
             </div>
           </div>
 
-          <button
-            type="button"
-            className={`dropzone ${dragging ? 'is-dragging' : ''}`}
-            onClick={() => void pickFiles()}
-          >
-            <Upload />
-            <span>拖入视频，或点击添加</span>
-            <small>支持 MP4、MOV、MKV、WebM、AVI</small>
-          </button>
-
-          {tasks.length === 0 ? (
-            <div className="empty-state">
-              <p>把视频拖进来，或者点上面的「添加视频」。</p>
-              <small>支持 mp4、mov、mkv、avi、webm 等常见格式。</small>
-            </div>
+          {view === 'history' ? (
+            history.length === 0 ? (
+              <div className="empty-state">
+                <p>还没有转换记录。</p>
+                <small>完成的转换会记在这里，失败的也记。</small>
+              </div>
+            ) : (
+              <div className="queue-list">
+                {history.map((entry) => (
+                  <HistoryRow key={entry.id} entry={entry} />
+                ))}
+              </div>
+            )
           ) : (
-            <div className="queue-list">
-              {tasks.map((task) => (
-                <QueueRow
-                  key={task.id}
-                  task={task}
-                  selected={selected?.id === task.id}
-                  onSelect={() => {
-                    setSelectedId(task.id);
-                    setInspectorOpen(true);
-                  }}
-                />
-              ))}
-            </div>
+            <>
+              <button
+                type="button"
+                className={`dropzone ${dragging ? 'is-dragging' : ''}`}
+                onClick={() => void pickFiles()}
+              >
+                <Upload />
+                <span>拖入视频，或点击添加</span>
+                <small>支持 MP4、MOV、MKV、WebM、AVI</small>
+              </button>
+
+              {tasks.length === 0 ? (
+                <div className="empty-state">
+                  <p>把视频拖进来，或者点上面的「添加视频」。</p>
+                  <small>支持 mp4、mov、mkv、avi、webm 等常见格式。</small>
+                </div>
+              ) : (
+                <div className="queue-list">
+                  {tasks.map((task) => (
+                    <QueueRow
+                      key={task.id}
+                      task={task}
+                      selected={selected?.id === task.id}
+                      onSelect={() => {
+                        setSelectedId(task.id);
+                        setInspectorOpen(true);
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </section>
 

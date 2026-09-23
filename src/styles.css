@@ -486,6 +486,13 @@ button {
   border-bottom: 0;
 }
 
+/* 历史记录没有缩略图，行更矮、更紧凑 */
+.queue-row.is-compact {
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 68px;
+  padding: 12px 15px;
+}
+
 .queue-row:hover,
 .queue-row.is-selected {
   background: color-mix(in srgb, var(--blue) 6%, var(--panel));

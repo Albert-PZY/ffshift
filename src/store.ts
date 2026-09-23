@@ -9,6 +9,11 @@
 import { create } from 'zustand';
 import type { ConvertOutcome, ProgressUpdate } from '../electron/ffmpeg/convert';
 import { outputPathFor, type OutputFormat, type Preset } from './lib/ffmpeg-args';
+import {
+  SETTINGS_VERSION,
+  appendHistory,
+  type HistoryEntry,
+} from './lib/settings';
 import type { MediaInfo } from './lib/ffprobe';
 
 /** 任务状态；界面上的五个状态词与这里一一对应 */
@@ -62,6 +67,10 @@ interface State {
   /** 输出格式；same 表示跟随输入 */
   outputFormat: OutputFormat;
   outputDir: string | null;
+  /** 转换历史（最近的在前）；上限见 HISTORY_LIMIT */
+  history: HistoryEntry[];
+  /** 工作区当前显示队列还是历史 */
+  view: 'queue' | 'history';
   hardware: string[];
   ffmpegVersion: string | null;
   addFiles: (paths: string[]) => Promise<void>;
@@ -83,6 +92,9 @@ interface State {
   clearOutputDir: () => void;
   /** 选一个文件夹，把里面的视频一次性加进来 */
   addFolder: () => Promise<void>;
+  /** 清空转换历史 */
+  clearHistory: () => void;
+  setView: (view: 'queue' | 'history') => void;
   detectHardware: () => Promise<void>;
   loadSettings: () => Promise<void>;
 }
@@ -144,6 +156,8 @@ export const useStore = create<State>((set, get) => {
     preset: 'balanced',
     outputFormat: 'same',
     outputDir: null,
+    history: [],
+    view: 'queue',
     hardware: [],
     ffmpegVersion: null,
     targetSizeMiB: null,
@@ -293,6 +307,15 @@ export const useStore = create<State>((set, get) => {
       if (files?.length) await get().addFiles(files);
     },
 
+    clearHistory() {
+      set({ history: [] });
+      void persistSettings(get());
+    },
+
+    setView(view) {
+      set({ view });
+    },
+
     async detectHardware() {
       const report = await api()?.detectHardware();
       if (report) set({ hardware: report.available });
@@ -301,7 +324,12 @@ export const useStore = create<State>((set, get) => {
     async loadSettings() {
       const settings = await api()?.loadSettings();
       if (settings) {
-        set({ preset: settings.preset, outputFormat: settings.outputFormat, outputDir: settings.outputDir });
+        set({
+          preset: settings.preset,
+          outputFormat: settings.outputFormat,
+          outputDir: settings.outputDir,
+          history: settings.history,
+        });
       }
     },
   };
@@ -312,13 +340,15 @@ async function persistSettings(state: {
   preset: Preset;
   outputFormat: OutputFormat;
   outputDir: string | null;
+  history: HistoryEntry[];
 }): Promise<void> {
   await api()?.saveSettings({
-    version: 1,
+    version: SETTINGS_VERSION,
     preset: state.preset,
     outputFormat: state.outputFormat,
     outputDir: state.outputDir,
     hw: 'none',
+    history: state.history,
   });
 }
 
@@ -354,6 +384,27 @@ export function bindIpcEvents(): void {
 
     // 只推进队列，不要调 startAll —— 那会把所有等待中的任务重新入队，等于重复排队
     const state = useStore.getState();
+
+    // 记一条历史：成功的存体积变化，失败的也记——用户要能回看哪些文件没成
+    const task = state.tasks.find((t) => t.id === taskId);
+    if (task && (outcome.status === 'done' || outcome.status === 'failed')) {
+      const entry: HistoryEntry = {
+        id: `${taskId}-${Date.now()}`,
+        name: task.name,
+        inputPath: task.path,
+        outputPath: outcome.status === 'done' ? task.output : null,
+        inputSizeBytes: task.sizeBytes,
+        outputSizeBytes: outcome.status === 'done' ? outcome.outputSizeBytes : null,
+        format: state.outputFormat,
+        preset: state.preset,
+        finishedAt: new Date().toISOString(),
+        elapsedMs: outcome.status === 'done' ? outcome.elapsedMs : 0,
+        status: outcome.status === 'done' ? 'done' : 'failed',
+      };
+      useStore.setState({ history: appendHistory(state.history, entry) });
+      void persistSettings(useStore.getState());
+    }
+
     const stillQueued = state.tasks.some((t) => t.status === 'running' || t.status === 'queued');
     if (!stillQueued) notifyQueueFinished(state.tasks);
     void state.pumpNext().catch(() => undefined);

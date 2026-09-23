@@ -199,6 +199,13 @@ export function videoCodecFor(container: ContainerSpec, preset: Preset, hw: HwAc
   return container.forcedVideoCodec ?? h26xEncoder(preset, hw);
 }
 
+/**
+ * 全部可选输出格式（含 same）。
+ * 设置的校验、界面下拉、参数构造都从这里取，避免某天加了容器却忘了同步白名单——
+ * 那样用户选的格式存不下去，重启就悄悄回到默认值。
+ */
+export const ALL_FORMATS: readonly OutputFormat[] = ['same', ...CONTAINERS.map((c) => c.kind)];
+
 function extensionOf(path: string): string | null {
   const lastDot = path.lastIndexOf('.');
   const lastSlash = Math.max(path.lastIndexOf('\\'), path.lastIndexOf('/'));

@@ -1,14 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_SETTINGS, parseSettings, serializeSettings } from './settings';
+import {
+  DEFAULT_SETTINGS,
+  HISTORY_LIMIT,
+  appendHistory,
+  parseSettings,
+  serializeSettings,
+  type HistoryEntry,
+} from './settings';
 
 describe('parseSettings', () => {
   it('完整设置原样返回', () => {
     const stored = {
-      version: 1,
+      version: 2,
       preset: 'small',
       outputFormat: 'mp4',
       outputDir: 'D:\\输出',
       hw: 'nvenc',
+      history: [],
     };
     expect(parseSettings(stored)).toEqual(stored);
   });
@@ -42,19 +50,80 @@ describe('parseSettings', () => {
     expect(parseSettings({}).outputFormat).toBe('same');
   });
 
-  it('版本号不同时不猜，直接回到默认（v1 是第一个版本）', () => {
+  // 回归：白名单曾漏掉后加的音频与动图格式，用户选了存不下去，重启悄悄回到默认
+  it('后加的音频与动图格式同样记得住', () => {
+    for (const format of ['gif', 'mp3', 'm4a', 'opus', 'flac', 'wav'] as const) {
+      expect(parseSettings({ outputFormat: format }).outputFormat).toBe(format);
+    }
+  });
+
+  it('版本号不同时不猜，直接回到默认', () => {
     expect(parseSettings({ version: 99, preset: 'clear' })).toEqual(DEFAULT_SETTINGS);
+  });
+
+  it('v1 设置能升到 v2：偏好留着，历史为空', () => {
+    const parsed = parseSettings({ version: 1, preset: 'clear', outputFormat: 'mp3' });
+    expect(parsed.version).toBe(2);
+    expect(parsed.preset).toBe('clear');
+    expect(parsed.outputFormat).toBe('mp3');
+    expect(parsed.history).toEqual([]);
+  });
+});
+
+describe('历史记录', () => {
+  const entry: HistoryEntry = {
+    id: 'h1',
+    name: '片段.mp4',
+    inputPath: 'D:\\素材\\片段.mkv',
+    outputPath: 'D:\\素材\\片段.ffshift.mp4',
+    inputSizeBytes: 4_718_592,
+    outputSizeBytes: 2_311_319,
+    format: 'mp4',
+    preset: 'balanced',
+    finishedAt: '2026-09-23T15:00:00.000Z',
+    elapsedMs: 793,
+    status: 'done',
+  };
+
+  it('合法记录原样保留', () => {
+    expect(parseSettings({ history: [entry] }).history).toEqual([entry]);
+  });
+
+  it('缺关键字段的记录被丢掉，同批的其它记录不受影响', () => {
+    const broken = { ...entry, id: '', inputPath: '' };
+    expect(parseSettings({ history: [broken, entry] }).history).toEqual([entry]);
+  });
+
+  it('history 不是数组时给空数组，不让整份设置作废', () => {
+    expect(parseSettings({ history: '坏了' }).history).toEqual([]);
+    expect(parseSettings({ history: null }).history).toEqual([]);
+    expect(parseSettings({}).history).toEqual([]);
+  });
+
+  it('超过上限时只留最近的', () => {
+    const many = Array.from({ length: 80 }, (_, index) => ({ ...entry, id: `h${index}` }));
+    const parsed = parseSettings({ history: many }).history;
+    expect(parsed).toHaveLength(HISTORY_LIMIT);
+    expect(parsed[0]?.id).toBe('h0');
+  });
+
+  it('新记录插到最前面，并裁到上限', () => {
+    const history = Array.from({ length: HISTORY_LIMIT }, (_, index) => ({ ...entry, id: `h${index}` }));
+    const next = appendHistory(history, { ...entry, id: 'new' });
+    expect(next[0]?.id).toBe('new');
+    expect(next).toHaveLength(HISTORY_LIMIT);
   });
 });
 
 describe('serializeSettings', () => {
   it('写出的 JSON 能被读回来，字段不丢', () => {
     const settings = {
-      version: 1,
+      version: 2,
       preset: 'small' as const,
       outputFormat: 'webm' as const,
       outputDir: 'D:\\输出',
       hw: 'qsv' as const,
+      history: [],
     };
     expect(parseSettings(JSON.parse(serializeSettings(settings)))).toEqual(settings);
   });
