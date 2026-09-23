@@ -173,3 +173,4 @@
 | 09-23 19:06 | docs/e2e-hook | `3b78307` | docs: 把端到端测试的分工与钩子位置写进文档 | 钩子自测 18 条、端到端 9 条全绿 | 3 <!-- commit:3b78307 --> |
 | 09-23 19:38 | refactor/ui-enso-language | `6fe2c37` | build: 接入 Tailwind v4 与 Base UI | npm run build 通过（渲染层产出 55KB CSS） | 7 <!-- commit:6fe2c37 --> |
 | 09-23 19:39 | refactor/ui-enso-language | `fcda2bd` | lib: 抽出状态、格式与版本号的纯函数 | 单测 251 条全绿（新增 14 条） | 9 <!-- commit:fcda2bd --> |
+| 09-23 19:39 | refactor/ui-enso-language | `2ac2616` | ui: 移植 UI 原语层 | typecheck 通过 | 17 <!-- commit:2ac2616 --> |
