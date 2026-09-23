@@ -31,6 +31,8 @@ const api: FfshiftApi & { getPathForFile: (file: File) => string } = {
   loadSettings: () => ipcRenderer.invoke('ffshift:load-settings') as Promise<AppSettings>,
   saveSettings: (settings: AppSettings) =>
     ipcRenderer.invoke('ffshift:save-settings', settings) as Promise<AppSettings>,
+  revealOutput: (filePath: string) =>
+    ipcRenderer.invoke('ffshift:reveal-output', filePath) as Promise<{ ok: boolean }>,
 
   onProgress: (listener) => {
     const handler = (_event: unknown, payload: ProgressEvent) => listener(payload);

@@ -2,7 +2,7 @@
  * 主进程的 IPC 处理器：把渲染进程的请求接到 ffmpeg 能力上。
  * 每个处理函数只做三件事：校验入参、调用能力、把结果/错误整理成契约形状。
  */
-import { app, dialog, ipcMain, type BrowserWindow } from 'electron';
+import { app, dialog, ipcMain, shell, type BrowserWindow } from 'electron';
 import { execFile } from 'node:child_process';
 import { existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
@@ -174,6 +174,13 @@ export function registerIpc({ getWindow }: Deps): void {
 
   ipcMain.handle('ffshift:load-settings', async () => loadSettings());
   ipcMain.handle('ffshift:save-settings', async (_event, settings: unknown) => saveSettings(settings));
+
+  // 转换完成后让用户直接看到文件：在资源管理器里高亮选中，而不是只给个路径
+  ipcMain.handle('ffshift:reveal-output', async (_event, filePath: string) => {
+    if (typeof filePath !== 'string' || !existsSync(filePath)) return { ok: false };
+    shell.showItemInFolder(filePath);
+    return { ok: true };
+  });
 
   // 供测试与排错：主进程启动时把二进制来源写进日志
   const sourceLabel = binaries.source === 'bundled' ? '随包分发' : '系统 PATH';

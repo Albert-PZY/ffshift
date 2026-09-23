@@ -149,6 +149,15 @@ function TaskRow({ task }: { task: TaskItem }) {
             取消
           </button>
         )}
+        {task.status === 'done' && task.output && (
+          <button
+            type="button"
+            className="btn-ghost"
+            onClick={() => void window.ffshift?.revealOutput(task.output ?? '')}
+          >
+            打开输出目录
+          </button>
+        )}
         {['done', 'failed', 'cancelled', 'unsupported'].includes(task.status) && (
           <button type="button" className="btn-ghost" onClick={() => removeTask(task.id)}>
             移除

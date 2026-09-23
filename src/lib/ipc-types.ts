@@ -67,6 +67,7 @@ export interface FfshiftApi {
   suggest: (description: string) => Promise<SuggestResponse>;
   loadSettings: () => Promise<AppSettings>;
   saveSettings: (settings: AppSettings) => Promise<AppSettings>;
+  revealOutput: (filePath: string) => Promise<{ ok: boolean }>;
   onProgress: (listener: (event: ProgressEvent) => void) => () => void;
   onFinished: (listener: (event: FinishedEvent) => void) => () => void;
   /** 拖放的 File 对象在渲染进程拿不到磁盘路径，必须走它 */

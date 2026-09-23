@@ -129,3 +129,4 @@
 | 09-23 12:14 | feat/app-skeleton | `5d32cf3` | build: 配上 Windows 打包与图标 | npm run package 出包成功；打包后的 FFShift.exe 冒烟与端到端都通过 | 4 <!-- commit:5d32cf3 --> |
 | 09-23 12:14 | feat/app-skeleton | `685b344` | ai: 采纳建议时把目标体积一起带上 | typecheck 与 117 条单测通过；构建正常 | 2 <!-- commit:685b344 --> |
 | 09-23 12:16 | feat/app-skeleton | `a7e4189` | docs: 补上开发期的测试记录与会话总结 | 两份文档都通过 oil-tone 检查 | 2 <!-- commit:a7e4189 --> |
+| 09-23 12:18 | feat/app-skeleton | `3917597` | docs: 加一张自动生成的真实界面截图 | 截图来自最新构建，内容为真实界面（AMF 加速、1280×720、5 秒素材） | 4 <!-- commit:3917597 --> |
