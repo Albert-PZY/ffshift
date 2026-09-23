@@ -228,13 +228,17 @@
     本项目改成把下拉层直接定死在对话框之上，并在 `docs/design-system.md` 里写死这条规则。
     端到端测试随之加了两条：一条点下拉选值、一条填数字与文本——原来的用例只覆盖了数字输入框，
     正好漏掉整个下拉层。
-  - **踩坑留档（同批）**：`scripts/sync-docs.mjs` 的 `autoCommitDocs()` 执行的是 `git add docs`——整个目录。
-    本次重构里 `docs/design-system.md`、`docs/ui-spec.md`、`docs/decisions.md`、`docs/architecture.md` 的改写，
-    就是被它的后台提交（`0b09686 docs: 自动沉淀 6fe2c37`）连带提交掉的，提交信息和内容对不上。
-    和"一个提交一件事"冲突，也和提交信息应该说明改了什么的规矩冲突。
-    按 ADR-010 的先例（自动沉淀的级联提交"历史里保留，不重写"）没有回改历史。
-    一处待评估的改法：`autoCommitDocs` 只 add 它自己写的那几个文件（`commitLogFile` / `testingFile` / 状态页），
-    而不是整个 `docs/`。这属于钩子自身的改动，没并在这次重构里做。
+- **踩坑留档（同批）**：`scripts/sync-docs.mjs` 的 `autoCommitDocs()` 执行 `git add docs`——整个目录，
+  然后 `git commit`。提交的是**整个暂存区**，所以不只是文档：只要那一刻有东西被 `git add` 过，
+  就会一起被卷进 `docs: 自动沉淀 <sha>` 这条提交里。
+  实测被卷进去过两次不同的东西：四份文档的改写（`0b09686`），以及一个已 `git add` 待提交的
+  bug 修复 `src/lib/z-index.ts` 与 `e2e/workflow.e2e.test.ts`（`c1d389d`）——后者提交信息是
+  `docs: ...`，内容却是代码修复，对不上。
+  与"一个提交一件事"冲突，也与"提交信息要说明改了什么"冲突。
+  按 ADR-010 的先例（自动沉淀的级联提交"历史里保留，不重写"）没有回改历史。
+  一处待评估的改法：`autoCommitDocs` 只 add 它自己写的那几个文件（`commitLogFile` / `testingFile` / 状态页），
+  而不是整个 `docs/`，也不该把不属于它的暂存内容带进提交。
+  这属于钩子自身的改动，没并在当前这两次改动里做。
 
 ---
 
