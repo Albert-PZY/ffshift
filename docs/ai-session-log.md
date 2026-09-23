@@ -193,3 +193,4 @@
 | 09-23 23:29 | refactor/ui-enso-language | `aeab77d` | docs: 记下字号的返工与原因 | pre-commit 文风检查通过；openspec spec 用 REMOVED + ADDED 两条换两条 | 12 <!-- commit:aeab77d --> |
 | 09-23 23:29 | refactor/ui-enso-language | `0b1883b` | ui: 字号改成 10–24px 下拉，外壳尺寸不再跟着缩放 | typecheck、build 通过；单测 258 条全绿；e2e 17 条全绿（64.3s）； | 16 <!-- commit:0b1883b --> |
 | 09-24 00:18 | refactor/ui-enso-language | `0163551` | docs: 记下浅黑主题的取舍与两个连带发现 | pre-commit 文风检查通过；openspec 归档通过 | 13 <!-- commit:0163551 --> |
+| 09-24 00:19 | refactor/ui-enso-language | `fa64163` | ui: 加浅黑主题，表单底色改成语义令牌 | typecheck、build 通过；单测 257 条全绿；e2e 17 条全绿（68.3s，主题用例扩到 | 10 <!-- commit:fa64163 --> |
