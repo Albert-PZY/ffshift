@@ -112,3 +112,4 @@ $bytes = [System.IO.File]::ReadAllBytes("fixture_10s.mp4")[0..1048575]
 | --- | --- | --- |
 | 2026-09-23 | ffmpeg / ffprobe 8.0.1 → 9.0.2（同一来源 gyan.dev essentials build，配置一致） | 集成测试 15 条全绿；应用端到端自检通过（795ms、输出 2.2 MB）。旧版本目录已删除，系统 PATH 指向新目录；改动前的系统 PATH 备份在 `G:\develop\path-backup-before-ffmpeg-9.0.2.txt` |
 | 2026-09-23 | `180cc93` convert: 支持选择输出格式，编码跟随容器 | 13 个文件 | 待人工确认（验证信息：单测 139 条、集成测试 18 条全绿；端到端实测 mp4 转 webm 产出 VP9 + Opu） <!-- commit:180cc93 --> |
+| 2026-09-23 | `1b0019f` convert: 支持选择输出格式，编码跟随容器 (#8) | 22 个文件 | 待人工确认（验证信息：单测 139 条、集成测试 18 条全绿；端到端实测 mp4 转 webm 产出 VP9 + Opu） <!-- commit:1b0019f --> |
