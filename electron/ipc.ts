@@ -104,6 +104,7 @@ export function registerIpc({ getWindow }: Deps): void {
         input: request.input,
         output: request.output,
         preset: request.preset,
+        format: request.format ?? 'same',
         hw: request.hw ?? 'none',
         hasAudio: request.hasAudio,
         targetSizeMiB: request.targetSizeMiB ?? null,

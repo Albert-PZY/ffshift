@@ -33,8 +33,14 @@ describe.skipIf(!ready)('缩略图与转换集成', () => {
   let cacheDir: string;
   let source: string;
   let longer: string;
+  let webmSource: string;
 
-  const makeVideo = (target: string, seconds: number, size = '640x360'): void => {
+  const makeVideo = (target: string, seconds: number, size = '640x360', codec: 'h264' | 'vp9' = 'h264'): void => {
+    const codecArgs =
+      codec === 'vp9'
+        ? ['-c:v', 'libvpx-vp9', '-b:v', '500k', '-row-mt', '1', '-c:a', 'libopus']
+        : ['-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p', '-c:a', 'aac'];
+
     execFileSync(
       paths.ffmpeg,
       [
@@ -42,8 +48,7 @@ describe.skipIf(!ready)('缩略图与转换集成', () => {
         '-f', 'lavfi', '-i', `testsrc2=size=${size}:rate=25`,
         '-f', 'lavfi', '-i', 'sine=frequency=440',
         '-t', String(seconds),
-        '-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p',
-        '-c:a', 'aac',
+        ...codecArgs,
         target,
       ],
       { stdio: 'ignore', timeout: 150_000 },
@@ -59,6 +64,8 @@ describe.skipIf(!ready)('缩略图与转换集成', () => {
 
     makeVideo(source, 4);
     makeVideo(longer, 40, '1280x720');
+    webmSource = join(workDir, '网页素材.webm');
+    makeVideo(webmSource, 3, '640x360', 'vp9');
   }, 400_000);
 
   afterAll(() => {
@@ -191,6 +198,8 @@ describe.skipIf(!ready)('缩略图与转换集成', () => {
         expect(outcome.error.title.length).toBeGreaterThan(0);
         expect(outcome.error.kind).not.toBe('unknown');
       }
+      // 失败也不留半成品：留着会让用户以为转换成功过
+      expect(existsSync(output)).toBe(false);
     });
 
     it('目标体积模式产出明显更小的文件', async () => {
@@ -217,6 +226,63 @@ describe.skipIf(!ready)('缩略图与转换集成', () => {
       const newSize = statSync(output).size;
       expect(newSize).toBeLessThan(originalSize * 0.6);
     }, 180_000);
+  });
+
+  describe('输出格式（容器）', () => {
+    it('webm 源转 mp4：容器与编码一起换掉', async () => {
+      const output = join(outDir, '网页转.mp4');
+      const handle = startConvert({
+        ffmpegPath: paths.ffmpeg,
+        args: buildArgs({ input: webmSource, output, preset: 'balanced', format: 'mp4', hasAudio: true }),
+        outputPath: output,
+        durationSec: 3,
+      });
+      const outcome = await handle.promise;
+      expect(outcome.status, outcome.status === 'failed' ? outcome.error.raw : '').toBe('done');
+
+      const info = await probeFile(paths.ffprobe, output);
+      expect(info.container).toContain('mp4');
+      expect(info.videoCodec).toBe('h264');
+      expect(info.audioCodec).toBe('aac');
+    }, 120_000);
+
+    it('webm 源保持 webm：改用 VP9，不再撞容器限制', async () => {
+      const output = join(outDir, '网页保持.webm');
+      const handle = startConvert({
+        ffmpegPath: paths.ffmpeg,
+        args: buildArgs({ input: webmSource, output, preset: 'balanced', format: 'same', hasAudio: true }),
+        outputPath: output,
+        durationSec: 3,
+      });
+      const outcome = await handle.promise;
+      expect(outcome.status, outcome.status === 'failed' ? outcome.error.raw : '').toBe('done');
+
+      const info = await probeFile(paths.ffprobe, output);
+      expect(info.container).toContain('webm');
+      expect(info.videoCodec).toMatch(/vp9/);
+    }, 120_000);
+
+    it('mkv 源转 mp4：换了容器，产物被 ffprobe 认成 mp4', async () => {
+      const mkv = join(workDir, '中转素材.mkv');
+      execFileSync(paths.ffmpeg, ['-hide_banner', '-y', '-i', source, '-c', 'copy', mkv], {
+        stdio: 'ignore',
+        timeout: 60_000,
+      });
+
+      const output = join(outDir, '由mkv转来.mp4');
+      const handle = startConvert({
+        ffmpegPath: paths.ffmpeg,
+        args: buildArgs({ input: mkv, output, preset: 'balanced', format: 'mp4', hasAudio: true }),
+        outputPath: output,
+        durationSec: 4,
+      });
+      const outcome = await handle.promise;
+      expect(outcome.status, outcome.status === 'failed' ? outcome.error.raw : '').toBe('done');
+
+      const info = await probeFile(paths.ffprobe, output);
+      expect(info.container).toContain('mp4');
+      expect(info.videoCodec).toBe('h264');
+    }, 120_000);
   });
 
   describe('输出路径', () => {

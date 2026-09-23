@@ -3,7 +3,13 @@ import { DEFAULT_SETTINGS, parseSettings, serializeSettings } from './settings';
 
 describe('parseSettings', () => {
   it('完整设置原样返回', () => {
-    const stored = { version: 1, preset: 'small', outputDir: 'D:\\输出', hw: 'nvenc' };
+    const stored = {
+      version: 1,
+      preset: 'small',
+      outputFormat: 'mp4',
+      outputDir: 'D:\\输出',
+      hw: 'nvenc',
+    };
     expect(parseSettings(stored)).toEqual(stored);
   });
 
@@ -29,6 +35,13 @@ describe('parseSettings', () => {
     expect(parseSettings({ outputDir: '' }).outputDir).toBeNull();
   });
 
+  it('输出格式也记得住，非法值回到 same', () => {
+    expect(parseSettings({ outputFormat: 'webm' }).outputFormat).toBe('webm');
+    expect(parseSettings({ outputFormat: 'mp4' }).outputFormat).toBe('mp4');
+    expect(parseSettings({ outputFormat: 'avi' }).outputFormat).toBe('same');
+    expect(parseSettings({}).outputFormat).toBe('same');
+  });
+
   it('版本号不同时不猜，直接回到默认（v1 是第一个版本）', () => {
     expect(parseSettings({ version: 99, preset: 'clear' })).toEqual(DEFAULT_SETTINGS);
   });
@@ -36,7 +49,13 @@ describe('parseSettings', () => {
 
 describe('serializeSettings', () => {
   it('写出的 JSON 能被读回来，字段不丢', () => {
-    const settings = { version: 1, preset: 'small' as const, outputDir: 'D:\\输出', hw: 'qsv' as const };
+    const settings = {
+      version: 1,
+      preset: 'small' as const,
+      outputFormat: 'webm' as const,
+      outputDir: 'D:\\输出',
+      hw: 'qsv' as const,
+    };
     expect(parseSettings(JSON.parse(serializeSettings(settings)))).toEqual(settings);
   });
 

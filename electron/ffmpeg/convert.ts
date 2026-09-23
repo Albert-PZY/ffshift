@@ -130,6 +130,8 @@ export function startConvert(options: ConvertOptions): ConvertHandle {
         resolve({ status: 'done', elapsedMs: Date.now() - started });
         return;
       }
+      // 失败同样要清：留着损坏的半成品，用户会以为转换成功过
+      removePartial(outputPath);
       resolve({
         status: 'failed',
         error: translateError(stderrLines.join('\n'), code),

@@ -39,6 +39,16 @@ describe('translateError', () => {
     expect(result.title).toMatch(/空间/);
   });
 
+  it('容器装不下这个编码时，提示换格式而不是报未知错误', () => {
+    // 实测原文：把 H.264 塞进 webm 时 ffmpeg 的真实输出
+    const raw =
+      '[webm @ 0x1] Only VP8 or VP9 or AV1 video and Vorbis or Opus audio and WebVTT subtitles are supported for WebM.\n' +
+      '[out#0/webm @ 0x2] Could not write header (incorrect codec parameters ?): Invalid argument';
+    const result = translateError(raw, -22);
+    expect(result.kind).toBe('container-codec');
+    expect(result.hint).toMatch(/格式/);
+  });
+
   it('编码器在这台机器上不可用', () => {
     const result = translateError("Unknown encoder 'h264_nvenc'", 1);
     expect(result.kind).toBe('encoder');

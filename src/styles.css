@@ -119,6 +119,29 @@ body {
   color: var(--text);
 }
 
+/* 输出格式选择：原生 select，键盘与读屏软件都直接可用 */
+.format-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.format-picker select {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: border-color 150ms ease-out;
+}
+
+.format-picker select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
 .toolbar-right {
   display: flex;
   gap: 8px;

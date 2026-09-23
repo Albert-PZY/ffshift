@@ -4,7 +4,7 @@
  */
 import { create } from 'zustand';
 import type { ConvertOutcome, ProgressUpdate } from '../electron/ffmpeg/convert';
-import { suggestOutputPath, type Preset } from './lib/ffmpeg-args';
+import { outputPathFor, type OutputFormat, type Preset } from './lib/ffmpeg-args';
 import type { MediaInfo } from './lib/ffprobe';
 
 export type TaskStatus = 'reading' | 'ready' | 'queued' | 'running' | 'done' | 'failed' | 'cancelled' | 'unsupported';
@@ -33,6 +33,8 @@ interface State {
   preset: Preset;
   /** AI 建议里的目标体积（MiB）；null 表示不限体积 */
   targetSizeMiB: number | null;
+  /** 输出格式；same 表示跟随输入 */
+  outputFormat: OutputFormat;
   outputDir: string | null;
   hardware: string[];
   ffmpegVersion: string | null;
@@ -42,6 +44,7 @@ interface State {
   removeTask: (id: string) => void;
   clearFinished: () => void;
   setPreset: (preset: Preset) => void;
+  setOutputFormat: (format: OutputFormat) => void;
   /** 采纳 AI 建议：档位与目标体积一起生效（否则体积建议等于空话） */
   applySuggestion: (preset: Preset, targetSizeMiB: number | null) => void;
   pickOutputDir: () => Promise<void>;
@@ -58,7 +61,7 @@ export const useStore = create<State>((set, get) => {
     const next = tasks.find((t) => t.status === 'queued');
     if (!next || !next.info) return;
 
-    const output = next.output ?? suggestOutputPath(next.path);
+    const output = next.output ?? outputPathFor(next.path, get().outputFormat);
     set((state) => ({
       tasks: state.tasks.map((t) => (t.id === next.id ? { ...t, status: 'running', output } : t)),
     }));
@@ -77,6 +80,7 @@ export const useStore = create<State>((set, get) => {
       input: next.path,
       output,
       preset,
+      format: get().outputFormat,
       hw,
       hasAudio: next.info.hasAudio,
       durationSec: next.info.durationSec,
@@ -97,6 +101,7 @@ export const useStore = create<State>((set, get) => {
   return {
     tasks: [],
     preset: 'balanced',
+    outputFormat: 'same',
     outputDir: null,
     hardware: [],
     ffmpegVersion: null,
@@ -187,6 +192,11 @@ export const useStore = create<State>((set, get) => {
       void persistSettings(get());
     },
 
+    setOutputFormat(format) {
+      set({ outputFormat: format });
+      void persistSettings(get());
+    },
+
     applySuggestion(preset, targetSizeMiB) {
       set({ preset, targetSizeMiB });
       void persistSettings(get());
@@ -208,17 +218,22 @@ export const useStore = create<State>((set, get) => {
     async loadSettings() {
       const settings = await api()?.loadSettings();
       if (settings) {
-        set({ preset: settings.preset, outputDir: settings.outputDir });
+        set({ preset: settings.preset, outputFormat: settings.outputFormat, outputDir: settings.outputDir });
       }
     },
   };
 });
 
 /** 设置改动就落盘，下次启动还在（冒烟清单第 12 条）。 */
-async function persistSettings(state: { preset: Preset; outputDir: string | null }): Promise<void> {
+async function persistSettings(state: {
+  preset: Preset;
+  outputFormat: OutputFormat;
+  outputDir: string | null;
+}): Promise<void> {
   await api()?.saveSettings({
     version: 1,
     preset: state.preset,
+    outputFormat: state.outputFormat,
     outputDir: state.outputDir,
     hw: 'none',
   });

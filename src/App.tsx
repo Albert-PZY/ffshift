@@ -1,13 +1,21 @@
 import { useState, type DragEvent } from 'react';
 import { describeSuggestion, type Suggestion } from './lib/ai-suggest';
 import { formatBytes, formatDuration, formatPercent, formatRemaining, formatSpeed } from './lib/format';
-import type { Preset } from './lib/ffmpeg-args';
+import type { OutputFormat, Preset } from './lib/ffmpeg-args';
 import { useStore, type TaskItem } from './store';
 
 const PRESETS: Array<{ id: Preset; label: string; note: string }> = [
   { id: 'clear', label: '更清晰', note: '存档、还要再剪辑' },
   { id: 'balanced', label: '均衡', note: '日常使用' },
   { id: 'small', label: '更小', note: '发手机、省空间' },
+];
+
+const FORMAT_OPTIONS: Array<{ id: OutputFormat; label: string }> = [
+  { id: 'same', label: '保持原格式' },
+  { id: 'mp4', label: 'MP4' },
+  { id: 'mkv', label: 'MKV' },
+  { id: 'mov', label: 'MOV' },
+  { id: 'webm', label: 'WebM' },
 ];
 
 const STATUS_LABEL: Record<TaskItem['status'], string> = {
@@ -169,8 +177,20 @@ function TaskRow({ task }: { task: TaskItem }) {
 }
 
 export default function App() {
-  const { tasks, preset, targetSizeMiB, addFiles, startAll, setPreset, applySuggestion, clearFinished, ffmpegVersion, hardware } =
-    useStore();
+  const {
+    tasks,
+    preset,
+    outputFormat,
+    targetSizeMiB,
+    addFiles,
+    startAll,
+    setPreset,
+    setOutputFormat,
+    applySuggestion,
+    clearFinished,
+    ffmpegVersion,
+    hardware,
+  } = useStore();
   const [dragging, setDragging] = useState(false);
 
   const pendingCount = tasks.filter((t) => t.status === 'ready' || t.status === 'failed').length;
@@ -226,6 +246,20 @@ export default function App() {
             </button>
           ))}
         </div>
+        <label className="format-picker">
+          <span className="hint">输出格式</span>
+          <select
+            value={outputFormat}
+            onChange={(event) => setOutputFormat(event.target.value as OutputFormat)}
+            aria-label="输出格式"
+          >
+            {FORMAT_OPTIONS.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
         {targetSizeMiB !== null && <span className="hint">目标体积 {targetSizeMiB} MiB</span>}
         <div className="toolbar-right">
           <button type="button" className="btn-ghost" onClick={() => void clearFinished()}>
