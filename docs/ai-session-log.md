@@ -141,3 +141,4 @@
 | 09-23 13:16 | chore/tidy-structure | `84cfe61` | chore: 清掉已经多余的占位文件 | openspec validate 仍然通过 | 2 <!-- commit:84cfe61 --> |
 | 09-23 13:31 | feat/ffmpeg-bundled-and-media | `5a7a57d` | build: 把 ffmpeg 与 ffprobe 内置进安装包 | 打包产物里有两个二进制；冒烟日志显示 ffmpeg 来源：随包分发 | 2 <!-- commit:5a7a57d --> |
 | 09-23 13:31 | feat/ffmpeg-bundled-and-media | `447ae3d` | convert: 支持音频与 GIF 输出，透明素材先合成底色 | 单测 165 条、集成测试 22 条全绿；alpha 合成用取像素验证（白底叠加后绿分量 > 80） | 15 <!-- commit:447ae3d --> |
+| 09-23 13:35 | feat/ffmpeg-bundled-and-media | `a227185` | docs: 补代码规范与新增转换能力的规格 | openspec validate 通过（3 个能力 0 失败）；README 通过 oil-tone 检查 | 13 <!-- commit:a227185 --> |
