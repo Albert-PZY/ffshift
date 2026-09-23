@@ -5,7 +5,7 @@
 
 ## 1. 自动化测试（已落地）
 
-命令：`npm run test:unit`（237 条）、`npm run test:integration`（25 条，真实调用本机 ffmpeg）、`npm run test:e2e`（9 条，驱动真实界面）。
+命令：`npm run test:unit`（251 条）、`npm run test:integration`（25 条，真实调用本机 ffmpeg）、`npm run test:e2e`（9 条，驱动真实界面）。
 集成测试在环境没有 ffmpeg 时整组跳过（`describe.skipIf`），不会挡住协作者。
 
 三层测试的分工：单测盯纯逻辑与参数构造；集成测试盯 ffmpeg 跑不跑得通；端到端盯"界面上点一下，整条链路对不对"。
@@ -13,7 +13,9 @@
 
 | 测试文件 | 覆盖点 |
 | --- | --- |
-| `src/lib/format.test.ts` | 字节 / 时长 / 百分比 / 速度 / 剩余时间，含非法输入与越界收敛 |
+| `src/lib/format.test.ts` | 字节 / 时长 / 百分比 / 速度 / 剩余时间 / 体积变化，含非法输入与越界收敛 |
+| `src/lib/task-status.test.ts` | 八个状态的标签与色档、状态词与文案契约一致、活跃/结束判定 |
+| `src/lib/ffmpeg-version.test.ts` | 从完整版本串里取版本号：构建标签、git 构建前缀、认不出时的兜底 |
 | `src/lib/progress.test.ts` | `key=value` 块解析、`out_time_ms` 实为微秒的坑、流式分块拼接 |
 | `src/lib/ffmpeg-args.test.ts` | 三档预设、硬件加速、无音轨不加音频参数、目标体积反推码率、输出路径 |
 | `src/lib/errors.test.ts` | 五类常见报错转人话、取消、兜底、输出打不开的误判 |
@@ -128,3 +130,4 @@ $bytes = [System.IO.File]::ReadAllBytes("fixture_10s.mp4")[0..1048575]
 | 2026-09-23 | `afd7fd9` convert: 专业参数的数据层、校验与参数构造 | 11 个文件 | 待人工确认（验证信息：单测 222 条全绿（新增 42 条：校验 27、构造 15）） <!-- commit:afd7fd9 --> |
 | 2026-09-23 | `61ab1df` test: 预设层的边界用例 | 1 个文件 | 待人工确认（验证信息：单测 237 条全绿（新增 15 条）） <!-- commit:61ab1df --> |
 | 2026-09-23 | `2c4110f` test: 真正的端到端测试（9 条，驱动真实界面） | 8 个文件 | 待人工确认（验证信息：e2e 9 条全绿（29.7s）、typecheck 通过） <!-- commit:2c4110f --> |
+| 2026-09-23 | `refactor/ui-enso-language` 界面重构（内化 EnsoCode 设计语言） | 见 ADR-015 | 待人工确认（验证信息：单测 251 条全绿、typecheck 通过、`npm run build` 通过、e2e 9 条全绿（28.2s）；截图重拍，5 个中间态（待转换 / 转换中 / 已完成 / 历史 / hover）人工看过） |
