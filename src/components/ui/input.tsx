@@ -20,7 +20,7 @@ function Input({ className, size = 'default', ...props }: InputProps) {
   return (
     <span
       className={cn(
-        'relative inline-flex w-full rounded-lg border border-input bg-background text-base text-foreground shadow-xs ring-ring/24 transition-shadow has-focus-visible:border-ring has-focus-visible:ring-[3px] has-aria-invalid:border-destructive/36 has-focus-visible:has-aria-invalid:border-destructive/64 has-focus-visible:has-aria-invalid:ring-destructive/16 has-disabled:opacity-64 sm:text-sm dark:bg-input/32',
+        'relative inline-flex w-full rounded-lg border border-input bg-field text-base text-foreground shadow-xs ring-ring/24 transition-shadow has-focus-visible:border-ring has-focus-visible:ring-[3px] has-aria-invalid:border-destructive/36 has-focus-visible:has-aria-invalid:border-destructive/64 has-focus-visible:has-aria-invalid:ring-destructive/16 has-disabled:opacity-64 sm:text-sm',
         className,
       )}
       data-size={size}

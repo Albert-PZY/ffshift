@@ -23,7 +23,7 @@ export function OutputSection() {
       >
         {/* 长得像输入框，点开的是系统目录选择框 */}
         <button
-          className="flex h-8 w-56 items-center gap-2 overflow-hidden rounded-lg border border-input bg-background px-2.5 text-sm text-foreground shadow-xs transition-shadow hover:border-ring sm:h-7.5 dark:bg-input/32"
+          className="flex h-8 w-56 items-center gap-2 overflow-hidden rounded-lg border border-input bg-field px-2.5 text-sm text-foreground shadow-xs transition-shadow hover:border-ring sm:h-7.5"
           data-slot="path-button"
           id="output-dir"
           title={outputDir ?? '与源文件同目录'}

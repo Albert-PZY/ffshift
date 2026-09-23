@@ -20,9 +20,10 @@ export type HardwareChoice = 'none' | 'nvenc' | 'qsv' | 'amf';
  * 界面主题。
  *
  * 默认亮色：桌面工具在白天办公环境下用得更多，而且亮色下界面本身不抢注意力。
- * 选过之后记住，下次启动直接是那套（见 electron/main.ts 的提前读取）。
+ * `dim` 是偏灰的浅黑（底色中性深灰、文字不用纯白），比 `dark` 的近黑柔和一档，
+ * 适合长时间盯着看。选过之后记住（见 electron/main.ts 的提前读取）。
  */
-export type Theme = 'light' | 'dark';
+export type Theme = 'light' | 'dim' | 'dark';
 
 /**
  * 界面字号：根字号的像素值，范围见 `src/lib/font-scale.ts` 的 10–24。
@@ -84,7 +85,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 
 const PRESETS: readonly Preset[] = ['clear', 'balanced', 'small'];
 const HARDWARE: readonly HardwareChoice[] = ['none', 'nvenc', 'qsv', 'amf'];
-const THEMES: readonly Theme[] = ['light', 'dark'];
+const THEMES: readonly Theme[] = ['light', 'dim', 'dark'];
 
 /**
  * 字号解析：先认旧档位名，再认数字，越界收敛。

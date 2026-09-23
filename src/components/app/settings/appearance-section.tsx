@@ -3,7 +3,11 @@ import { SelectField } from '@/components/app/select-field';
 import { Tabs, TabsList, TabsTab } from '@/components/ui/tabs';
 import { derivedFontSizes, FONT_SIZE_OPTIONS } from '@/lib/font-scale';
 import type { Theme } from '@/lib/settings';
+import { themeLabel } from '@/lib/theme';
 import { useStore } from '@/store';
+
+/** 按明度从高到低排：亮色 → 浅黑 → 暗色。用户扫一眼就知道这三套是什么关系 */
+const THEME_ORDER = ['light', 'dim', 'dark'] as const;
 
 /**
  * 外观：主题与字号。
@@ -21,15 +25,17 @@ export function AppearanceSection() {
 
   return (
     <SettingsSection description="界面配色与字号。选过之后记住，下次启动直接是这一套。" title="外观">
-      <SettingsRow hint="亮色是默认。切换立即生效，不用重启。" label="主题">
+      <SettingsRow
+        hint="亮色是默认。浅黑是偏灰的一套——底比暗色浅、文字不用纯白，长时间看没那么累。切换立即生效，不用重启。"
+        label="主题"
+      >
         <Tabs className="gap-0" onValueChange={(value) => setTheme(value as Theme)} value={theme}>
           <TabsList>
-            <TabsTab data-slot="theme-option" value="light">
-              亮色
-            </TabsTab>
-            <TabsTab data-slot="theme-option" value="dark">
-              暗色
-            </TabsTab>
+            {THEME_ORDER.map((value) => (
+              <TabsTab data-slot="theme-option" key={value} value={value}>
+                {themeLabel(value)}
+              </TabsTab>
+            ))}
           </TabsList>
         </Tabs>
       </SettingsRow>

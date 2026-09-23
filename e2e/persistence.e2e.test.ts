@@ -105,31 +105,42 @@ describe('持久化：设置与预设', () => {
     expect(await running.page.locator('#format-menu').innerText()).toContain('MKV');
   }, 180_000);
 
-  it('默认亮色；切成暗色之后重启还是暗色', async () => {
+  it('三套主题：默认亮色，浅黑与暗色各自记住，类名不串台', async () => {
     const userDataDir = freshDir();
-    const isDark = (): Promise<boolean> =>
-      running ? running.page.evaluate(() => document.documentElement.classList.contains('dark')) : Promise.resolve(false);
+    const rootClass = (): Promise<string> =>
+      running ? running.page.evaluate(() => document.documentElement.className) : Promise.resolve('');
+    const pickTheme = async (label: string): Promise<void> => {
+      await openSettings(running.page, '外观');
+      await running.page.getByRole('tab', { name: label }).click();
+      await running.page.waitForTimeout(800);
+    };
 
     running = await launchApp({ userDataDir });
-    // 默认亮色：<html> 上没有 dark 类
-    expect(await isDark()).toBe(false);
+    // 亮色是根状态：<html> 上不带类
+    expect(await rootClass()).toBe('');
 
-    await openSettings(running.page, '外观');
-    await running.page.getByRole('tab', { name: '暗色' }).click();
-    await running.page.waitForTimeout(800);
-    expect(await isDark()).toBe(true);
+    await pickTheme('浅黑');
+    expect(await rootClass()).toBe('dim');
+
+    // 重启后首帧就是浅黑：主题在主进程建窗口之前就读出来了，不会先闪一下
+    await restart(userDataDir);
+    expect(await rootClass()).toBe('dim');
+
+    // 换到暗色：类名要换掉，不能两个类同时在（那样两套令牌会打架）
+    await pickTheme('暗色');
+    expect(await rootClass()).toBe('dark');
 
     await restart(userDataDir);
-    // 重启后首帧就是暗色：主题在主进程建窗口之前就读出来了，不会先闪一下亮色
-    expect(await isDark()).toBe(true);
-
-    // 切回亮色也要记住；顺带确认设置界面上的选中态跟主题是一致的
+    expect(await rootClass()).toBe('dark');
+    // 顺带确认设置界面上的选中态跟主题一致
     await openSettings(running.page, '外观');
     expect(await running.page.getByRole('tab', { name: '暗色' }).getAttribute('data-active')).not.toBeNull();
+
+    // 切回亮色也要记住，且类名清干净
     await running.page.getByRole('tab', { name: '亮色' }).click();
     await running.page.waitForTimeout(800);
     await restart(userDataDir);
-    expect(await isDark()).toBe(false);
+    expect(await rootClass()).toBe('');
   }, 180_000);
 
   it('字号：默认 14px，改过之后重启还是那一档', async () => {

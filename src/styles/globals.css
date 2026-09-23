@@ -8,12 +8,13 @@
  *
  * 与上游的三处差异，逐条标明原因（本项目文档约定：调整要标出来，不混在"参考"里）：
  *
- *   1. ⚠️ 状态色不是逐字照抄的，亮暗两套各调过两处。上游那两个值在原主题里没问题，
+ *   1. ⚠️ 状态色不是逐字照抄的，三套主题都调过。上游那两个值在原主题里没问题，
  *      换到本项目的用法上就不够：
  *        · 暗色的 destructive / success 取更亮的一档——上游那组是配白字做实心按钮用的，
  *          本项目当正文色压在窗口底上，实测只有 1.97:1 与 4.01:1；
- *        · 亮色的 warning / info 各压暗一档——上游值压在白底上只有 2.15:1 与 3.76:1。
- *      调整后是 6.85 / 8.70（暗）与 4.99 / 5.06（亮），都过 4.5:1 的硬线，
+ *        · 亮色的 warning / info 各压暗一档——上游值压在白底上只有 2.15:1 与 3.76:1；
+ *        · 浅黑（.dim）的四个全部提亮一档——底色比暗色浅，那套压上去不够（info 只有 3.76:1）。
+ *      约束是"页面底与选中行底都过 4.5:1"（状态标签就长在选中行上），
  *      数值由 WCAG 相对亮度公式算出，不是估的。改回去之前先量一遍。
  *
  *   2. 动效令牌只留用得到的那几组。上游那份 transitions-dev 清单有两百多条，
@@ -23,6 +24,10 @@
  *
  *   3. 首页面同色这一条在上游是绝对的（连亮色下 card 与 background 也是同一个值），
  *      本项目沿用；差别只在"哪些结构用哪一档"，见 docs/design-system.md 的面层表。
+ *
+ * 三套主题（亮色 / 浅黑 / 暗色）都是同名的三段令牌，组件层不写 `dark:` 这类条件类：
+ * Tailwind 的 `dark:` 默认跟的是系统配色而不是应用里选的主题，需要随主题变的底
+ * 一律走语义令牌（如 --field）。
  */
 
 @import 'tailwindcss';
@@ -57,6 +62,11 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  /* 表单控件的底。做成令牌而不是在组件里写 `dark:` 变体：
+     Tailwind 的 `dark:` 默认跟的是系统配色，不是应用里选的主题，
+     三套主题各写一遍变体只会越写越乱（见 src/lib/theme.ts 的说明）。 */
+  --color-field: var(--field);
 
   /* 圆角三档从 --radius 派生：改一个数，控件、弹层、小标签一起走 */
   --radius-lg: var(--radius);
@@ -147,6 +157,52 @@
 
     /* 骨架屏的高光：亮色里是白，暗色里是极淡的前景色 */
     --skeleton-highlight: oklch(1 0 0 / 64%);
+
+    /* 表单控件的底。亮色下就是面板白，靠 1px 边框划边界 */
+    --field: var(--background);
+  }
+
+  /*
+   * 浅黑：偏灰的一套，底比暗色浅两档、文字不用纯白。
+   * 取值的依据是"长时间看不累"——底色是中性深灰而不是近黑，对比也没拉到极限。
+   * 状态色相应提亮一档：底色变浅之后，暗色那套压上去就不够对比了
+   * （实测 info 只有 3.76:1）。这里挑的值在页面底与选中行底上都过 4.5:1。
+   */
+  .dim {
+    color-scheme: dark;
+
+    --background: oklch(0.29 0.006 285.82);
+    --foreground: oklch(0.93 0.004 285.82);
+    --card: oklch(0.29 0.006 285.82);
+    --card-foreground: oklch(0.93 0.004 285.82);
+    --popover: oklch(0.29 0.006 285.82);
+    --popover-foreground: oklch(0.93 0.004 285.82);
+
+    --primary: oklch(0.96 0 0);
+    --primary-foreground: oklch(0.205 0.014 285.82);
+
+    --secondary: oklch(0.355 0.008 285.82);
+    --secondary-foreground: oklch(0.96 0 0);
+    --muted: oklch(0.355 0.008 285.82);
+    --muted-foreground: oklch(0.74 0.012 285.82);
+    --accent: oklch(0.355 0.008 285.82);
+    --accent-foreground: oklch(0.96 0 0);
+
+    --destructive: oklch(0.76 0.17 22.216);
+    --destructive-foreground: oklch(0.205 0.014 285.82);
+    --success: oklch(0.76 0.17 149.579);
+    --success-foreground: oklch(0.205 0.014 285.82);
+    --warning: oklch(0.78 0.175 70.08);
+    --warning-foreground: oklch(0.205 0.014 285.82);
+    --info: oklch(0.75 0.14 259.81);
+    --info-foreground: oklch(0.205 0.014 285.82);
+
+    --border: oklch(0.4 0.008 285.82);
+    --input: oklch(0.4 0.008 285.82);
+    --ring: oklch(0.55 0.01 285.82);
+
+    --skeleton-highlight: color-mix(in oklab, var(--foreground) 6%, transparent);
+    --field: color-mix(in oklab, var(--input) 32%, transparent);
   }
 
   .dark {
@@ -186,6 +242,7 @@
     --ring: oklch(0.439 0.014 285.82);
 
     --skeleton-highlight: color-mix(in oklab, var(--foreground) 4%, transparent);
+    --field: color-mix(in oklab, var(--input) 32%, transparent);
   }
 
   /* 默认边框色 = --border：写 border 就够，不用每次点名颜色 */

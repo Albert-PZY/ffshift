@@ -2,7 +2,7 @@ import { app, BrowserWindow, shell } from 'electron';
 import { rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { FONT_SIZE_ARG_PREFIX } from '../src/lib/font-scale';
-import { THEME_ARG_PREFIX, windowBackground } from '../src/lib/theme';
+import { THEME_ARG_PREFIX, themeLabel, windowBackground } from '../src/lib/theme';
 import { disposeIpc, registerIpc } from './ipc';
 import { loadSettings } from './settings';
 
@@ -124,12 +124,27 @@ function createWindow(): void {
           await new Promise((resolve) => setTimeout(resolve, 4000));
         }
 
-        if (process.env.FFSHIFT_SMOKE_THEME) {
-          // 主题按钮只有图标，认不了文字，按 aria-label 找
-          const label =
-            process.env.FFSHIFT_SMOKE_THEME === 'dark' ? '切换到暗色主题' : '切换到亮色主题';
+        // 主题入口在设置页里（标题栏那个切换按钮在 ADR-018 之后撤销了）：
+        // 齿轮 → 外观 → 点对应标签 → 返回转换界面
+        const theme = process.env.FFSHIFT_SMOKE_THEME;
+        if (theme === 'light' || theme === 'dim' || theme === 'dark') {
+          const label = JSON.stringify(themeLabel(theme));
           await mainWindow?.webContents.executeJavaScript(
-            `[...document.querySelectorAll('button')].find((b) => b.getAttribute('aria-label') === ${JSON.stringify(label)})?.click()`,
+            [
+              '(async () => {',
+              '  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));',
+              '  const bySlot = (s) => document.querySelector(s)?.click();',
+              '  const byText = (s, t) => [...document.querySelectorAll(s)].find((el) => el.textContent?.trim() === t)?.click();',
+              "  bySlot('[data-slot=\"settings-button\"]');",
+              '  await sleep(250);',
+              "  byText('[data-slot=\"settings-nav-item\"]', '外观');",
+              '  await sleep(250);',
+              `  byText('[data-slot="theme-option"]', ${label});`,
+              '  await sleep(400);',
+              "  bySlot('[data-slot=\"settings-back\"]');",
+              '  await sleep(300);',
+              '})()',
+            ].join('\n'),
           );
           await new Promise((resolve) => setTimeout(resolve, 600));
         }
