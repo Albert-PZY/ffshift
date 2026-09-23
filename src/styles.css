@@ -826,6 +826,42 @@ button {
   line-height: 1.5;
 }
 
+/* 原始日志：默认折叠。用户大多不看，但出问题时要能一键复制给能帮忙的人 */
+.raw-log {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-soft);
+}
+
+.raw-log summary {
+  padding: 8px 9px;
+  color: var(--muted);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.raw-log summary:hover {
+  color: var(--ink);
+}
+
+.raw-log pre {
+  max-height: 220px;
+  margin: 0;
+  padding: 9px;
+  overflow: auto;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font: 10px/1.5 ui-monospace, monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.raw-log .secondary-button {
+  width: calc(100% - 18px);
+  margin: 0 9px 9px;
+}
+
 .inspector-foot {
   justify-content: space-between;
   gap: 8px;

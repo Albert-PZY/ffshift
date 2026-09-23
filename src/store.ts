@@ -26,9 +26,16 @@ export interface TaskItem {
   outcome: ConvertOutcome | null;
   output: string | null;
   reason: string | null;
+  /** 连续失败次数；到 2 就停止自动入队，逼用户先看看文件本身有没有问题 */
+  failCount: number;
+  /** ffmpeg 的原始输出末尾若干行，供"查看原始日志"展开 */
+  errorRaw: string | null;
 }
 
 const api = () => window.ffshift;
+
+/** 失败任务自动重试的上限；到顶后只能手动点重试 */
+const MAX_AUTO_RETRY = 2;
 
 let sequence = 0;
 const nextId = () => `task-${(sequence += 1)}`;
@@ -45,7 +52,11 @@ interface State {
   ffmpegVersion: string | null;
   addFiles: (paths: string[]) => Promise<void>;
   startAll: () => Promise<void>;
+  /** 只推进队列：跑完一个接着下一个，不重置其它任务 */
+  pumpNext: () => Promise<void>;
   cancelTask: (id: string) => Promise<void>;
+  /** 手动重试：清掉失败计数与原始日志，重新排队 */
+  retryTask: (id: string) => void;
   removeTask: (id: string) => void;
   clearFinished: () => void;
   setPreset: (preset: Preset) => void;
@@ -142,6 +153,8 @@ export const useStore = create<State>((set, get) => {
         progress: null,
         outcome: null,
         output: null,
+        failCount: 0,
+        errorRaw: null,
         reason: null,
       }));
       set((state) => ({ tasks: [...state.tasks, ...items] }));
@@ -186,9 +199,32 @@ export const useStore = create<State>((set, get) => {
 
     async startAll() {
       set((state) => ({
-        tasks: state.tasks.map((t) => (t.status === 'ready' || t.status === 'failed' ? { ...t, status: 'queued', outcome: null, progress: null, reason: null } : t)),
+        tasks: state.tasks.map((t) => {
+          if (t.status === 'ready') {
+            return { ...t, status: 'queued', outcome: null, progress: null, reason: null };
+          }
+          // 失败的任务可以重来，但连续失败到 2 次就停下：多半是文件本身的问题，
+          // 一路重试只会浪费用户时间。要用重试按钮才会再入队。
+          if (t.status === 'failed' && t.failCount < MAX_AUTO_RETRY) {
+            return { ...t, status: 'queued', outcome: null, progress: null, reason: null };
+          }
+          return t;
+        }),
       }));
       await pump();
+    },
+
+    /** 队列推进：跑完一个接着下一个时用，不动其它任务的状态 */
+    pumpNext: pump,
+
+    retryTask(id) {
+      set((state) => ({
+        tasks: state.tasks.map((t) =>
+          t.id === id
+            ? { ...t, status: 'ready', failCount: 0, errorRaw: null, reason: null, outcome: null, progress: null }
+            : t,
+        ),
+      }));
     },
 
     async cancelTask(id) {
@@ -284,21 +320,26 @@ export function bindIpcEvents(): void {
   });
 
   ffshift.onFinished(({ taskId, outcome }) => {
+    const failed = outcome.status === 'failed';
+
     useStore.setState((state) => ({
       tasks: state.tasks.map((t) =>
         t.id === taskId
           ? {
               ...t,
               outcome,
-              status:
-                outcome.status === 'done' ? 'done' : outcome.status === 'cancelled' ? 'cancelled' : 'failed',
-              reason: outcome.status === 'failed' ? outcome.error.title : null,
+              status: outcome.status === 'done' ? 'done' : outcome.status === 'cancelled' ? 'cancelled' : 'failed',
+              reason: failed ? outcome.error.title : null,
+              // 原始输出留给"查看原始日志"；失败次数用来决定还要不要自动重试
+              errorRaw: failed ? outcome.error.raw || null : null,
+              failCount: failed ? t.failCount + 1 : t.failCount,
             }
           : t,
       ),
     }));
-    // 一个跑完就接着跑下一个
-    void useStore.getState().startAll().catch(() => undefined);
+
+    // 只推进队列，不要调 startAll —— 那会把所有等待中的任务重新入队，等于重复排队
+    void useStore.getState().pumpNext().catch(() => undefined);
   });
 
   void useStore.getState().detectHardware();

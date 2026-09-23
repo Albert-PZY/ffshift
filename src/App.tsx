@@ -18,6 +18,7 @@ import {
   PanelLeftOpen,
   Play,
   Plus,
+  RotateCcw,
   Sparkles,
   Trash2,
   Upload,
@@ -159,6 +160,7 @@ function ProgressBar({ task }: { task: TaskItem }) {
 function QueueRow({ task, selected, onSelect }: { task: TaskItem; selected: boolean; onSelect: () => void }) {
   const cancelTask = useStore((s) => s.cancelTask);
   const removeTask = useStore((s) => s.removeTask);
+  const retryTask = useStore((s) => s.retryTask);
 
   const running = task.status === 'running';
   const finished = ['done', 'failed', 'cancelled', 'unsupported'].includes(task.status);
@@ -227,6 +229,17 @@ function QueueRow({ task, selected, onSelect }: { task: TaskItem; selected: bool
             <X />
           </button>
         )}
+        {task.status === 'failed' && (
+          <button
+            type="button"
+            className="row-action"
+            title="重试"
+            aria-label={`重试 ${task.name}`}
+            onClick={() => retryTask(task.id)}
+          >
+            <RotateCcw />
+          </button>
+        )}
         {finished && (
           <button
             type="button"
@@ -246,6 +259,18 @@ function QueueRow({ task, selected, onSelect }: { task: TaskItem; selected: bool
 /** 详情栏：选中任务的完整媒体信息；字段缺失显示 —，不显示 NaN */
 function Inspector({ task, onClose }: { task: TaskItem; onClose: () => void }) {
   const info = task.info;
+  const [copied, setCopied] = useState(false);
+
+  /** 复制原始日志给能帮忙排查的人；剪贴板不可用时静默失败，不打断用户 */
+  const copyLog = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* 忽略：Electron 里一般都能用 */
+    }
+  };
 
   const field = (label: string, value: string | null) => (
     <div className="field">
@@ -272,6 +297,26 @@ function Inspector({ task, onClose }: { task: TaskItem; onClose: () => void }) {
         </div>
 
         {task.reason && <p className="reason">{task.reason}</p>}
+
+        {task.failCount >= 2 && (
+          <p className="reason">
+            已连续失败 {task.failCount} 次，多半是文件本身的问题。处理完之后点行内的「重试」。
+          </p>
+        )}
+
+        {task.errorRaw && (
+          <details className="raw-log">
+            <summary>查看原始日志</summary>
+            <pre>{task.errorRaw}</pre>
+            <button
+              type="button"
+              className="secondary-button full"
+              onClick={() => void copyLog(task.errorRaw ?? '')}
+            >
+              {copied ? '已复制' : '复制日志'}
+            </button>
+          </details>
+        )}
 
         <p className="field-group-title">媒体信息</p>
         {field('时长', info?.durationSec != null ? formatDuration(info.durationSec) : null)}
