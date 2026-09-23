@@ -38,6 +38,10 @@
     "pendingDir": ".ffshift/pending",
     "logFile": ".ffshift/logs/sync.log"
   },
+  "pipeline": {
+    "$comment": "pre-push 会跑端到端测试。关掉等于少一道关，一般不建议；赶时间用 FFSHIFT_SKIP_E2E=1 临时跳过。",
+    "e2eOnPush": true
+  },
   "ai": {
     "baseUrl": "https://wb.albert-go.top/v1",
     "model": "global:fast-model",

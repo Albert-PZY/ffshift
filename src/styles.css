@@ -37,6 +37,41 @@ button {
   cursor: pointer;
 }
 
+/* ── 滚动条 ─────────────────────────────────────────────────────── */
+/* Chromium 的原生滚动条在暗色界面里是一块浅色补丁，很跳。
+   这里换成细滑块：轨道透明、滑块半透明，悬停与拖动时才明显——
+   滚动条是工具，不该比内容还抢注意力。 */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  /* 透明边框把滑块内缩，看起来比轨道窄，不贴边 */
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-color: rgba(255, 255, 255, 0.14);
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.26);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background-color: rgba(255, 255, 255, 0.34);
+}
+
+/* 两端的小箭头：这一代 Chromium 本来就不画，写上防止将来默认样式回潮 */
+::-webkit-scrollbar-button {
+  display: none;
+}
+
 /* 设计变量：v0 的层级体系（canvas / panel / panel-soft / panel-raised）比原来的两层更好用 */
 .ffshift {
   --canvas: #0b0d10;
