@@ -179,3 +179,4 @@
 | 09-23 19:42 | refactor/ui-enso-language | `d52cd32` | docs: 记下文档沉淀钩子会连带走未提交文档 | 只有一份文档改动，pre-commit 文风检查通过 | 1 <!-- commit:d52cd32 --> |
 | 09-23 20:33 | refactor/ui-enso-language | `578441d` | docs: 记下参数面板的层级坑与主题取舍 | pre-commit 的文风检查通过 | 5 <!-- commit:578441d --> |
 | 09-23 20:34 | refactor/ui-enso-language | `62726ec` | ui: 加亮暗两套主题，默认亮色 | 单测 257 条全绿、typecheck 通过、build 通过、e2e 12 条全绿（新增 1 条守"默认 | 22 <!-- commit:62726ec --> |
+| 09-23 20:36 | refactor/ui-enso-language | `d71af2e` | docs: 把沉淀钩子卷走暂存内容这条记准 | 只有一份文档改动，pre-commit 文风检查通过 | 1 <!-- commit:d71af2e --> |
