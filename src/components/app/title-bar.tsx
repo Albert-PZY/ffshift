@@ -1,9 +1,7 @@
-import { Copy, Minus, Moon, PanelLeftClose, PanelLeftOpen, Square, Sun, X } from 'lucide-react';
+import { ArrowLeft, Copy, Minus, PanelLeftClose, PanelLeftOpen, Settings, Square, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipPopup, TooltipTrigger } from '@/components/ui/tooltip';
-import type { Theme } from '@/lib/settings';
-import { otherTheme, themeLabel } from '@/lib/theme';
 import { cn } from '@/lib/utils';
 
 /**
@@ -15,9 +13,16 @@ import { cn } from '@/lib/utils';
  *
  * 高度写死 44px 而不是 rem：窗口控制的命中区要跟系统一致，
  * 不能随根字号（14px）一起缩放。
+ *
+ * 页面上分两种形态：转换界面显示品牌 + 运行状态 + 设置入口；
+ * 设置界面只留一个返回。标题栏是全局的，设置页也得能拖窗口、能关。
  */
 const DRAG = 'drag-region';
 const NO_DRAG = 'no-drag';
+
+/** 图标按钮的统一样子：方形 + 圆角 md + 次要色，hover 才亮 */
+const ICON_BUTTON =
+  'flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground';
 
 /** 最大化状态：主进程是唯一权威，这里只做镜像；窗口 resize 时重新问一次 */
 function useMaximized(): boolean {
@@ -71,101 +76,107 @@ function FrameButton({
 }
 
 export function TitleBar({
+  settingsOpen,
   railOpen,
   onToggleRail,
-  theme,
-  onToggleTheme,
+  onOpenSettings,
+  onCloseSettings,
   engineLabel,
   engineReady,
-  versionLabel,
-  versionTitle,
 }: {
+  settingsOpen: boolean;
   railOpen: boolean;
   onToggleRail: () => void;
-  theme: Theme;
-  onToggleTheme: () => void;
+  onOpenSettings: () => void;
+  onCloseSettings: () => void;
   engineLabel: string;
   engineReady: boolean;
-  versionLabel: string;
-  versionTitle: string;
 }) {
   const maximized = useMaximized();
   const frame = window.ffshift?.frame;
 
   return (
     <header className={cn(DRAG, 'flex h-[44px] shrink-0 items-center border-b bg-background pl-2')}>
-      <button
-        type="button"
-        aria-label={railOpen ? '收起设置栏' : '展开设置栏'}
-        className={cn(
-          NO_DRAG,
-          't-icon-swap flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
-        )}
-        data-state={railOpen ? 'a' : 'b'}
-        onClick={onToggleRail}
-      >
-        <PanelLeftClose className="t-icon h-4 w-4" data-icon="a" />
-        <PanelLeftOpen className="t-icon h-4 w-4" data-icon="b" />
-      </button>
-
-      <span className="ml-2 flex items-center gap-2">
-        <span className="grid size-5 place-items-center rounded-[5px] bg-primary text-[10px] font-bold text-primary-foreground">
-          F
-        </span>
-        <span className="text-sm font-medium">FFShift</span>
-      </span>
-
-      <Separator className={cn(NO_DRAG, 'mx-3 h-3.5 w-px')} orientation="vertical" />
-
-      <span className={cn(NO_DRAG, 'truncate text-sm text-muted-foreground')}>ffmpeg 的换挡键</span>
-
-      {/* 主题切换贴在窗口控制左边：它跟最大化、关闭一样是"整个窗口"的开关，
-          不属于右边那组只读的运行环境信息 */}
-      <div className={cn(NO_DRAG, 'ml-auto flex items-center gap-3 pr-2 text-xs text-muted-foreground')}>
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <span className="flex items-center gap-1.5">
-                <i
-                  aria-hidden="true"
-                  className={cn('size-1.5 rounded-full', engineReady ? 'bg-success' : 'bg-muted-foreground')}
-                />
-                {engineLabel}
-              </span>
-            }
-          />
-          <TooltipPopup side="bottom">
-            {engineReady ? '检测到可用的硬件编码器，转换会自动用它' : '没有可用硬件编码器，用 CPU 编码'}
-          </TooltipPopup>
-        </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger render={<span className="shrink-0 font-mono">{versionLabel}</span>} />
-          <TooltipPopup className="max-w-lg" side="bottom">
-            {versionTitle}
-          </TooltipPopup>
-        </Tooltip>
-      </div>
-
-      <div className={cn(NO_DRAG, 'flex items-center gap-0.5 pr-1')}>
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <button
-                type="button"
-                aria-label={`切换到${themeLabel(otherTheme(theme))}主题`}
-                className="t-icon-swap flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                data-state={theme === 'light' ? 'a' : 'b'}
-                onClick={onToggleTheme}
-              />
-            }
+      {settingsOpen ? (
+        <>
+          <button
+            aria-label="返回转换界面"
+            className={cn(NO_DRAG, ICON_BUTTON)}
+            data-slot="settings-back"
+            type="button"
+            onClick={onCloseSettings}
           >
-            {/* 图标表示"点下去会变成什么"，和收起/展开那对图标一个规矩 */}
-            <Moon className="t-icon h-4 w-4" data-icon="a" />
-            <Sun className="t-icon h-4 w-4" data-icon="b" />
-          </TooltipTrigger>
-          <TooltipPopup side="bottom">当前是{themeLabel(theme)}主题，点一下换成{themeLabel(otherTheme(theme))}</TooltipPopup>
-        </Tooltip>
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+          <span className="ml-2 text-sm font-medium">设置</span>
+        </>
+      ) : (
+        <>
+          <button
+            aria-label={railOpen ? '收起设置栏' : '展开设置栏'}
+            className={cn(NO_DRAG, ICON_BUTTON, 't-icon-swap')}
+            data-state={railOpen ? 'a' : 'b'}
+            type="button"
+            onClick={onToggleRail}
+          >
+            <PanelLeftClose className="t-icon h-4 w-4" data-icon="a" />
+            <PanelLeftOpen className="t-icon h-4 w-4" data-icon="b" />
+          </button>
+
+          <span className="ml-2 flex items-center gap-2">
+            <span className="grid size-5 place-items-center rounded-[5px] bg-primary text-[10px] font-bold text-primary-foreground">
+              F
+            </span>
+            <span className="text-sm font-medium">FFShift</span>
+          </span>
+
+          <Separator className={cn(NO_DRAG, 'mx-3 h-3.5 w-px')} orientation="vertical" />
+
+          <span className={cn(NO_DRAG, 'truncate text-sm text-muted-foreground')}>ffmpeg 的换挡键</span>
+        </>
+      )}
+
+      {/* 运行环境是只读状态，悬停给解释；详细版本信息在设置的「关于」里 */}
+      {!settingsOpen && (
+        <div className={cn(NO_DRAG, 'ml-auto flex items-center gap-3 pr-2 text-xs text-muted-foreground')}>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <span className="flex items-center gap-1.5">
+                  <i
+                    aria-hidden="true"
+                    className={cn('size-1.5 rounded-full', engineReady ? 'bg-success' : 'bg-muted-foreground')}
+                  />
+                  {engineLabel}
+                </span>
+              }
+            />
+            <TooltipPopup side="bottom">
+              {engineReady ? '检测到可用的硬件编码器，转换会自动用它' : '没有可用硬件编码器，用 CPU 编码'}
+            </TooltipPopup>
+          </Tooltip>
+        </div>
+      )}
+
+      <div className={cn(NO_DRAG, settingsOpen ? 'ml-auto pr-2' : 'flex items-center gap-0.5 pr-1')}>
+        {!settingsOpen && (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <button
+                  aria-label="设置"
+                  className={ICON_BUTTON}
+                  data-slot="settings-button"
+                  type="button"
+                  onClick={onOpenSettings}
+                />
+              }
+            >
+              <Settings className="h-4 w-4" />
+            </TooltipTrigger>
+            <TooltipPopup side="bottom">设置</TooltipPopup>
+          </Tooltip>
+        )}
       </div>
 
       <div className={cn(NO_DRAG, 'flex h-full items-center')}>

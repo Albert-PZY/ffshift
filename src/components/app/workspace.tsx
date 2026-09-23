@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTab } from '@/components/ui/tabs';
 import { isActive } from '@/lib/task-status';
+import { validateForFormat } from '@/lib/advanced-params';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/store';
 
@@ -32,6 +33,8 @@ export function Workspace({
   const history = useStore((s) => s.history);
   const view = useStore((s) => s.view);
   const outputDir = useStore((s) => s.outputDir);
+  const outputFormat = useStore((s) => s.outputFormat);
+  const advanced = useStore((s) => s.advanced);
   const setView = useStore((s) => s.setView);
   const startAll = useStore((s) => s.startAll);
   const clearHistory = useStore((s) => s.clearHistory);
@@ -39,6 +42,10 @@ export function Workspace({
   const runnableCount = tasks.filter((task) => task.status === 'ready' || task.status === 'failed').length;
   const runningCount = tasks.filter((task) => task.status === 'running').length;
   const queuedCount = tasks.filter((task) => isActive(task.status)).length;
+
+  // 专业参数有错就不让开始：设置页里那份表单在另一屏，用户看不到错误提示，
+  // 唯一能拦住"带着非法参数去转换"的地方就是这里
+  const paramsBroken = validateForFormat(advanced, outputFormat).errors.length > 0;
 
   const pickFiles = async () => {
     const paths = await window.ffshift?.pickFiles();
@@ -110,11 +117,15 @@ export function Workspace({
 
         <Separator className="h-3 w-px" orientation="vertical" />
 
-        <span className="truncate" title={outputDir ?? '与源文件同目录'}>
-          {outputDir ? `输出到 ${outputDir}` : '输出到源文件同目录'}
-        </span>
+        {paramsBroken ? (
+          <span className="truncate text-destructive">专业参数有误，去设置里改完再开始</span>
+        ) : (
+          <span className="truncate" title={outputDir ?? '与源文件同目录'}>
+            {outputDir ? `输出到 ${outputDir}` : '输出到源文件同目录'}
+          </span>
+        )}
 
-        <Button className="ml-auto" disabled={runnableCount === 0} onClick={() => void startAll()} size="default">
+        <Button className="ml-auto" disabled={runnableCount === 0 || paramsBroken} onClick={() => void startAll()} size="default">
           <Play className="h-3.5 w-3.5" />
           {runningCount > 0 ? '继续排队' : '开始转换'}
         </Button>

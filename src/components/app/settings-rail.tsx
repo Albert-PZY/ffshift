@@ -1,17 +1,19 @@
-import { Eraser, FolderInput, FolderOpen, Plus, SlidersHorizontal } from 'lucide-react';
+import { Eraser, FolderInput, Plus, SlidersHorizontal } from 'lucide-react';
 import { SectionLabel } from '@/components/app/section-label';
 import { SelectField } from '@/components/app/select-field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { describeAdvanced, isAdvancedEmpty } from '@/lib/advanced-params';
 import { QUALITY_TIERS } from '@/lib/quality-tiers';
 import { FORMAT_OPTIONS } from '@/lib/output-formats';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/store';
 
 /**
- * 左侧设置栏。
+ * 左侧设置栏：只放"这次要转成什么"。
  *
- * 上面是"这次要用什么参数"，下面是"文件从哪来、往哪去"。
+ * 输出目录、专业参数、主题这些"设置一次长期有效"的项都搬进了设置页（ADR-018），
+ * 这里留下的三项——档位、输出格式、目标体积——都是每批文件都要重新决定的。
  * 底部那组是列表行形态（透明底 + hover 才亮），不是一排描边按钮——
  * 描边按钮一多，界面就会出现五六个看起来同等重要的入口。
  */
@@ -19,11 +21,14 @@ function RailRow({
   label,
   onActivate,
   danger = false,
+  trailing,
   children,
 }: {
   label: string;
   onActivate: () => void;
   danger?: boolean;
+  /** 行尾的补充信息，比如专业参数改了几项 */
+  trailing?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -37,6 +42,7 @@ function RailRow({
     >
       {children}
       {label}
+      {trailing && <span className="ml-auto text-[10px] tabular-nums text-muted-foreground">{trailing}</span>}
     </button>
   );
 }
@@ -51,16 +57,14 @@ function readTargetSize(raw: string): number | null {
   return Math.round(Math.min(value, 10_000));
 }
 
-export function SettingsRail({ onOpenAdvanced }: { onOpenAdvanced: () => void }) {
+export function SettingsRail({ onOpenSettings }: { onOpenSettings: () => void }) {
   const preset = useStore((s) => s.preset);
   const outputFormat = useStore((s) => s.outputFormat);
-  const outputDir = useStore((s) => s.outputDir);
   const targetSizeMiB = useStore((s) => s.targetSizeMiB);
+  const advanced = useStore((s) => s.advanced);
   const setPreset = useStore((s) => s.setPreset);
   const setOutputFormat = useStore((s) => s.setOutputFormat);
   const setTargetSize = useStore((s) => s.setTargetSize);
-  const pickOutputDir = useStore((s) => s.pickOutputDir);
-  const clearOutputDir = useStore((s) => s.clearOutputDir);
   const addFolder = useStore((s) => s.addFolder);
   const clearFinished = useStore((s) => s.clearFinished);
 
@@ -69,7 +73,9 @@ export function SettingsRail({ onOpenAdvanced }: { onOpenAdvanced: () => void })
     if (paths?.length) await useStore.getState().addFiles(paths);
   };
 
-  const dirName = outputDir ? (outputDir.split(/[\\/]/).pop() ?? outputDir) : null;
+  // 改过专业参数就在行尾标出来：不然用户过两天会奇怪"怎么画质跟以前不一样"
+  const customized = !isAdvancedEmpty(advanced);
+  const overrideCount = describeAdvanced(advanced).length;
 
   return (
     <aside
@@ -111,33 +117,6 @@ export function SettingsRail({ onOpenAdvanced }: { onOpenAdvanced: () => void })
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground" htmlFor="output-dir">
-              输出目录
-            </Label>
-            {/* 长得像输入框，点开的是系统目录选择框 */}
-            <button
-              className="flex h-8 w-full items-center gap-2 overflow-hidden rounded-lg border border-input bg-background px-2.5 text-sm text-foreground shadow-xs transition-shadow hover:border-ring sm:h-7.5 dark:bg-input/32"
-              data-slot="path-button"
-              id="output-dir"
-              title={outputDir ?? '与源文件同目录'}
-              type="button"
-              onClick={() => void pickOutputDir()}
-            >
-              <FolderOpen className="size-4 shrink-0 text-muted-foreground" />
-              <span className="truncate">{dirName ?? '与源文件同目录'}</span>
-            </button>
-            {outputDir && (
-              <button
-                className="text-[11px] text-muted-foreground transition-colors hover:text-foreground"
-                type="button"
-                onClick={clearOutputDir}
-              >
-                恢复默认目录
-              </button>
-            )}
-          </div>
-
-          <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground" htmlFor="target-size">
               目标体积（MiB）
             </Label>
@@ -151,14 +130,18 @@ export function SettingsRail({ onOpenAdvanced }: { onOpenAdvanced: () => void })
               value={targetSizeMiB ?? ''}
             />
             <p className="text-[11px] leading-relaxed text-muted-foreground">
-              留空就按档位走恒定质量；填了就按目标体积反推码率。它是这一批的临时设置，不记忆。
+              留空就按档位走恒定质量；填了就按目标体积反推码率。只对这一批生效，不记忆。
             </p>
           </div>
         </section>
       </div>
 
       <div className="shrink-0 space-y-0.5 border-t p-2" data-slot="rail-actions">
-        <RailRow label="专业参数" onActivate={onOpenAdvanced}>
+        <RailRow
+          label="专业参数"
+          onActivate={onOpenSettings}
+          trailing={customized ? `${overrideCount} 项已自定义` : undefined}
+        >
           <SlidersHorizontal className="size-4 shrink-0" />
         </RailRow>
         <RailRow label="添加视频" onActivate={() => void pickFiles()}>

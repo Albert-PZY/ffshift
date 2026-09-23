@@ -8,14 +8,12 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { cleanupUserData, launchApp, type LaunchedApp } from './helpers';
+import { cleanupUserData, closeSettings, CRF_FIELD, launchApp, openSettings, type LaunchedApp } from './helpers';
 
 describe('持久化：设置与预设', () => {
   let running: LaunchedApp | null = null;
   const dirs: string[] = [];
 
-  /** 参数面板里的 CRF 是第一个数字输入框；限定在对话框与 param-field 之内 */
-  const CRF = '[data-slot="dialog-popup"] [data-slot="param-field"] input[type="number"]';
   const USER_CHIP = '[data-slot="preset-chip"][data-owner="user"]';
 
   const freshDir = (): string => {
@@ -41,11 +39,10 @@ describe('持久化：设置与预设', () => {
     const userDataDir = freshDir();
 
     running = await launchApp({ userDataDir });
-    await running.page.getByRole('button', { name: '专业参数' }).click();
-    await running.page.waitForSelector('[data-slot="dialog-popup"]');
+    await openSettings(running.page, '参数预设');
 
     // 填一个 CRF，起个名字存下来
-    await running.page.locator(CRF).first().fill('27');
+    await running.page.locator(CRF_FIELD).first().fill('27');
     await running.page.getByPlaceholder('给这套参数起个名字').fill('压缩测试档');
     await running.page.getByRole('button', { name: '存为预设' }).click();
 
@@ -55,36 +52,46 @@ describe('持久化：设置与预设', () => {
     // 重启：同一个 user-data-dir
     await restart(userDataDir);
 
-    await running.page.getByRole('button', { name: '专业参数' }).click();
+    await openSettings(running.page, '参数预设');
     await running.page.waitForSelector(USER_CHIP);
     expect(await running.page.locator(USER_CHIP).innerText()).toContain('压缩测试档');
   }, 180_000);
 
-  it('应用预设后，参数真的填进了面板；重启后参数不会跟着跑（预设是模板，不是设置）', async () => {
+  it('套用内置预设会填进参数，并把结果一起记住', async () => {
     const userDataDir = freshDir();
 
     running = await launchApp({ userDataDir });
-    await running.page.getByRole('button', { name: '专业参数' }).click();
-    await running.page.waitForSelector('[data-slot="dialog-popup"]');
+    await openSettings(running.page, '参数预设');
 
     // 内置预设「高画质存档」会把 CRF 填成 18
     await running.page.getByRole('button', { name: '高画质存档' }).click();
-    expect(await running.page.locator(CRF).first().inputValue()).toBe('18');
+    expect(await running.page.locator(CRF_FIELD).first().inputValue()).toBe('18');
+    await running.page.waitForTimeout(800);
+
+    // 参数进了设置页就是设置：重启之后还在（ADR-018 之前它是"这次用什么"，不落盘）
+    await restart(userDataDir);
+    await openSettings(running.page, '参数预设');
+    expect(await running.page.locator(CRF_FIELD).first().inputValue()).toBe('18');
+  }, 180_000);
+
+  it('专业参数改过之后落盘，重启还在', async () => {
+    const userDataDir = freshDir();
+
+    running = await launchApp({ userDataDir });
+    await openSettings(running.page, '参数预设');
+    await running.page.locator(CRF_FIELD).first().fill('21');
+    await running.page.waitForTimeout(800);
 
     await restart(userDataDir);
-    await running.page.getByRole('button', { name: '专业参数' }).click();
-    await running.page.waitForSelector('[data-slot="dialog-popup"]');
-
-    // 参数本身不持久化——它是"这次要用什么"，不是"以后都用什么"。
-    // 预设列表持久化就够了，用户想复用点一下预设即可。
-    expect(await running.page.locator(CRF).first().inputValue()).toBe('');
+    await openSettings(running.page, '参数预设');
+    expect(await running.page.locator(CRF_FIELD).first().inputValue()).toBe('21');
   }, 180_000);
 
   it('档位与输出格式改过之后，重启还记着', async () => {
     const userDataDir = freshDir();
 
     running = await launchApp({ userDataDir });
-    // 档位与输出格式都是下拉（不是原生 select，也不是按钮组）
+    // 档位与输出格式留在主界面上：它们是每批文件都要重新决定的
     await running.page.locator('#preset-menu').click();
     await running.page.getByRole('option', { name: '更小' }).click();
     await running.page.locator('#format-menu').click();
@@ -107,17 +114,19 @@ describe('持久化：设置与预设', () => {
     // 默认亮色：<html> 上没有 dark 类
     expect(await isDark()).toBe(false);
 
-    await running.page.getByRole('button', { name: '切换到暗色主题' }).click();
+    await openSettings(running.page, '外观');
+    await running.page.getByRole('tab', { name: '暗色' }).click();
     await running.page.waitForTimeout(800);
     expect(await isDark()).toBe(true);
 
     await restart(userDataDir);
     // 重启后首帧就是暗色：主题在主进程建窗口之前就读出来了，不会先闪一下亮色
     expect(await isDark()).toBe(true);
-    expect(await running.page.getByRole('button', { name: '切换到亮色主题' }).isVisible()).toBe(true);
 
-    // 切回亮色也要记住
-    await running.page.getByRole('button', { name: '切换到亮色主题' }).click();
+    // 切回亮色也要记住；顺带确认设置界面上的选中态跟主题是一致的
+    await openSettings(running.page, '外观');
+    expect(await running.page.getByRole('tab', { name: '暗色' }).getAttribute('data-active')).not.toBeNull();
+    await running.page.getByRole('tab', { name: '亮色' }).click();
     await running.page.waitForTimeout(800);
     await restart(userDataDir);
     expect(await isDark()).toBe(false);
@@ -127,7 +136,8 @@ describe('持久化：设置与预设', () => {
     const userDataDir = freshDir();
 
     running = await launchApp({ userDataDir });
-    // 先确认默认状态
+    // 默认分类就是「输出」，先确认默认状态
+    await openSettings(running.page);
     expect(await running.page.locator('[data-slot="path-button"] span').innerText()).toBe('与源文件同目录');
 
     // 原生目录选择框没法自动点，直接走 store 的写入路径验证持久化本身
@@ -138,6 +148,37 @@ describe('持久化：设置与预设', () => {
     await running.page.waitForTimeout(800);
     await restart(userDataDir);
 
+    await openSettings(running.page);
     expect(await running.page.locator('[data-slot="path-button"] span').innerText()).toContain('测试输出目录');
+  }, 180_000);
+
+  it('设置页：能打开、能切分类、能返回', async () => {
+    running = await launchApp();
+
+    // 转换界面上有设置栏、没有设置页
+    expect(await running.page.locator('[data-slot="settings-rail"]').isVisible()).toBe(true);
+    expect(await running.page.locator('[data-slot="settings-view"]').count()).toBe(0);
+
+    await openSettings(running.page, '参数预设');
+    expect(await running.page.locator('[data-slot="settings-view"]').isVisible()).toBe(true);
+    // 设置页里没有转换栏：两套东西不同屏
+    expect(await running.page.locator('[data-slot="settings-rail"]').count()).toBe(0);
+
+    await openSettings(running.page, '关于');
+    expect(await running.page.locator('[data-slot="settings-nav-item"][data-active="true"]').innerText()).toBe('关于');
+
+    await closeSettings(running.page);
+    expect(await running.page.locator('[data-slot="settings-rail"]').isVisible()).toBe(true);
+    expect(await running.page.locator('[data-slot="settings-view"]').count()).toBe(0);
+  }, 180_000);
+
+  it('设置栏的「专业参数」直接跳到对应的设置分类', async () => {
+    running = await launchApp();
+
+    await running.page.getByRole('button', { name: '专业参数' }).click();
+    await running.page.waitForSelector('[data-slot="settings-view"]');
+    expect(await running.page.locator('[data-slot="settings-nav-item"][data-active="true"]').innerText()).toBe(
+      '参数预设',
+    );
   }, 180_000);
 });

@@ -5,7 +5,16 @@
  * 这里盯着"界面点下去之后，整条链路有没有真的走通、状态对不对"。
  */
 import { afterEach, describe, expect, it } from 'vitest';
-import { cleanupUserData, launchApp, makeFixture, waitForTaskStatus, type LaunchedApp } from './helpers';
+import {
+  cleanupUserData,
+  closeSettings,
+  CRF_FIELD,
+  launchApp,
+  makeFixture,
+  openSettings,
+  waitForTaskStatus,
+  type LaunchedApp,
+} from './helpers';
 
 /** 界面暴露的调试入口；测试通过它导入文件（拖放没法在自动化里模拟真实文件） */
 interface DebugHook {
@@ -116,61 +125,63 @@ describe('工作流：导入 → 转换 → 历史', () => {
     expect(state.tasks.every((task) => task.status === 'done')).toBe(true);
   }, 240_000);
 
-  it('参数面板：非法值被拦下，主按钮跟着禁用', async () => {
-    const CRF = '[data-slot="dialog-popup"] [data-slot="param-field"] input[type="number"]';
+  it('专业参数：非法值当场提示，并挡住主界面的开始转换', async () => {
+    const fixture = makeFixture('参数校验.mp4', { durationSec: 2 });
 
     running = await launchApp();
-    await running.page.getByRole('button', { name: '专业参数' }).click();
-    await running.page.waitForSelector('[data-slot="dialog-popup"]');
+    await importFiles(running, [fixture]);
+    await waitForTaskStatus(running.page, '待转换', 60_000);
 
+    // 有可转换的任务，按钮本来是能点的——不然下面的断言等于没测
+    expect(await running.page.getByRole('button', { name: '开始转换' }).isDisabled()).toBe(false);
+
+    await openSettings(running.page, '参数预设');
     // CRF 填 99，超出 x264 的 0–51
-    await running.page.locator(CRF).first().fill('99');
-    await running.page.waitForSelector('[data-slot="dialog-popup"] [data-slot="reason"]');
-
-    expect(await running.page.locator('[data-slot="dialog-popup"] [data-slot="reason"]').first().innerText()).toContain(
+    await running.page.locator(CRF_FIELD).first().fill('99');
+    await running.page.waitForSelector('[data-slot="params-errors"] [data-slot="reason"]');
+    expect(await running.page.locator('[data-slot="params-errors"] [data-slot="reason"]').first().innerText()).toContain(
       'CRF',
     );
-    expect(await running.page.getByRole('button', { name: '参数有误' }).isDisabled()).toBe(true);
+
+    // 参数的报错在另一屏，用户看不到——所以主界面必须自己把人拦住
+    await closeSettings(running.page);
+    expect(await running.page.getByRole('button', { name: '开始转换' }).isDisabled()).toBe(true);
+    expect(await running.page.locator('[data-slot="status-bar"]').innerText()).toContain('专业参数有误');
 
     // 改成合法值，错误消失、按钮恢复
-    await running.page.locator(CRF).first().fill('23');
+    await openSettings(running.page, '参数预设');
+    await running.page.locator(CRF_FIELD).first().fill('23');
     await running.page.waitForFunction(
-      () => document.querySelectorAll('[data-slot="dialog-popup"] [data-slot="reason"]').length === 0,
+      () => document.querySelectorAll('[data-slot="params-errors"] [data-slot="reason"]').length === 0,
     );
-    // exact：界面里还有个「清空已完成」，不精确匹配会同时命中两个
-    expect(await running.page.getByRole('button', { name: '完成', exact: true }).isDisabled()).toBe(false);
+    await closeSettings(running.page);
+    expect(await running.page.getByRole('button', { name: '开始转换' }).isDisabled()).toBe(false);
   }, 180_000);
 
-  it('参数面板：下拉真的能改，值落到面板上', async () => {
+  it('专业参数：下拉真的能改，值落到设置里', async () => {
     // 这条守的是一个具体的坏法：Base UI 的下拉 portal 到 body 上，
-    // 层级排在对话框之下时会被对话框的遮罩盖住——能点开、能看见选项，就是点不中。
+    // 层级排在浮层遮罩之下时会被盖住——能点开、能看见选项，就是点不中。
     // 十二个下拉一起坏，用户看到的是"参数大部分都改不了"。
     running = await launchApp();
-    await running.page.getByRole('button', { name: '专业参数' }).click();
-    await running.page.waitForSelector('[data-slot="dialog-popup"]');
+    await openSettings(running.page, '参数预设');
 
-    const encoder = running.page.locator('[data-slot="dialog-popup"] [data-slot="param-field"]').first();
+    const encoder = running.page.locator('[data-slot="settings-content"] [data-slot="param-field"]').first();
     await encoder.locator('[data-slot="select-trigger"]').click();
     await running.page.getByRole('option', { name: 'H.264 (libx264)' }).click();
     await running.page.waitForTimeout(300);
 
     expect(await encoder.locator('[data-slot="select-trigger"]').innerText()).toContain('H.264 (libx264)');
     expect((await readState(running)).advanced.videoCodec).toBe('libx264');
-
-    // 改完一个还能继续改下一个：选中之后对话框不该被关掉
-    expect(await running.page.locator('[data-slot="dialog-popup"]').isVisible()).toBe(true);
   }, 180_000);
 
-  it('参数面板：数字与文本输入也都改得到', async () => {
-    const NUMBER = '[data-slot="dialog-popup"] [data-slot="param-field"] input[type="number"]';
-    const EXTRA = '[data-slot="dialog-popup"] [data-slot="param-field"] input[type="text"]';
+  it('专业参数：数字与文本输入也都改得到', async () => {
+    const EXTRA = '[data-slot="settings-content"] [data-slot="param-field"] input[type="text"]';
 
     running = await launchApp();
-    await running.page.getByRole('button', { name: '专业参数' }).click();
-    await running.page.waitForSelector('[data-slot="dialog-popup"]');
+    await openSettings(running.page, '参数预设');
 
     // 第一个数字框是 CRF
-    await running.page.locator(NUMBER).first().fill('27');
+    await running.page.locator(CRF_FIELD).first().fill('27');
     await running.page.locator(EXTRA).first().fill('-movflags +faststart');
     await running.page.waitForTimeout(300);
 

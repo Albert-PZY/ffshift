@@ -1,5 +1,8 @@
 /**
- * 主界面：标题栏 + 设置栏 + 工作区 + 详情栏。
+ * 应用外壳：标题栏 + 两种页面。
+ *
+ *   转换界面：设置栏 + 工作区 + 详情栏，只放"这次要转成什么"
+ *   设置界面：分类 + 内容，放"设置一次长期有效"的偏好
  *
  * 布局与样式来自 EnsoCode 的设计语言（见 docs/design-system.md）：
  * 所有面板同一个底色，层级只由 1px 边框与半透明叠加表达；
@@ -9,29 +12,26 @@
  * 没有编码器滑块、帧率下拉这类"画了但接不上"的东西。
  */
 import { useState, type DragEvent } from 'react';
-import { AdvancedDialog } from '@/components/app/advanced-dialog';
 import { DropOverlay } from '@/components/app/drop-overlay';
 import { Inspector } from '@/components/app/inspector';
 import { SettingsRail } from '@/components/app/settings-rail';
+import { SettingsView, type SettingsCategory } from '@/components/app/settings/settings-view';
 import { TitleBar } from '@/components/app/title-bar';
 import { Workspace } from '@/components/app/workspace';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { shortFfmpegVersion } from '@/lib/ffmpeg-version';
-import { otherTheme } from '@/lib/theme';
 import { useStore } from '@/store';
 
 export default function App() {
   const tasks = useStore((s) => s.tasks);
   const hardware = useStore((s) => s.hardware);
-  const ffmpegVersion = useStore((s) => s.ffmpegVersion);
-  const theme = useStore((s) => s.theme);
-  const setTheme = useStore((s) => s.setTheme);
 
   const [dragging, setDragging] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [railOpen, setRailOpen] = useState(true);
   const [inspectorOpen, setInspectorOpen] = useState(true);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
+  // 页面不持久化：每次启动都从转换界面开始，那是这个应用的主职
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [category, setCategory] = useState<SettingsCategory>('output');
 
   const selected = tasks.find((task) => task.id === selectedId) ?? tasks[0] ?? null;
 
@@ -43,6 +43,11 @@ export default function App() {
       .map((file) => window.ffshift?.getPathForFile(file))
       .filter((path): path is string => Boolean(path));
     if (paths.length) await useStore.getState().addFiles(paths);
+  };
+
+  const openSettings = (target: SettingsCategory) => {
+    setCategory(target);
+    setSettingsOpen(true);
   };
 
   return (
@@ -66,32 +71,34 @@ export default function App() {
         <TitleBar
           engineLabel={hardware.length > 0 ? `硬件加速：${hardware.join(' / ')}` : 'CPU 编码'}
           engineReady={hardware.length > 0}
+          onCloseSettings={() => setSettingsOpen(false)}
+          onOpenSettings={() => openSettings('output')}
           onToggleRail={() => setRailOpen((open) => !open)}
-          onToggleTheme={() => setTheme(otherTheme(theme))}
           railOpen={railOpen}
-          theme={theme}
-          versionLabel={shortFfmpegVersion(ffmpegVersion)}
-          versionTitle={ffmpegVersion ?? '没有找到可用的 ffmpeg'}
+          settingsOpen={settingsOpen}
         />
 
-        <div className="flex min-h-0 flex-1">
-          {railOpen && <SettingsRail onOpenAdvanced={() => setAdvancedOpen(true)} />}
+        {settingsOpen ? (
+          <SettingsView category={category} onCategoryChange={setCategory} />
+        ) : (
+          <div className="flex min-h-0 flex-1">
+            {railOpen && <SettingsRail onOpenSettings={() => openSettings('params')} />}
 
-          <Workspace
-            dragging={dragging}
-            inspectorOpen={inspectorOpen}
-            onSelect={(id) => {
-              setSelectedId(id);
-              setInspectorOpen(true);
-            }}
-            onToggleInspector={() => setInspectorOpen((open) => !open)}
-            selectedId={selected?.id ?? null}
-          />
+            <Workspace
+              dragging={dragging}
+              inspectorOpen={inspectorOpen}
+              onSelect={(id) => {
+                setSelectedId(id);
+                setInspectorOpen(true);
+              }}
+              onToggleInspector={() => setInspectorOpen((open) => !open)}
+              selectedId={selected?.id ?? null}
+            />
 
-          {inspectorOpen && selected && <Inspector onClose={() => setInspectorOpen(false)} task={selected} />}
-        </div>
+            {inspectorOpen && selected && <Inspector onClose={() => setInspectorOpen(false)} task={selected} />}
+          </div>
+        )}
 
-        <AdvancedDialog onClose={() => setAdvancedOpen(false)} open={advancedOpen} />
         {dragging && <DropOverlay />}
       </main>
     </TooltipProvider>
