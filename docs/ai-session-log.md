@@ -114,3 +114,4 @@
 | 09-23 03:50 | feat/app-skeleton | `91a247a` | main: 搭起 Electron 应用骨架与 IPC 白名单 | 构建通过；冒烟自检窗口正常；端到端自检完成探测到转换全链路（799ms） | 8 <!-- commit:91a247a --> |
 | 09-23 03:50 | feat/app-skeleton | `36e4c13` | ui: 按设计系统实现列表与队列界面 | typecheck 通过；构建产物能正常加载 | 5 <!-- commit:36e4c13 --> |
 | 09-23 12:08 | feat/app-skeleton | `a435dbb` | ai: 接入参数建议，模型不守格式时也能给出结果 | 单测 109 条（含 20 条 AI 用例）；端到端自检把三种路径都跑过 | 11 <!-- commit:a435dbb --> |
+| 09-23 12:11 | feat/app-skeleton | `9daba8f` | settings: 记住档位与输出目录 | 单测 117 条（含 8 条设置解析用例） | 7 <!-- commit:9daba8f --> |
