@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_ADVANCED } from './advanced-params';
 import {
   DEFAULT_SETTINGS,
   HISTORY_LIMIT,
@@ -11,13 +12,16 @@ import {
 describe('parseSettings', () => {
   it('完整设置原样返回', () => {
     const stored = {
-      version: 3,
+      version: 7,
       preset: 'small',
       outputFormat: 'mp4',
       outputDir: 'D:\\输出',
       hw: 'nvenc',
       history: [],
       presets: [],
+      theme: 'dark',
+      fontSize: 16,
+      advanced: { ...DEFAULT_ADVANCED, crf: 18 },
     };
     expect(parseSettings(stored)).toEqual(stored);
   });
@@ -37,6 +41,38 @@ describe('parseSettings', () => {
   it('档位或硬件加速值不在白名单里时回到默认', () => {
     expect(parseSettings({ preset: 'turbo' }).preset).toBe('balanced');
     expect(parseSettings({ hw: 'cuda' }).hw).toBe('none');
+  });
+
+  it('主题默认浅黑：缺字段、写坏了、写了别的词都回到浅黑', () => {
+    expect(DEFAULT_SETTINGS.theme).toBe('dim');
+    expect(parseSettings({}).theme).toBe('dim');
+    expect(parseSettings({ theme: 'solarized' }).theme).toBe('dim');
+    expect(parseSettings({ theme: 1 }).theme).toBe('dim');
+    // 选过的要留下来，不能被默认值吃掉
+    expect(parseSettings({ theme: 'dark' }).theme).toBe('dark');
+    expect(parseSettings({ theme: 'light' }).theme).toBe('light');
+  });
+
+  it('字号默认 15px；越界收敛、认不出回默认、旧档位名照旧认', () => {
+    expect(DEFAULT_SETTINGS.fontSize).toBe(15);
+    expect(parseSettings({}).fontSize).toBe(15);
+    expect(parseSettings({ fontSize: 18 }).fontSize).toBe(18);
+    // 越界往边界收，而不是丢掉用户的选择
+    expect(parseSettings({ fontSize: 40 }).fontSize).toBe(24);
+    expect(parseSettings({ fontSize: 2 }).fontSize).toBe(10);
+    // 认不出的回默认
+    expect(parseSettings({ fontSize: '16px' }).fontSize).toBe(15);
+    expect(parseSettings({ fontSize: 'huge' }).fontSize).toBe(15);
+    // 版本 6 存的是档位名，升级时不能丢
+    expect(parseSettings({ fontSize: 16 }).fontSize).toBe(16);
+    expect(parseSettings({ fontSize: 'small' }).fontSize).toBe(13);
+  });
+
+  it('旧版本（没有 theme 字段）读出来是默认主题，其余字段照旧保留', () => {
+    const old = parseSettings({ version: 3, preset: 'small', outputDir: 'D:\\输出' });
+    expect(old.theme).toBe(DEFAULT_SETTINGS.theme);
+    expect(old.preset).toBe('small');
+    expect(old.outputDir).toBe('D:\\输出');
   });
 
   it('输出目录不是字符串时置空', () => {
@@ -64,11 +100,13 @@ describe('parseSettings', () => {
 
   it('旧版本能升级：偏好留着，新字段给默认值', () => {
     const parsed = parseSettings({ version: 1, preset: 'clear', outputFormat: 'mp3' });
-    expect(parsed.version).toBe(3);
+    expect(parsed.version).toBe(7);
     expect(parsed.preset).toBe('clear');
     expect(parsed.outputFormat).toBe('mp3');
     expect(parsed.history).toEqual([]);
     expect(parsed.presets).toEqual([]);
+    expect(parsed.theme).toBe(DEFAULT_SETTINGS.theme);
+    expect(parsed.advanced).toEqual(DEFAULT_ADVANCED);
   });
 });
 
@@ -120,13 +158,16 @@ describe('历史记录', () => {
 describe('serializeSettings', () => {
   it('写出的 JSON 能被读回来，字段不丢', () => {
     const settings = {
-      version: 3,
+      version: 7,
       preset: 'small' as const,
       outputFormat: 'webm' as const,
       outputDir: 'D:\\输出',
       hw: 'qsv' as const,
       history: [],
       presets: [],
+      theme: 'dark' as const,
+      fontSize: 15,
+      advanced: { ...DEFAULT_ADVANCED, gop: 60, audioMode: 'copy' as const },
     };
     expect(parseSettings(JSON.parse(serializeSettings(settings)))).toEqual(settings);
   });

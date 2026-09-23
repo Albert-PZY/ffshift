@@ -4,15 +4,34 @@
  * 容错优先：设置文件可能被手改坏、可能是旧版本写的，
  * 任何一种情况都不能让应用起不来——解析不了就回到默认值。
  */
+import { DEFAULT_ADVANCED, parseAdvanced, type AdvancedParams } from './advanced-params';
+import { clampFontSize, FONT_SIZE_DEFAULT, fontSizeFromLegacyName } from './font-scale';
 import { ALL_FORMATS, type OutputFormat, type Preset } from './ffmpeg-args';
 import { parsePresets, type CustomPreset } from './presets';
 
-export const SETTINGS_VERSION = 3;
+export const SETTINGS_VERSION = 7;
 
 /** 历史记录最多留这么多条，超出丢最旧的 */
 export const HISTORY_LIMIT = 50;
 
 export type HardwareChoice = 'none' | 'nvenc' | 'qsv' | 'amf';
+
+/**
+ * 界面主题。
+ *
+ * 默认浅黑：偏灰的深色比近黑柔和一档，长时间盯着不累；白底在暗环境里也太刺眼。
+ * 亮色与暗色都是可选项（见 src/lib/theme.ts）。
+ * 选过之后记住（见 electron/main.ts 的提前读取）。
+ */
+export type Theme = 'light' | 'dim' | 'dark';
+
+/**
+ * 界面字号：根字号的像素值，范围见 `src/lib/font-scale.ts` 的 10–24。
+ *
+ * 存数值而不是档位名：它本来就是一个"多少像素"的连续量，中间再放一层档位表，
+ * 只会让"我设的 15px 对应哪一档"这种问题变得难解释。范围与收敛都在解析边界上做。
+ */
+export type FontSize = number;
 
 /** 一条转换记录：转换完成（成功或失败）时追加 */
 export interface HistoryEntry {
@@ -40,6 +59,15 @@ export interface AppSettings {
   history: HistoryEntry[];
   /** 用户保存的参数预设 */
   presets: CustomPreset[];
+  /** 界面主题；默认亮色 */
+  theme: Theme;
+  /** 界面字号档位；默认标准 */
+  fontSize: FontSize;
+  /**
+   * 专业参数。字段为 null 表示"不干预"，由档位决定。
+   * v1.5.0 起持久化：它从对话框搬进了设置页，就该按设置的语义走（ADR-018）。
+   */
+  advanced: AdvancedParams;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -50,10 +78,26 @@ export const DEFAULT_SETTINGS: AppSettings = {
   hw: 'none',
   history: [],
   presets: [],
+  theme: 'dim',
+  fontSize: FONT_SIZE_DEFAULT,
+  advanced: { ...DEFAULT_ADVANCED },
 };
 
 const PRESETS: readonly Preset[] = ['clear', 'balanced', 'small'];
 const HARDWARE: readonly HardwareChoice[] = ['none', 'nvenc', 'qsv', 'amf'];
+const THEMES: readonly Theme[] = ['light', 'dim', 'dark'];
+
+/**
+ * 字号解析：先认旧档位名，再认数字，越界收敛。
+ *
+ * 版本 6 存的是 `small | default | large | larger`，版本 7 起存像素值；
+ * 认一下老名字，升级的用户不会莫名其妙回到默认字号。
+ */
+function parseFontSize(value: unknown): FontSize {
+  const legacy = fontSizeFromLegacyName(value);
+  if (legacy !== null) return legacy;
+  return typeof value === 'number' ? clampFontSize(value) : FONT_SIZE_DEFAULT;
+}
 
 /** 解析单条历史记录；字段缺失或类型不对就丢弃这一条，而不是让整份设置作废 */
 function parseHistoryEntry(raw: unknown): HistoryEntry | null {
@@ -105,6 +149,8 @@ export function parseSettings(raw: unknown): AppSettings {
     : DEFAULT_SETTINGS.hw;
   const outputDir =
     typeof stored.outputDir === 'string' && stored.outputDir.length > 0 ? stored.outputDir : null;
+  const theme = THEMES.includes(stored.theme as Theme) ? (stored.theme as Theme) : DEFAULT_SETTINGS.theme;
+  const fontSize = parseFontSize(stored.fontSize);
 
   const history = Array.isArray(stored.history)
     ? stored.history
@@ -121,6 +167,9 @@ export function parseSettings(raw: unknown): AppSettings {
     hw,
     history,
     presets: parsePresets(stored.presets),
+    theme,
+    fontSize,
+    advanced: parseAdvanced(stored.advanced),
   };
 }
 

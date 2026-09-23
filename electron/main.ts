@@ -1,25 +1,53 @@
 import { app, BrowserWindow, shell } from 'electron';
-import { writeFileSync } from 'node:fs';
+import { rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { FONT_SIZE_ARG_PREFIX } from '../src/lib/font-scale';
+import { THEME_ARG_PREFIX, themeLabel, windowBackground } from '../src/lib/theme';
 import { disposeIpc, registerIpc } from './ipc';
+import { loadSettings } from './settings';
+
+/**
+ * 自动截图必须从干净状态拍。
+ *
+ * 用开发机上那份真实设置的话，档位、主题、输出目录都会跟着走——
+ * README 里那张图就变成了"某台机器的状态"，而不是"这个版本长什么样"。
+ * 显式传了 --user-data-dir 就听传进来的那个（端到端测试就是这么用的）。
+ */
+const shotProfile = join(app.getPath('temp'), 'ffshift-shot-profile');
+if (process.env.FFSHIFT_SMOKE === 'shot' && !process.argv.some((arg) => arg.startsWith('--user-data-dir'))) {
+  rmSync(shotProfile, { recursive: true, force: true });
+  app.setPath('userData', shotProfile);
+}
 
 let mainWindow: BrowserWindow | null = null;
 
 function createWindow(): void {
+  // 主题与字号要在建窗口之前读出来：窗口底色与首帧都靠它们，
+  // 晚一步就是每次启动闪一下另一个颜色、或者界面先小后大地跳一下
+  const settings = loadSettings();
+  const theme = settings.theme;
+
   mainWindow = new BrowserWindow({
-    width: 1120,
-    height: 760,
+    width: 1200,
+    height: 800,
+    // 固定下限：面板宽度不随字号变（见 docs/design-system.md），所以三栏骨架
+    // 需要的地方与字号无关；字号很大时顶栏与底栏会折行，那是内容自己的事
     minWidth: 940,
     minHeight: 600,
-    backgroundColor: '#0B0C0E',
+    // 与当前主题的 --background 同一个值：窗口先出来时不该闪一下另一个颜色
+    backgroundColor: windowBackground(theme),
     show: false,
-    autoHideMenuBar: true,
+    // 无边框：标题栏、最小化 / 最大化 / 关闭都由界面自绘，
+    // 这样顶栏才能跟侧栏、工作区用同一套底色与 1px 分隔线，而不是被系统的灰条截断
+    frame: false,
     title: 'FFShift',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
+      // 渲染进程要能同步拿到主题与字号，见 src/lib/ipc-types.ts 的 initialTheme
+      additionalArguments: [`${THEME_ARG_PREFIX}${theme}`, `${FONT_SIZE_ARG_PREFIX}${settings.fontSize}`],
     },
   });
 
@@ -68,8 +96,7 @@ function createWindow(): void {
           if (!started.ok) return { stage: 'convert', error: started.reason };
           const outcome = await done;
 
-          const advice = await window.ffshift.suggest('压到 50MB 发微信，画质别太差');
-          return { stage: 'done', width: probe.info.width, hasThumb: true, outcome, advice };
+          return { stage: 'done', width: probe.info.width, hasThumb: true, outcome };
         })()`;
 
         const result: unknown = await mainWindow?.webContents.executeJavaScript(script);
@@ -97,10 +124,40 @@ function createWindow(): void {
           await new Promise((resolve) => setTimeout(resolve, 4000));
         }
 
-        if (process.env.FFSHIFT_SMOKE_PANEL) {
-          // 按文字找按钮：界面文案改了这里也跟着走，不用维护选择器
+        // 主题入口在设置页里（标题栏那个切换按钮在 ADR-018 之后撤销了）：
+        // 齿轮 → 外观 → 点对应标签 → 返回转换界面
+        const theme = process.env.FFSHIFT_SMOKE_THEME;
+        if (theme === 'light' || theme === 'dim' || theme === 'dark') {
+          const label = JSON.stringify(themeLabel(theme));
           await mainWindow?.webContents.executeJavaScript(
-            `[...document.querySelectorAll('button')].find((b) => b.textContent?.includes('专业参数'))?.click()`,
+            [
+              '(async () => {',
+              '  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));',
+              '  const bySlot = (s) => document.querySelector(s)?.click();',
+              '  const byText = (s, t) => [...document.querySelectorAll(s)].find((el) => el.textContent?.trim() === t)?.click();',
+              "  bySlot('[data-slot=\"settings-button\"]');",
+              '  await sleep(250);',
+              "  byText('[data-slot=\"settings-nav-item\"]', '外观');",
+              '  await sleep(250);',
+              `  byText('[data-slot="theme-option"]', ${label});`,
+              '  await sleep(400);',
+              "  bySlot('[data-slot=\"settings-back\"]');",
+              '  await sleep(300);',
+              '})()',
+            ].join('\n'),
+          );
+          await new Promise((resolve) => setTimeout(resolve, 600));
+        }
+
+        if (process.env.FFSHIFT_SMOKE_SETTINGS) {
+          // 设置页只有图标入口与分类文字可用：齿轮认 data-slot，分类按文字找
+          const category = JSON.stringify(process.env.FFSHIFT_SMOKE_SETTINGS);
+          await mainWindow?.webContents.executeJavaScript(
+            `document.querySelector('[data-slot="settings-button"]')?.click()`,
+          );
+          await new Promise((resolve) => setTimeout(resolve, 300));
+          await mainWindow?.webContents.executeJavaScript(
+            `[...document.querySelectorAll('[data-slot="settings-nav-item"]')].find((b) => b.textContent?.trim() === ${category})?.click()`,
           );
           await new Promise((resolve) => setTimeout(resolve, 500));
         }

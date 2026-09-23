@@ -10,16 +10,22 @@ import { create } from 'zustand';
 import type { ConvertOutcome, ProgressUpdate } from '../electron/ffmpeg/convert';
 import { outputPathFor, type OutputFormat, type Preset } from './lib/ffmpeg-args';
 import {
+  DEFAULT_SETTINGS,
   SETTINGS_VERSION,
   appendHistory,
+  type FontSize,
   type HistoryEntry,
+  type Theme,
 } from './lib/settings';
 import { createPreset, exportPresets, importPresets, type CustomPreset } from './lib/presets';
 import { DEFAULT_ADVANCED, type AdvancedParams } from './lib/advanced-params';
 import type { MediaInfo } from './lib/ffprobe';
+import type { TaskStatus } from './lib/task-status';
+import { applyFontSize } from './lib/font-scale';
+import { applyTheme } from './lib/theme';
 
-/** 任务状态；界面上的五个状态词与这里一一对应 */
-export type TaskStatus = 'reading' | 'ready' | 'queued' | 'running' | 'done' | 'failed' | 'cancelled' | 'unsupported';
+/** 任务状态；界面上的五个状态词与这里一一对应（定义在 lib/task-status.ts） */
+export type { TaskStatus };
 
 export interface TaskItem {
   id: string;
@@ -64,7 +70,7 @@ const nextId = () => `task-${(sequence += 1)}`;
 interface State {
   tasks: TaskItem[];
   preset: Preset;
-  /** AI 建议里的目标体积（MiB）；null 表示不限体积 */
+  /** 目标体积（MiB）；null 表示不限体积 */
   targetSizeMiB: number | null;
   /** 输出格式；same 表示跟随输入 */
   outputFormat: OutputFormat;
@@ -79,6 +85,12 @@ interface State {
   presets: CustomPreset[];
   hardware: string[];
   ffmpegVersion: string | null;
+  /** 界面主题；默认亮色，改过之后落盘 */
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
+  /** 界面字号档位；默认标准，改过之后落盘 */
+  fontSize: FontSize;
+  setFontSize: (size: FontSize) => void;
   addFiles: (paths: string[]) => Promise<void>;
   startAll: () => Promise<void>;
   /** 只推进队列：跑完一个接着下一个，不重置其它任务 */
@@ -92,8 +104,6 @@ interface State {
   setOutputFormat: (format: OutputFormat) => void;
   /** 直接指定目标体积（MiB）；null 表示不限体积。不持久化：它是针对当前批次的临时设置 */
   setTargetSize: (targetSizeMiB: number | null) => void;
-  /** 采纳 AI 建议：档位与目标体积一起生效（否则体积建议等于空话） */
-  applySuggestion: (preset: Preset, targetSizeMiB: number | null) => void;
   pickOutputDir: () => Promise<void>;
   clearOutputDir: () => void;
   /** 选一个文件夹，把里面的视频一次性加进来 */
@@ -180,6 +190,22 @@ export const useStore = create<State>((set, get) => {
     hardware: [],
     ffmpegVersion: null,
     targetSizeMiB: null,
+    theme: DEFAULT_SETTINGS.theme,
+    fontSize: DEFAULT_SETTINGS.fontSize,
+
+    setTheme(theme) {
+      set({ theme });
+      // 立刻换类名，不等落盘：换主题要跟手
+      applyTheme(theme);
+      void persistSettings(get());
+    },
+
+    setFontSize(fontSize) {
+      set({ fontSize });
+      // 同理：字号要跟手，不能等写文件回来
+      applyFontSize(fontSize);
+      void persistSettings(get());
+    },
 
     async addFiles(paths) {
       const ffshift = api();
@@ -300,11 +326,6 @@ export const useStore = create<State>((set, get) => {
       set({ targetSizeMiB });
     },
 
-    applySuggestion(preset, targetSizeMiB) {
-      set({ preset, targetSizeMiB });
-      void persistSettings(get());
-    },
-
     async pickOutputDir() {
       const folders = await api()?.pickFolder('选择输出目录');
       if (folders?.[0]) {
@@ -337,10 +358,12 @@ export const useStore = create<State>((set, get) => {
 
     setAdvanced(patch) {
       set((state) => ({ advanced: { ...state.advanced, ...patch } }));
+      void persistSettings(get());
     },
 
     resetAdvanced() {
       set({ advanced: { ...DEFAULT_ADVANCED } });
+      void persistSettings(get());
     },
 
     savePreset(name) {
@@ -351,6 +374,7 @@ export const useStore = create<State>((set, get) => {
 
     applyPreset(preset) {
       set({ advanced: { ...DEFAULT_ADVANCED, ...preset.params } });
+      void persistSettings(get());
     },
 
     deletePreset(id) {
@@ -386,7 +410,14 @@ export const useStore = create<State>((set, get) => {
           outputDir: settings.outputDir,
           history: settings.history,
           presets: settings.presets,
+          theme: settings.theme,
+          fontSize: settings.fontSize,
+          advanced: settings.advanced,
         });
+        // 首帧的主题与字号来自 argv（main.tsx 已应用过）。这里再应用一次是为了兜住
+        // 两者不一致的情况——比如设置文件在第一帧之后才被外部改动过
+        applyTheme(settings.theme);
+        applyFontSize(settings.fontSize);
       }
     },
   };
@@ -399,6 +430,9 @@ async function persistSettings(state: {
   outputDir: string | null;
   history: HistoryEntry[];
   presets: CustomPreset[];
+  theme: Theme;
+  fontSize: FontSize;
+  advanced: AdvancedParams;
 }): Promise<void> {
   await api()?.saveSettings({
     version: SETTINGS_VERSION,
@@ -408,6 +442,9 @@ async function persistSettings(state: {
     hw: 'none',
     history: state.history,
     presets: state.presets,
+    theme: state.theme,
+    fontSize: state.fontSize,
+    advanced: state.advanced,
   });
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "ffshift",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
   "description": "FFShift —— ffmpeg 的换挡键：不用懂参数，也能转好视频",
   "main": "out/main/index.js",
@@ -21,11 +21,15 @@
     "typecheck": "tsc --noEmit",
     "make-icon": "node scripts/make-icon.mjs",
     "prepare-ffmpeg": "node scripts/prepare-ffmpeg.mjs",
-    "package": "node scripts/prepare-ffmpeg.mjs && electron-vite build && electron-builder --win --publish never"
+    "package": "node scripts/prepare-ffmpeg.mjs && node scripts/make-icon.mjs && electron-vite build && electron-builder --win --publish never",
+    "package:portable": "node scripts/prepare-ffmpeg.mjs && node scripts/make-icon.mjs && electron-vite build && electron-builder --win portable --publish never",
+    "sign": "node scripts/sign-release.mjs",
+    "verify-sign": "node scripts/sign-release.mjs --verify"
   },
   "build": {
     "appId": "top.albert-go.ffshift",
     "productName": "FFShift",
+    "copyright": "Copyright © 2026 FFShift",
     "directories": {
       "output": "release",
       "buildResources": "resources"
@@ -42,15 +46,21 @@
           "ffmpeg.exe",
           "ffprobe.exe"
         ]
+      },
+      {
+        "from": "LICENSE",
+        "to": "LICENSE"
       }
     ],
     "win": {
       "target": [
         {
           "target": "nsis",
-          "arch": [
-            "x64"
-          ]
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
         }
       ],
       "icon": "resources/icon.ico"
@@ -59,20 +69,38 @@
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
+      "allowElevation": true,
       "artifactName": "FFShift-${version}-setup.${ext}",
-      "shortcutName": "FFShift"
-    }
+      "shortcutName": "FFShift",
+      "uninstallDisplayName": "FFShift ${version}",
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "license": "build/license.txt",
+      "warningsAsErrors": false,
+      "runAfterFinish": true
+    },
+    "portable": {
+      "artifactName": "FFShift-${version}-portable.${ext}",
+      "unicode": true
+    },
+    "compression": "maximum",
+    "asarUnpack": []
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
+    "@base-ui/react": "^1.8.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "lucide-react": "^1.47.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
+    "tailwind-merge": "^3.7.0",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^22.20.4",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
@@ -81,6 +109,7 @@
     "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
     "playwright-core": "^1.63.0",
+    "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3",
     "vite": "^7.3.6",
     "vitest": "^5.0.1"

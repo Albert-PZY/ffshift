@@ -8,7 +8,6 @@ export const AREAS = {
   media: '导入、ffprobe 信息、缩略图',
   convert: '预设、参数构造、任务引擎',
   queue: '队列、进度、取消、重试',
-  ai: 'AI 参数助手与降级规则',
   settings: '输出目录、并发、Key',
   lib: '纯函数：参数、进度解析、错误翻译、格式化',
   ui: '通用组件、样式、设计系统落地',

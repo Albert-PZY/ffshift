@@ -5,7 +5,16 @@
  * 这里盯着"界面点下去之后，整条链路有没有真的走通、状态对不对"。
  */
 import { afterEach, describe, expect, it } from 'vitest';
-import { cleanupUserData, launchApp, makeFixture, waitForTaskStatus, type LaunchedApp } from './helpers';
+import {
+  cleanupUserData,
+  closeSettings,
+  CRF_FIELD,
+  launchApp,
+  makeFixture,
+  openSettings,
+  waitForTaskStatus,
+  type LaunchedApp,
+} from './helpers';
 
 /** 界面暴露的调试入口；测试通过它导入文件（拖放没法在自动化里模拟真实文件） */
 interface DebugHook {
@@ -17,6 +26,7 @@ interface DebugHook {
       info: { width: number | null; height: number | null } | null;
       outcome: { status: string; outputSizeBytes?: number | null } | null;
     }>;
+    advanced: { videoCodec: string | null; crf: number | null };
   };
 }
 
@@ -29,6 +39,10 @@ const importFiles = async (running: LaunchedApp, paths: string[]): Promise<void>
 
 const readState = (running: LaunchedApp): Promise<ReturnType<DebugHook['state']>> =>
   running.page.evaluate(() => (window as unknown as { __ffshift?: DebugHook }).__ffshift?.state() as never);
+
+/** 队列行；详情栏与历史行共用 data-slot，所以断言一律带上行这一层 */
+const ROW = '[data-slot="task-row"]';
+const DONE_ROW = '[data-slot="task-row"] [data-slot="task-status"][data-status="done"]';
 
 describe('工作流：导入 → 转换 → 历史', () => {
   let running: LaunchedApp | null = null;
@@ -48,10 +62,10 @@ describe('工作流：导入 → 转换 → 历史', () => {
     await importFiles(running, [fixture]);
     await waitForTaskStatus(running.page, '待转换', 60_000);
 
-    const meta = await running.page.locator('.queue-meta').first().innerText();
+    const meta = await running.page.locator('[data-slot="task-meta"]').first().innerText();
     // 素材是 640x360 生成的，界面该照实显示
     expect(meta).toContain('640×360');
-    expect(await running.page.locator('.thumb img').count()).toBe(1);
+    expect(await running.page.locator('[data-slot="thumb"] img').count()).toBe(1);
 
     const state = await readState(running);
     expect(state.tasks[0]?.info?.width).toBe(640);
@@ -77,17 +91,17 @@ describe('工作流：导入 → 转换 → 历史', () => {
     expect(state.tasks[0]?.outcome?.outputSizeBytes ?? 0).toBeGreaterThan(0);
 
     // 切到历史视图，记录应该已经在了
-    await (running as LaunchedApp).page.getByRole('button', { name: '看历史' }).click();
-    await (running as LaunchedApp).page.waitForSelector('.queue-row');
-    expect(await (running as LaunchedApp).page.locator('.queue-row').count()).toBeGreaterThan(0);
+    await (running as LaunchedApp).page.getByRole('tab', { name: '历史' }).click();
+    await (running as LaunchedApp).page.waitForSelector(ROW);
+    expect(await (running as LaunchedApp).page.locator(ROW).count()).toBeGreaterThan(0);
 
     // 重启：历史能读回来，说明真的落盘了而不是只在内存里
     await (running as LaunchedApp).close();
     running = await launchApp({ userDataDir });
 
-    await (running as LaunchedApp).page.getByRole('button', { name: '看历史' }).click();
-    await (running as LaunchedApp).page.waitForSelector('.queue-row');
-    expect(await (running as LaunchedApp).page.locator('.queue-row').count()).toBeGreaterThan(0);
+    await (running as LaunchedApp).page.getByRole('tab', { name: '历史' }).click();
+    await (running as LaunchedApp).page.waitForSelector(ROW);
+    expect(await (running as LaunchedApp).page.locator(ROW).count()).toBeGreaterThan(0);
   }, 240_000);
 
   it('两个文件依次排队，最后都完成（队列是串行的）', async () => {
@@ -97,13 +111,13 @@ describe('工作流：导入 → 转换 → 历史', () => {
     running = await launchApp();
     await importFiles(running, [first, second]);
     await waitForTaskStatus(running.page, '待转换', 60_000);
-    expect(await running.page.locator('.queue-row').count()).toBe(2);
+    expect(await running.page.locator(ROW).count()).toBe(2);
 
     await running.page.getByRole('button', { name: '开始转换' }).click();
 
     await running.page.waitForFunction(
-      () => document.querySelectorAll('.queue-row .status-done').length === 2,
-      undefined,
+      (selector) => document.querySelectorAll(selector).length === 2,
+      DONE_ROW,
       { timeout: 180_000 },
     );
 
@@ -111,23 +125,68 @@ describe('工作流：导入 → 转换 → 历史', () => {
     expect(state.tasks.every((task) => task.status === 'done')).toBe(true);
   }, 240_000);
 
-  it('参数面板：非法值被拦下，主按钮跟着禁用', async () => {
+  it('专业参数：非法值当场提示，并挡住主界面的开始转换', async () => {
+    const fixture = makeFixture('参数校验.mp4', { durationSec: 2 });
+
     running = await launchApp();
-    await running.page.getByRole('button', { name: '专业参数' }).click();
-    await running.page.waitForSelector('.modal');
+    await importFiles(running, [fixture]);
+    await waitForTaskStatus(running.page, '待转换', 60_000);
 
+    // 有可转换的任务，按钮本来是能点的——不然下面的断言等于没测
+    expect(await running.page.getByRole('button', { name: '开始转换' }).isDisabled()).toBe(false);
+
+    await openSettings(running.page, '参数预设');
     // CRF 填 99，超出 x264 的 0–51
-    await running.page.locator('.param-field input[type="number"]').first().fill('99');
-    await running.page.waitForSelector('.reason');
+    await running.page.locator(CRF_FIELD).first().fill('99');
+    await running.page.waitForSelector('[data-slot="params-errors"] [data-slot="reason"]');
+    expect(await running.page.locator('[data-slot="params-errors"] [data-slot="reason"]').first().innerText()).toContain(
+      'CRF',
+    );
 
-    expect(await running.page.locator('.reason').first().innerText()).toContain('CRF');
-    expect(await running.page.getByRole('button', { name: '参数有误' }).isDisabled()).toBe(true);
+    // 参数的报错在另一屏，用户看不到——所以主界面必须自己把人拦住
+    await closeSettings(running.page);
+    expect(await running.page.getByRole('button', { name: '开始转换' }).isDisabled()).toBe(true);
+    expect(await running.page.locator('[data-slot="status-bar"]').innerText()).toContain('专业参数有误');
 
     // 改成合法值，错误消失、按钮恢复
-    await running.page.locator('.param-field input[type="number"]').first().fill('23');
-    await running.page.waitForFunction(() => document.querySelectorAll('.modal .reason').length === 0);
-    // exact：界面里还有个「清空已完成」，不精确匹配会同时命中两个
-    expect(await running.page.getByRole('button', { name: '完成', exact: true }).isDisabled()).toBe(false);
+    await openSettings(running.page, '参数预设');
+    await running.page.locator(CRF_FIELD).first().fill('23');
+    await running.page.waitForFunction(
+      () => document.querySelectorAll('[data-slot="params-errors"] [data-slot="reason"]').length === 0,
+    );
+    await closeSettings(running.page);
+    expect(await running.page.getByRole('button', { name: '开始转换' }).isDisabled()).toBe(false);
+  }, 180_000);
+
+  it('专业参数：下拉真的能改，值落到设置里', async () => {
+    // 这条守的是一个具体的坏法：Base UI 的下拉 portal 到 body 上，
+    // 层级排在浮层遮罩之下时会被盖住——能点开、能看见选项，就是点不中。
+    // 十二个下拉一起坏，用户看到的是"参数大部分都改不了"。
+    running = await launchApp();
+    await openSettings(running.page, '参数预设');
+
+    const encoder = running.page.locator('[data-slot="settings-content"] [data-slot="param-field"]').first();
+    await encoder.locator('[data-slot="select-trigger"]').click();
+    await running.page.getByRole('option', { name: 'H.264 (libx264)' }).click();
+    await running.page.waitForTimeout(300);
+
+    expect(await encoder.locator('[data-slot="select-trigger"]').innerText()).toContain('H.264 (libx264)');
+    expect((await readState(running)).advanced.videoCodec).toBe('libx264');
+  }, 180_000);
+
+  it('专业参数：数字与文本输入也都改得到', async () => {
+    const EXTRA = '[data-slot="settings-content"] [data-slot="param-field"] input[type="text"]';
+
+    running = await launchApp();
+    await openSettings(running.page, '参数预设');
+
+    // 第一个数字框是 CRF
+    await running.page.locator(CRF_FIELD).first().fill('27');
+    await running.page.locator(EXTRA).first().fill('-movflags +faststart');
+    await running.page.waitForTimeout(300);
+
+    const state = await readState(running);
+    expect(state.advanced.crf).toBe(27);
   }, 180_000);
 
   it('同一路径导入两次不会重复入队', async () => {
@@ -140,6 +199,6 @@ describe('工作流：导入 → 转换 → 历史', () => {
     await importFiles(running, [fixture]);
     await running.page.waitForTimeout(1000);
 
-    expect(await running.page.locator('.queue-row').count()).toBe(1);
+    expect(await running.page.locator(ROW).count()).toBe(1);
   }, 180_000);
 });

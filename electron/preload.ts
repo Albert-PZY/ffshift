@@ -3,7 +3,9 @@
  * 渲染进程拿不到 Node，只能调这里列出的方法。
  */
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
+import { fontSizeFromArgv } from '../src/lib/font-scale';
 import type { AppSettings } from '../src/lib/settings';
+import { themeFromArgv } from '../src/lib/theme';
 import type {
   ConvertRequest,
   ConvertResponse,
@@ -12,7 +14,6 @@ import type {
   HardwareReport,
   ProbeResponse,
   ProgressEvent,
-  SuggestResponse,
   ThumbnailResponse,
 } from '../src/lib/ipc-types';
 
@@ -33,13 +34,22 @@ const api: FfshiftApi & { getPathForFile: (file: File) => string } = {
   cancel: (taskId) => ipcRenderer.invoke('ffshift:cancel', taskId) as Promise<{ ok: boolean }>,
   detectHardware: () => ipcRenderer.invoke('ffshift:detect-hardware') as Promise<HardwareReport>,
   ffmpegVersion: () => ipcRenderer.invoke('ffshift:ffmpeg-version') as Promise<string | null>,
-  suggest: (description) =>
-    ipcRenderer.invoke('ffshift:ai-suggest', description) as Promise<SuggestResponse>,
   loadSettings: () => ipcRenderer.invoke('ffshift:load-settings') as Promise<AppSettings>,
   saveSettings: (settings: AppSettings) =>
     ipcRenderer.invoke('ffshift:save-settings', settings) as Promise<AppSettings>,
   revealOutput: (filePath: string) =>
     ipcRenderer.invoke('ffshift:reveal-output', filePath) as Promise<{ ok: boolean }>,
+
+  frame: {
+    minimize: () => ipcRenderer.send('ffshift:frame', 'minimize'),
+    toggleMaximize: () => ipcRenderer.send('ffshift:frame', 'toggle-maximize'),
+    close: () => ipcRenderer.send('ffshift:frame', 'close'),
+    isMaximized: () => ipcRenderer.invoke('ffshift:frame-maximized') as Promise<boolean>,
+  },
+
+  // 主进程在建窗口时写进 argv，所以这两个是同步值
+  initialTheme: themeFromArgv(process.argv),
+  initialFontSize: fontSizeFromArgv(process.argv),
 
   onProgress: (listener) => {
     const handler = (_event: unknown, payload: ProgressEvent) => listener(payload);

@@ -4,16 +4,9 @@
  */
 import type { ConvertOutcome, ProgressUpdate } from '../../electron/ffmpeg/convert';
 import type { AdvancedParams } from './advanced-params';
-import type { Suggestion } from './ai-suggest';
 import type { MediaInfo } from './ffprobe';
 import type { OutputFormat, Preset } from './ffmpeg-args';
-import type { AppSettings } from './settings';
-
-export interface SuggestResponse {
-  suggestion: Suggestion;
-  /** 一句话说明这次建议的来源（模型 / 本地规则） */
-  note: string;
-}
+import type { AppSettings, FontSize, Theme } from './settings';
 
 export interface ProbeResponse {
   ok: boolean;
@@ -68,6 +61,19 @@ export interface HardwareReport {
   checkedAt: string;
 }
 
+/**
+ * 无边框窗口的自绘控制。
+ *
+ * 窗口没有系统边框，最小化 / 最大化 / 关闭必须由界面提供；
+ * `isMaximized` 用来在最大化与还原之间换图标。
+ */
+export interface FrameControls {
+  minimize: () => void;
+  toggleMaximize: () => void;
+  close: () => void;
+  isMaximized: () => Promise<boolean>;
+}
+
 export interface FfshiftApi {
   pickFiles: () => Promise<string[]>;
   /** 读一个 JSON 文件（导入预设用）；取消或读取失败返回 null */
@@ -86,10 +92,23 @@ export interface FfshiftApi {
   cancel: (taskId: string) => Promise<{ ok: boolean }>;
   detectHardware: () => Promise<HardwareReport>;
   ffmpegVersion: () => Promise<string | null>;
-  suggest: (description: string) => Promise<SuggestResponse>;
   loadSettings: () => Promise<AppSettings>;
   saveSettings: (settings: AppSettings) => Promise<AppSettings>;
   revealOutput: (filePath: string) => Promise<{ ok: boolean }>;
+  /** 无边框窗口的自绘控制按钮 */
+  frame: FrameControls;
+  /**
+   * 启动时的主题。
+   *
+   * 主进程在建窗口之前读设置，把它塞进渲染进程的 argv——渲染进程要能**同步**拿到，
+   * 否则第一帧永远是亮色，暗色用户每次启动都会看见一记白闪。
+   */
+  initialTheme: Theme;
+  /**
+   * 启动时的界面字号档位。与主题同理：根字号决定整个界面的尺寸，
+   * 晚一帧就会看见界面先小后大地跳一下。
+   */
+  initialFontSize: FontSize;
   onProgress: (listener: (event: ProgressEvent) => void) => () => void;
   onFinished: (listener: (event: FinishedEvent) => void) => () => void;
   /** 拖放的 File 对象在渲染进程拿不到磁盘路径，必须走它 */

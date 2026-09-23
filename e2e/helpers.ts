@@ -31,7 +31,7 @@ export async function launchApp(options: { userDataDir?: string } = {}): Promise
 
   const page = await app.firstWindow();
   // 界面挂载完成：app-shell 是根容器
-  await page.waitForSelector('.app-shell', { timeout: 30_000 });
+  await page.waitForSelector('[data-slot="app-shell"]', { timeout: 30_000 });
 
   return {
     app,
@@ -75,11 +75,42 @@ export function makeFixture(name: string, options: { durationSec?: number; withA
   return target;
 }
 
-/** 等某个状态文字出现在队列行上（转换完成、失败等） */
+/** 等某个状态文字出现在队列行上（转换完成、失败等）。
+ *
+ * 选择器限定在行内：详情栏也渲染同一套状态标签，不限定会数出多余的一份。
+ * 状态标签带 data-status，判"完成"这类断言不必再读文字。
+ */
 export async function waitForTaskStatus(page: Page, label: string, timeout = 120_000): Promise<void> {
   await page.waitForFunction(
-    (text) => [...document.querySelectorAll('.queue-row .status')].some((node) => node.textContent?.includes(text)),
+    (text) =>
+      [...document.querySelectorAll('[data-slot="task-row"] [data-slot="task-status"]')].some((node) =>
+        node.textContent?.includes(text),
+      ),
     label,
     { timeout },
   );
 }
+
+export type SettingsCategory = '输出' | '参数预设' | '外观' | '关于';
+
+/**
+ * 打开设置页并切到某个分类。
+ *
+ * 已经在设置页里就只切分类：齿轮只在转换界面上有，设置页里再点它会找不到元素。
+ */
+export async function openSettings(page: Page, category: SettingsCategory = '输出'): Promise<void> {
+  if ((await page.locator('[data-slot="settings-view"]').count()) === 0) {
+    await page.locator('[data-slot="settings-button"]').click();
+    await page.waitForSelector('[data-slot="settings-view"]');
+  }
+  await page.locator('[data-slot="settings-nav-item"]').filter({ hasText: category }).click();
+}
+
+/** 关掉设置页，回到转换界面 */
+export async function closeSettings(page: Page): Promise<void> {
+  await page.locator('[data-slot="settings-back"]').click();
+  await page.waitForSelector('[data-slot="settings-rail"]');
+}
+
+/** 参数预设分类里第一个数字输入框，也就是 CRF */
+export const CRF_FIELD = '[data-slot="settings-content"] [data-slot="param-field"] input[type="number"]';

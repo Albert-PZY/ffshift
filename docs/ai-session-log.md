@@ -171,3 +171,31 @@
 | 09-23 18:51 | test/e2e-suite | `2bb53a4` | docs: 把 e2e 的结果写回测试清单 | — | 3 <!-- commit:2bb53a4 --> |
 | 09-23 18:53 | docs/e2e-status | `7fabda2` | docs: 把 e2e 的结果写回测试清单 | — | 1 <!-- commit:7fabda2 --> |
 | 09-23 19:06 | docs/e2e-hook | `3b78307` | docs: 把端到端测试的分工与钩子位置写进文档 | 钩子自测 18 条、端到端 9 条全绿 | 3 <!-- commit:3b78307 --> |
+| 09-23 19:38 | refactor/ui-enso-language | `6fe2c37` | build: 接入 Tailwind v4 与 Base UI | npm run build 通过（渲染层产出 55KB CSS） | 7 <!-- commit:6fe2c37 --> |
+| 09-23 19:39 | refactor/ui-enso-language | `fcda2bd` | lib: 抽出状态、格式与版本号的纯函数 | 单测 251 条全绿（新增 14 条） | 9 <!-- commit:fcda2bd --> |
+| 09-23 19:39 | refactor/ui-enso-language | `2ac2616` | ui: 移植 UI 原语层 | typecheck 通过 | 17 <!-- commit:2ac2616 --> |
+| 09-23 19:40 | refactor/ui-enso-language | `6bd0c54` | main: 无边框窗口与自绘标题栏的通道 | typecheck 通过；窗口能建、能拖、三个按钮可用（截图确认） | 4 <!-- commit:6bd0c54 --> |
+| 09-23 19:40 | refactor/ui-enso-language | `bbc881b` | ui: 用 EnsoCode 的语言重写界面 | typecheck、build 通过；五个中间态（待转换 / 转换中 / 已完成 / 历史 / hover） | 22 <!-- commit:bbc881b --> |
+| 09-23 19:42 | refactor/ui-enso-language | `d52cd32` | docs: 记下文档沉淀钩子会连带走未提交文档 | 只有一份文档改动，pre-commit 文风检查通过 | 1 <!-- commit:d52cd32 --> |
+| 09-23 20:33 | refactor/ui-enso-language | `578441d` | docs: 记下参数面板的层级坑与主题取舍 | pre-commit 的文风检查通过 | 5 <!-- commit:578441d --> |
+| 09-23 20:34 | refactor/ui-enso-language | `62726ec` | ui: 加亮暗两套主题，默认亮色 | 单测 257 条全绿、typecheck 通过、build 通过、e2e 12 条全绿（新增 1 条守"默认 | 22 <!-- commit:62726ec --> |
+| 09-23 20:36 | refactor/ui-enso-language | `d71af2e` | docs: 把沉淀钩子卷走暂存内容这条记准 | 只有一份文档改动，pre-commit 文风检查通过 | 1 <!-- commit:d71af2e --> |
+| 09-23 21:05 | refactor/ui-enso-language | `6831d93` | ui: 移除 AI 参数建议 | src/、electron/、e2e/ 三处搜不到 ai-suggest / Suggestion / WORKBUDD | 15 <!-- commit:6831d93 --> |
+| 09-23 21:05 | refactor/ui-enso-language | `4e3aa3d` | tool: 提交 area 表去掉 ai | npm run lint:commit 通过（本条提交自己就是一次校验） | 1 <!-- commit:4e3aa3d --> |
+| 09-23 21:06 | refactor/ui-enso-language | `562adc8` | docs: 归档移除 AI 的规格提案 | openspec archive 通过（1 条 requirement 修改）；tasks 18 项全部勾上 | 5 <!-- commit:562adc8 --> |
+| 09-23 22:14 | refactor/ui-enso-language | `9ac5df3` | docs: 记下设置页的分工与参数持久化 | pre-commit 文风检查通过；openspec archive 通过（params 改 1 加 2，setting | 19 <!-- commit:9ac5df3 --> |
+| 09-23 22:15 | refactor/ui-enso-language | `313c386` | lib: 专业参数可持久化，校验改按输出格式 | 单测 245 条全绿（新增 10 条） | 5 <!-- commit:313c386 --> |
+| 09-23 22:15 | refactor/ui-enso-language | `f08593f` | ui: 新增设置页，主界面只留转换 | typecheck、build 通过；单测 245 条全绿；e2e 15 条全绿（57.3s）； | 17 <!-- commit:f08593f --> |
+| 09-23 22:16 | refactor/ui-enso-language | `18c3160` | main: 自动截图支持拍到设置页 | docs/screenshots/settings.png 由它生成，人工看过 | 1 <!-- commit:18c3160 --> |
+| 09-23 23:04 | refactor/ui-enso-language | `98b1552` | docs: 记下字号做成整体缩放的取舍 | pre-commit 文风检查通过；openspec 的 spec 更新与归档（工具移动目录时遇到 | 12 <!-- commit:98b1552 --> |
+| 09-23 23:05 | refactor/ui-enso-language | `fe0d1f1` | settings: 界面字号档位与窗口下限 | 单测 254 条全绿（新增 9 条） | 5 <!-- commit:fe0d1f1 --> |
+| 09-23 23:05 | refactor/ui-enso-language | `0b2e88a` | main: 字号与主题一起在建窗口之前读出 | 实测 940×600 下选「更大」，窗口撑到 1076×689、下限 1074×686； | 5 <!-- commit:0b2e88a --> |
+| 09-23 23:29 | refactor/ui-enso-language | `aeab77d` | docs: 记下字号的返工与原因 | pre-commit 文风检查通过；openspec spec 用 REMOVED + ADDED 两条换两条 | 12 <!-- commit:aeab77d --> |
+| 09-23 23:29 | refactor/ui-enso-language | `0b1883b` | ui: 字号改成 10–24px 下拉，外壳尺寸不再跟着缩放 | typecheck、build 通过；单测 258 条全绿；e2e 17 条全绿（64.3s）； | 16 <!-- commit:0b1883b --> |
+| 09-24 00:18 | refactor/ui-enso-language | `0163551` | docs: 记下浅黑主题的取舍与两个连带发现 | pre-commit 文风检查通过；openspec 归档通过 | 13 <!-- commit:0163551 --> |
+| 09-24 00:19 | refactor/ui-enso-language | `fa64163` | ui: 加浅黑主题，表单底色改成语义令牌 | typecheck、build 通过；单测 257 条全绿；e2e 17 条全绿（68.3s，主题用例扩到 | 10 <!-- commit:fa64163 --> |
+| 09-24 01:17 | refactor/ui-enso-language | `3f084b9` | docs: 默认值定成浅黑 + 15px 的取舍与同步 | pre-commit 文风检查通过；openspec 归档通过 | 14 <!-- commit:3f084b9 --> |
+| 09-24 01:18 | refactor/ui-enso-language | `ac40630` | settings: 默认字号 15px、默认主题浅黑 | typecheck、build 通过；单测 258 条全绿；一次快速冒烟通过 | 8 <!-- commit:ac40630 --> |
+| 09-24 03:02 | refactor/ui-enso-language | `e1d557e` | ui: 按用户使用逻辑精简二级描述；补齐签名打包与安装流程 | typecheck、build 通过；单测 258 条全绿；npm run package 出安装包与 | 17 <!-- commit:e1d557e --> |
+| 09-24 03:03 | refactor/ui-enso-language | `bf65a30` | docs: 按真实使用场景重写 README | beautify-github-readme 的 audit_readme.py 通过（7 张图引用完整） | 1 <!-- commit:bf65a30 --> |
+| 09-24 03:09 | refactor/ui-enso-language | `ca2b625` | build: 版本升到 1.5.0，打包补齐便携版与签名流程 | 单测 258 条全绿、typecheck 与 build 通过、npm run package 通过 | 3 <!-- commit:ca2b625 --> |

@@ -1,0 +1,7 @@
+FFShift —— ffmpeg 的换挡键
+
+不用懂参数，也能转好视频。
+
+本软件按「MIT License」授权，随附的 ffmpeg / ffprobe 二进制来自 gyan.dev essentials build（GPL 构建，含 x264），许可随附于安装目录的 LICENSE 文件。
+
+本软件按"现状"提供，不附带任何明示或默示的担保。使用本软件产生的一切风险由使用者自行承担。

@@ -1,0 +1,572 @@
+/**
+ * FFShift 全局样式：设计令牌层 + 基础层。
+ *
+ * 令牌体系内化自 EnsoCode（github.com/J3n5en/EnsoCode，MIT）的
+ * src/renderer/styles/globals.css：同一套 OKLCH 语义命名、同一套 @theme 映射、
+ * 同一套圆角与字号刻度。好处不是"长得像"，而是分层规则一致——
+ * 面板与窗口同色，层级只靠 1px 边框与半透明叠加表达，颜色只留给状态。
+ *
+ * 与上游的三处差异，逐条标明原因（本项目文档约定：调整要标出来，不混在"参考"里）：
+ *
+ *   1. ⚠️ 状态色不是逐字照抄的，三套主题都调过。上游那两个值在原主题里没问题，
+ *      换到本项目的用法上就不够：
+ *        · 暗色的 destructive / success 取更亮的一档——上游那组是配白字做实心按钮用的，
+ *          本项目当正文色压在窗口底上，实测只有 1.97:1 与 4.01:1；
+ *        · 亮色的 warning / info 各压暗一档——上游值压在白底上只有 2.15:1 与 3.76:1；
+ *        · 浅黑（.dim）的四个全部提亮一档——底色比暗色浅，那套压上去不够（info 只有 3.76:1）。
+ *      约束是"页面底与选中行底都过 4.5:1"（状态标签就长在选中行上），
+ *      数值由 WCAG 相对亮度公式算出，不是估的。改回去之前先量一遍。
+ *
+ *   2. 动效令牌只留用得到的那几组。上游那份 transitions-dev 清单有两百多条，
+ *      没人用的令牌就是没人维护的令牌。这里保留通用刻度（时长 / 缓动 / 位移 /
+ *      缩放 / 模糊）与四个真的挂在组件上的过渡：校验抖动、思考流光、空行落地、
+ *      图标互换。
+ *
+ *   3. 首页面同色这一条在上游是绝对的（连亮色下 card 与 background 也是同一个值），
+ *      本项目沿用；差别只在"哪些结构用哪一档"，见 docs/design-system.md 的面层表。
+ *
+ * 三套主题（亮色 / 浅黑 / 暗色）都是同名的三段令牌，组件层不写 `dark:` 这类条件类：
+ * Tailwind 的 `dark:` 默认跟的是系统配色而不是应用里选的主题，需要随主题变的底
+ * 一律走语义令牌（如 --field）。
+ */
+
+@import 'tailwindcss';
+
+/* 显式声明扫描范围：本项目样式入口在 src/styles/，不写这句就得靠自动探测，
+   自动探测一变（换目录、加 ignore 文件）样式会静默少一半。 */
+@source '../';
+
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* 表单控件的底。做成令牌而不是在组件里写 `dark:` 变体：
+     Tailwind 的 `dark:` 默认跟的是系统配色，不是应用里选的主题，
+     三套主题各写一遍变体只会越写越乱（见 src/lib/theme.ts 的说明）。 */
+  --color-field: var(--field);
+
+  /* 圆角三档从 --radius 派生：改一个数，控件、弹层、小标签一起走 */
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Menlo', Consolas, ui-monospace, monospace;
+
+  /*
+   * 两档小字号，用 rem 而不是 px——它们要跟着根字号一起放大。
+   * 写死 px 的话，选"更大"档的人会发现正文大了、标签还是原来那么小，
+   * 而需要放大字号的用户，往往正是看不清这些小字的人。
+   *   0.714rem ≈ 14px 基准下的 10px；0.786rem ≈ 11px
+   */
+  --text-label: 0.714rem;
+  --text-metric: 0.786rem;
+
+  --animate-skeleton: skeleton 2s -1s infinite linear;
+  --animate-indeterminate: indeterminate 1.4s var(--ease-smooth-out) infinite;
+
+  /* 骨架屏：一道高光扫过，表示"在读"而不是"卡住" */
+  @keyframes skeleton {
+    to {
+      background-position: -200% 0;
+    }
+  }
+
+  /* 不定态进度：时长读不出来时来回滑，不假装有具体百分比 */
+  @keyframes indeterminate {
+    0% {
+      margin-left: -35%;
+    }
+    100% {
+      margin-left: 100%;
+    }
+  }
+}
+
+@layer base {
+  /*
+   * 语义令牌。命名与上游一字不差，取值在亮/暗两套里各有一份。
+   * 亮色是默认（`<html>` 上没有 `.dark`），选过暗色才挂 `.dark`。
+   *
+   * 层级仍然不靠色块：同一主题里窗口底、面板底、浮层底同色，
+   * 靠 --border 的 1px 与半透明的 bg-accent / bg-muted 叠出层次。
+   */
+  :root {
+    color-scheme: light;
+
+    --font-size-base: 14px;
+
+    /* 亮色：窗口底、面板底、浮层底都是白 */
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0.014 285.82);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0.014 285.82);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0.014 285.82);
+
+    /* primary 是反白：亮色下是近黑实心，暗色下是近白实心。
+       全屏唯一的实心主按钮用它，所以强调色不参与分层，只留给状态 */
+    --primary: oklch(0.205 0.014 285.82);
+    --primary-foreground: oklch(0.985 0 0);
+
+    --secondary: oklch(0.965 0.003 285.82);
+    --secondary-foreground: oklch(0.205 0.014 285.82);
+    --muted: oklch(0.965 0.003 285.82);
+    --muted-foreground: oklch(0.556 0.014 285.82);
+    --accent: oklch(0.965 0.003 285.82);
+    --accent-foreground: oklch(0.205 0.014 285.82);
+
+    --destructive: oklch(0.577 0.245 27.33);
+    --destructive-foreground: oklch(0.985 0 0);
+    --success: oklch(0.527 0.154 150.07);
+    --success-foreground: oklch(0.985 0 0);
+    /* ⚠️ 调整 ②：warning 与 info 各压暗一档，理由见文件头的标注 */
+    --warning: oklch(0.55 0.155 70.08);
+    --warning-foreground: oklch(0.985 0 0);
+    --info: oklch(0.55 0.22 259.81);
+    --info-foreground: oklch(0.985 0 0);
+
+    --border: oklch(0.922 0.003 285.82);
+    --input: oklch(0.922 0.003 285.82);
+    --ring: oklch(0.708 0.014 285.82);
+
+    --radius: 0.5rem;
+
+    /* 骨架屏的高光：亮色里是白，暗色里是极淡的前景色 */
+    --skeleton-highlight: oklch(1 0 0 / 64%);
+
+    /* 表单控件的底。亮色下就是面板白，靠 1px 边框划边界 */
+    --field: var(--background);
+  }
+
+  /*
+   * 浅黑：偏灰的一套，底比暗色浅两档、文字不用纯白。
+   * 取值的依据是"长时间看不累"——底色是中性深灰而不是近黑，对比也没拉到极限。
+   * 状态色相应提亮一档：底色变浅之后，暗色那套压上去就不够对比了
+   * （实测 info 只有 3.76:1）。这里挑的值在页面底与选中行底上都过 4.5:1。
+   */
+  .dim {
+    color-scheme: dark;
+
+    --background: oklch(0.29 0.006 285.82);
+    --foreground: oklch(0.93 0.004 285.82);
+    --card: oklch(0.29 0.006 285.82);
+    --card-foreground: oklch(0.93 0.004 285.82);
+    --popover: oklch(0.29 0.006 285.82);
+    --popover-foreground: oklch(0.93 0.004 285.82);
+
+    --primary: oklch(0.96 0 0);
+    --primary-foreground: oklch(0.205 0.014 285.82);
+
+    --secondary: oklch(0.355 0.008 285.82);
+    --secondary-foreground: oklch(0.96 0 0);
+    --muted: oklch(0.355 0.008 285.82);
+    --muted-foreground: oklch(0.74 0.012 285.82);
+    --accent: oklch(0.355 0.008 285.82);
+    --accent-foreground: oklch(0.96 0 0);
+
+    --destructive: oklch(0.76 0.17 22.216);
+    --destructive-foreground: oklch(0.205 0.014 285.82);
+    --success: oklch(0.76 0.17 149.579);
+    --success-foreground: oklch(0.205 0.014 285.82);
+    --warning: oklch(0.78 0.175 70.08);
+    --warning-foreground: oklch(0.205 0.014 285.82);
+    --info: oklch(0.75 0.14 259.81);
+    --info-foreground: oklch(0.205 0.014 285.82);
+
+    --border: oklch(0.4 0.008 285.82);
+    --input: oklch(0.4 0.008 285.82);
+    --ring: oklch(0.55 0.01 285.82);
+
+    --skeleton-highlight: color-mix(in oklab, var(--foreground) 6%, transparent);
+    --field: color-mix(in oklab, var(--input) 32%, transparent);
+  }
+
+  .dark {
+    color-scheme: dark;
+
+    /* 暗色：窗口底、面板底、浮层底同一个值，层级只由 1px 边框与叠加表达 */
+    --background: oklch(0.145 0.014 285.82);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.145 0.014 285.82);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.145 0.014 285.82);
+    --popover-foreground: oklch(0.985 0 0);
+
+    --primary: oklch(0.985 0 0);
+    --primary-foreground: oklch(0.205 0.014 285.82);
+
+    --secondary: oklch(0.269 0.014 285.82);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0.014 285.82);
+    --muted-foreground: oklch(0.708 0.014 285.82);
+    --accent: oklch(0.269 0.014 285.82);
+    --accent-foreground: oklch(0.985 0 0);
+
+    /* ⚠️ 调整 ①：destructive 与 success 取更亮的一档，理由见文件头的标注 */
+    --destructive: oklch(0.704 0.191 22.216);
+    /* 反白字压在亮红上只有 2.6:1，配深色字才有 5:1 出头 */
+    --destructive-foreground: oklch(0.205 0.014 285.82);
+    --success: oklch(0.723 0.192 149.579);
+    --success-foreground: oklch(0.205 0.014 285.82);
+    --warning: oklch(0.769 0.189 70.08);
+    --warning-foreground: oklch(0.205 0.014 285.82);
+    --info: oklch(0.623 0.214 259.81);
+    --info-foreground: oklch(0.985 0 0);
+
+    --border: oklch(0.269 0.014 285.82);
+    --input: oklch(0.269 0.014 285.82);
+    --ring: oklch(0.439 0.014 285.82);
+
+    --skeleton-highlight: color-mix(in oklab, var(--foreground) 4%, transparent);
+    --field: color-mix(in oklab, var(--input) 32%, transparent);
+  }
+
+  /* 默认边框色 = --border：写 border 就够，不用每次点名颜色 */
+  * {
+    @apply border-border;
+  }
+
+  /* rem 的基准：14px。上游同样这么做，全站尺寸刻度因此整体偏紧凑一档 */
+  html {
+    font-size: var(--font-size-base);
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    margin: 0;
+    min-height: 100%;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* 无边框窗口的拖拽区。放进基础层是因为标题栏、弹层都会用到 */
+  .drag-region {
+    -webkit-app-region: drag;
+  }
+
+  .no-drag {
+    -webkit-app-region: no-drag;
+  }
+
+  /*
+   * 默认禁止选中：桌面工具里误拖动文字比"想复制"常见得多。
+   * 输入框与需要抄走的内容（路径、日志、文件名）单独放开。
+   */
+  * {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  input,
+  textarea,
+  [contenteditable='true'],
+  .select-text,
+  .select-text * {
+    user-select: text;
+    -webkit-user-select: text;
+  }
+
+  /* 焦点环统一走 box-shadow：看得见、不占位、不推布局 */
+  *:focus {
+    outline: none;
+  }
+
+  *:focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px var(--background),
+      0 0 0 4px var(--ring);
+  }
+
+  /* 滚动条：细滑块、悬停才明显。滚动条是工具，不该比内容抢注意力 */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background-color: color-mix(in oklab, var(--foreground) 20%, transparent);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in oklab, var(--foreground) 32%, transparent);
+  }
+
+  ::-webkit-scrollbar-button {
+    display: none;
+  }
+}
+
+/* ── 动效刻度 ─────────────────────────────────────────────────────────
+   来源：上游 globals.css 的 transitions-dev 段，保留通用刻度 + 本项目实际用到的几组。
+   缓动统一用 cubic-bezier(0.22, 1, 0.36, 1)：起步快、收尾稳，
+   在桌面工具里比 ease-out 更像"物理停住"而不是"慢慢淡出"。 */
+:root {
+  --duration-micro: 80ms;
+  --duration-quick: 150ms;
+  --duration-fast: 250ms;
+  --duration-medium: 350ms;
+  --duration-slow: 400ms;
+
+  --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.36, 0.64, 1);
+  --ease-linear: linear;
+
+  --distance-micro: 4px;
+  --distance-base: 8px;
+
+  --scale-large: 0.96;
+  --scale-medium: 0.97;
+
+  --blur-small: 2px;
+
+  --icon-swap-dur: 250ms;
+  --icon-swap-blur: 2px;
+  --icon-swap-start-scale: 0.25;
+  --icon-swap-ease: ease-in-out;
+
+  --shake-distance: 6px;
+  --shake-overshoot: 4px;
+  --shake-dur-a: 80ms;
+  --shake-dur-b: 60ms;
+  --shake-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --shimmer-dur: 2000ms;
+  --shimmer-band: 400%;
+
+  --reveal-dur: 400ms;
+  --reveal-blur: 2px;
+  --reveal-ease: ease-in-out;
+  --pulse-dur: 1000ms;
+  --pulse-min: 0.5;
+}
+
+/* ── 校验错误：提示挂载时抖一下 ─────────────────────────────────────── */
+.t-shake-in {
+  animation: t-input-shake calc(var(--shake-dur-a) * 2 + var(--shake-dur-b) * 2) linear;
+  will-change: transform;
+}
+
+@keyframes t-input-shake {
+  0% {
+    transform: translateX(0);
+    animation-timing-function: var(--shake-ease);
+  }
+  28.57% {
+    transform: translateX(var(--shake-distance));
+    animation-timing-function: var(--shake-ease);
+  }
+  57.14% {
+    transform: translateX(calc(var(--shake-distance) * -1));
+    animation-timing-function: var(--shake-ease);
+  }
+  78.57% {
+    transform: translateX(var(--shake-overshoot));
+    animation-timing-function: var(--shake-ease);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+/* ── 思考流光：「正在想…」比省略号更能说明"在动" ───────────────────── */
+.t-shimmer {
+  position: relative;
+  display: inline-block;
+  color: var(--muted-foreground);
+}
+
+.t-shimmer::before {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    transparent 40%,
+    var(--foreground) 50%,
+    transparent 60%,
+    transparent 100%
+  );
+  background-size: var(--shimmer-band) 100%;
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: t-shimmer var(--shimmer-dur) var(--ease-linear) infinite;
+}
+
+@keyframes t-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0% 0;
+  }
+}
+
+/* ── 逐行落地：空态的两行文案错开 40ms 入场，像被"写"上去 ─────────────
+   用 animation 而不是 transition：元素是带着最终状态挂载的，
+   transition 根本没有可过渡的起点。 */
+.t-rise {
+  animation: t-rise 500ms var(--ease-smooth-out) both;
+}
+
+.t-rise-2 {
+  animation-delay: 40ms;
+}
+
+@keyframes t-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+/* ── 骨架揭示：缩略图读出来之前先占住位置，不跳版 ───────────────────── */
+.t-skel {
+  position: relative;
+}
+
+.t-skel-skeleton,
+.t-skel-content {
+  position: absolute;
+  inset: 0;
+}
+
+.t-skel-skeleton {
+  z-index: 1;
+  opacity: 1;
+  filter: blur(0);
+  transition:
+    opacity var(--reveal-dur) var(--reveal-ease),
+    filter var(--reveal-dur) var(--reveal-ease);
+}
+
+.t-skel-content {
+  z-index: 2;
+  opacity: 0;
+  filter: blur(var(--reveal-blur));
+  transition:
+    opacity var(--reveal-dur) var(--reveal-ease),
+    filter var(--reveal-dur) var(--reveal-ease);
+}
+
+.t-skel.is-revealed .t-skel-skeleton {
+  opacity: 0;
+  filter: blur(var(--reveal-blur));
+}
+
+.t-skel.is-revealed .t-skel-content {
+  opacity: 1;
+  filter: blur(0);
+}
+
+.t-skel-skeleton.is-pulsing > * {
+  animation: t-skel-pulse var(--pulse-dur) ease-in-out infinite;
+}
+
+@keyframes t-skel-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: var(--pulse-min);
+  }
+}
+
+/* ── 图标互换：收起/展开这类成对图标，换的时候不该"闪"一下 ─────────── */
+.t-icon-swap {
+  position: relative;
+  display: inline-grid;
+}
+
+.t-icon-swap .t-icon {
+  grid-area: 1 / 1;
+  transition:
+    opacity var(--icon-swap-dur) var(--icon-swap-ease),
+    filter var(--icon-swap-dur) var(--icon-swap-ease),
+    transform var(--icon-swap-dur) var(--icon-swap-ease);
+}
+
+.t-icon-swap[data-state='a'] .t-icon[data-icon='a'],
+.t-icon-swap[data-state='b'] .t-icon[data-icon='b'] {
+  opacity: 1;
+  filter: blur(0);
+  transform: scale(1);
+}
+
+.t-icon-swap[data-state='a'] .t-icon[data-icon='b'],
+.t-icon-swap[data-state='b'] .t-icon[data-icon='a'] {
+  opacity: 0;
+  filter: blur(var(--icon-swap-blur));
+  transform: scale(var(--icon-swap-start-scale));
+}
+
+/* 尊重系统设置：动效全部关掉，而不是"慢一点" */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  .t-shimmer::before {
+    animation: none !important;
+  }
+
+  .t-shake-in {
+    animation: none !important;
+    transform: none !important;
+  }
+}

@@ -55,3 +55,27 @@ export function formatRemaining(seconds: number): string {
   const minutes = Math.round((seconds % 3600) / 60);
   return minutes > 0 ? `约 ${hours} 小时 ${minutes} 分` : `约 ${hours} 小时`;
 }
+
+/**
+ * 体积对比：源 → 产物，带增减百分比。
+ *
+ * 数据不全（还没转换完、源文件大小读不出来）时返回 null，界面显示占位符——
+ * 算不出百分比不代表没变化，用 0% 表示等于撒谎。
+ */
+export function formatSizeChange(inputBytes: number, outputBytes: number | null): string | null {
+  if (outputBytes === null || !Number.isFinite(outputBytes) || outputBytes <= 0) return null;
+  if (!Number.isFinite(inputBytes) || inputBytes <= 0) return null;
+
+  const delta = Math.round(((outputBytes - inputBytes) / inputBytes) * 100);
+  const sign = delta > 0 ? '+' : '';
+  return `${formatBytes(inputBytes)} → ${formatBytes(outputBytes)}（${sign}${delta}%）`;
+}
+
+/** 只要增减百分比那一段，历史行用它，省得每行都重复一遍两个绝对值 */
+export function formatSizeDelta(inputBytes: number, outputBytes: number | null): string | null {
+  if (outputBytes === null || !Number.isFinite(outputBytes) || outputBytes <= 0) return null;
+  if (!Number.isFinite(inputBytes) || inputBytes <= 0) return null;
+
+  const delta = Math.round(((outputBytes - inputBytes) / inputBytes) * 100);
+  return `${delta > 0 ? '+' : ''}${delta}%`;
+}
