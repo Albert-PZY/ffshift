@@ -5,8 +5,11 @@
 
 ## 1. 自动化测试（已落地）
 
-命令：`npm run test:unit`（117 条）与 `npm run test:integration`（15 条，真实调用本机 ffmpeg）。
+命令：`npm run test:unit`（237 条）、`npm run test:integration`（25 条，真实调用本机 ffmpeg）、`npm run test:e2e`（9 条，驱动真实界面）。
 集成测试在环境没有 ffmpeg 时整组跳过（`describe.skipIf`），不会挡住协作者。
+
+三层测试的分工：单测盯纯逻辑与参数构造；集成测试盯 ffmpeg 跑不跑得通；端到端盯"界面上点一下，整条链路对不对"。
+前两层进提交前的快速检查，端到端放在 `git push` 前——它要 40 秒并且会先构建，放提交前会让人想绕过钩子。
 
 | 测试文件 | 覆盖点 |
 | --- | --- |

@@ -10,6 +10,7 @@
 | 提交信息格式校验（area / 长度 / 祈使句 / 空话） | 钩子，自动拦截 | `git commit` |
 | 主分支保护（不让直接提交、直接推） | 钩子，自动拦截 | `git commit` / `git push` |
 | 密钥、大文件、禁提交路径、冲突标记 | 钩子，自动拦截 | `git commit` |
+| 端到端测试（驱动真实界面，约 40 秒） | 钩子，失败拦截 | `git push`（`FFSHIFT_SKIP_E2E=1` 或 config 里可跳过） |
 | 提交流水写进 `docs/ai-session-log.md` | 钩子，自动写 | 提交后（后台，不阻塞） |
 | 测试相关提交登记进 `docs/testing.md` | 钩子，自动写 | 提交后 |
 | `docs/project-status.md` 状态页刷新 | 钩子，自动生成 | 提交后 |
