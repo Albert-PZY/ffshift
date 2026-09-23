@@ -59,7 +59,6 @@ Refs: ADR-003
 | `media` | `src/features/media`：导入、ffprobe 信息、缩略图 |
 | `convert` | `src/features/convert`：预设、参数构造、任务引擎 |
 | `queue` | `src/features/queue`：队列列表、进度、取消、重试 |
-| `ai` | `src/features/ai`：AI 参数助手与降级规则 |
 | `settings` | `src/features/settings`：输出目录、并发、Key |
 | `lib` | `src/lib`：纯函数（参数、进度解析、错误翻译、格式化） |
 | `ui` | `src/components`、样式、设计系统落地 |
@@ -250,7 +249,7 @@ changelog:
 | Day 0 | `chore/repo-bootstrap` | 仓库规范 + 文档 + OpenSpec 初始化 → 合并后打 `v0.1.0` |
 | Day 1 | `feat/media-*`（可拆多个） | 骨架 1 个提交，媒体信息、缩略图各自 3~5 个小提交；收工前 `docs: 记录会话 1`；合并后打 `v0.2.0` |
 | Day 2 | `feat/convert-*`、`feat/queue-*` | 参数构造、执行、进度、取消、重试各一次提交；合并后打 `v0.3.0` |
-| Day 3 | `feat/ai-*`、`feat/settings-*`、`chore/release-*` | 功能提交；`docs: 补测试记录`；打包、发 Release、打 `v1.0.0` |
+| Day 3 | `feat/settings-*`、`chore/release-*` | 功能提交；`docs: 补测试记录`；打包、发 Release、打 `v1.0.0` |
 
 反模式：一天一个 `day1: 全部完成`（暴露节奏失控）；几十个 `wip`（暴露没有整理习惯）；所有提交挤在 `main` 上（暴露不会协作）。
 
@@ -272,7 +271,7 @@ changelog:
 | `update` | `ui: 空态改为一句话 + 一个按钮` |
 | `fix bug` | `queue: 取消后清理半成品输出文件` |
 | `修复问题，优化代码，更新文档` | 拆成三个提交 |
-| `feat: 功能完成` | `ai: 接入参数建议并保留规则降级` |
+| `feat: 功能完成` | `convert: 按容器选编码器并保留硬件加速` |
 | `wip`（推上去了） | 别推；本地 stash 或 amend |
 
 ## 参考

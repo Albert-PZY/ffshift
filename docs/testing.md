@@ -5,7 +5,7 @@
 
 ## 1. 自动化测试（已落地）
 
-命令：`npm run test:unit`（257 条）、`npm run test:integration`（25 条，真实调用本机 ffmpeg）、`npm run test:e2e`（12 条，驱动真实界面）。
+命令：`npm run test:unit`（235 条）、`npm run test:integration`（25 条，真实调用本机 ffmpeg）、`npm run test:e2e`（12 条，驱动真实界面）。
 集成测试在环境没有 ffmpeg 时整组跳过（`describe.skipIf`），不会挡住协作者。
 
 三层测试的分工：单测盯纯逻辑与参数构造；集成测试盯 ffmpeg 跑不跑得通；端到端盯"界面上点一下，整条链路对不对"。
@@ -22,8 +22,7 @@
 | `src/lib/errors.test.ts` | 五类常见报错转人话、取消、兜底、输出打不开的误判 |
 | `src/lib/ffprobe.test.ts` | 帧率换算、字段缺失、纯音频、可转换性判断（含 ffprobe 猜出来的假格式） |
 | `src/lib/thumbnail-cache.test.ts` | 缓存键归一化、抽帧时间点上限 |
-| `src/lib/ai-suggest.test.ts` | 白名单校验、模型不守格式时的散文提取、规则降级、提示词约束 |
-| `src/lib/settings.test.ts` | 设置解析容错：坏文件、缺字段、版本不符、非法枚举值 |
+| `src/lib/settings.test.ts` | 设置解析容错：坏文件、缺字段、版本不符、非法枚举值、主题回落 |
 | `electron/ffmpeg/probe.integration.test.ts` | 真实 ffprobe：中文空格路径、截断文件、垃圾数据、批量探测不中断 |
 | `electron/ffmpeg/media.integration.test.ts` | 真实转码：抽帧与缓存命中、进度单调推进、取消并清理半成品、目标体积、损坏文件 |
 
@@ -136,3 +135,5 @@ $bytes = [System.IO.File]::ReadAllBytes("fixture_10s.mp4")[0..1048575]
 | 2026-09-23 | `bbc881b` ui: 用 EnsoCode 的语言重写界面 | 22 个文件 | 待人工确认（验证信息：typecheck、build 通过；五个中间态（待转换 / 转换中 / 已完成 / 历史 / ho） <!-- commit:bbc881b --> |
 | 2026-09-23 | 修复参数面板（下拉层被对话框遮罩盖住）+ 亮暗主题 | 见 ADR-016 | 待人工确认（验证信息：单测 257 条全绿、typecheck 通过、build 通过、e2e 12 条全绿（40.1s，新增 3 条：对话框内下拉选值 / 数字与文本输入 / 主题切换与重启记忆）；诊断脚本逐个驱动 19 个控件，改到的 store 字段全部正确；亮暗两套主题各自截图人工看过） |
 | 2026-09-23 | `62726ec` ui: 加亮暗两套主题，默认亮色 | 22 个文件 | 待人工确认（验证信息：单测 257 条全绿、typecheck 通过、build 通过、e2e 12 条全绿（新增 1 条） <!-- commit:62726ec --> |
+| 2026-09-23 | 移除产品内的 AI 参数建议 | 见 ADR-017 | 待人工确认（验证信息：`src/` `electron/` `e2e/` 三处搜不到 `ai-suggest` / `Suggestion` / `WORKBUDDY` 任何符号；typecheck 通过、build 通过、单测 235 条全绿（减少的 22 条正好是删掉的 AI 用例）、e2e 12 条全绿；界面截图重拍） |
+| 2026-09-23 | `6831d93` ui: 移除 AI 参数建议 | 15 个文件 | 待人工确认（验证信息：src/、electron/、e2e/ 三处搜不到 ai-suggest / Suggestion ） <!-- commit:6831d93 --> |
