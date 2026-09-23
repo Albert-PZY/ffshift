@@ -128,3 +128,4 @@
 | 09-23 12:11 | feat/app-skeleton | `9daba8f` | settings: 记住档位与输出目录 | 单测 117 条（含 8 条设置解析用例） | 7 <!-- commit:9daba8f --> |
 | 09-23 12:14 | feat/app-skeleton | `5d32cf3` | build: 配上 Windows 打包与图标 | npm run package 出包成功；打包后的 FFShift.exe 冒烟与端到端都通过 | 4 <!-- commit:5d32cf3 --> |
 | 09-23 12:14 | feat/app-skeleton | `685b344` | ai: 采纳建议时把目标体积一起带上 | typecheck 与 117 条单测通过；构建正常 | 2 <!-- commit:685b344 --> |
+| 09-23 12:16 | feat/app-skeleton | `a7e4189` | docs: 补上开发期的测试记录与会话总结 | 两份文档都通过 oil-tone 检查 | 2 <!-- commit:a7e4189 --> |
