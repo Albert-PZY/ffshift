@@ -161,3 +161,4 @@
 | 09-23 15:03 | chore/bump-1.2.0 | `4554b15` | build: 版本号升到 1.2.0 | 重新打包后产物为 FFShift-1.2.0-setup.exe | 1 <!-- commit:4554b15 --> |
 | 09-23 15:17 | feat/settings-and-folder | `165f0fb` | ui: 补上输出目录、目标体积与文件夹导入 | 单测 172 条全绿、typecheck 通过、界面截图已更新 | 11 <!-- commit:165f0fb --> |
 | 09-23 15:22 | feat/settings-and-folder | `f6840ff` | ui: 失败的原始日志可展开复制，连续失败两次就停下 | 单测 172 条、集成测试 22 条全绿（新增断言：失败时 error.raw 非空） | 4 <!-- commit:f6840ff --> |
+| 09-23 15:24 | feat/settings-and-folder | `2d13d18` | ui: 转换完成后发系统通知，并显示体积变化 | typecheck 通过；端到端实测 outputSizeBytes = 2311319（约 2.3 MB） | 7 <!-- commit:2d13d18 --> |
