@@ -169,3 +169,4 @@
 | 09-23 16:24 | docs/params-spec | `dbc2862` | docs: 把专业参数写进规格，并更新测试清单 | openspec validate 通过（4 个能力、0 失败） | 5 <!-- commit:dbc2862 --> |
 | 09-23 18:51 | test/e2e-suite | `2c4110f` | test: 真正的端到端测试（9 条，驱动真实界面） | e2e 9 条全绿（29.7s）、typecheck 通过 | 8 <!-- commit:2c4110f --> |
 | 09-23 18:51 | test/e2e-suite | `2bb53a4` | docs: 把 e2e 的结果写回测试清单 | — | 3 <!-- commit:2bb53a4 --> |
+| 09-23 18:53 | docs/e2e-status | `7fabda2` | docs: 把 e2e 的结果写回测试清单 | — | 1 <!-- commit:7fabda2 --> |
