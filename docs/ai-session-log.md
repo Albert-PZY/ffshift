@@ -174,3 +174,4 @@
 | 09-23 19:38 | refactor/ui-enso-language | `6fe2c37` | build: 接入 Tailwind v4 与 Base UI | npm run build 通过（渲染层产出 55KB CSS） | 7 <!-- commit:6fe2c37 --> |
 | 09-23 19:39 | refactor/ui-enso-language | `fcda2bd` | lib: 抽出状态、格式与版本号的纯函数 | 单测 251 条全绿（新增 14 条） | 9 <!-- commit:fcda2bd --> |
 | 09-23 19:39 | refactor/ui-enso-language | `2ac2616` | ui: 移植 UI 原语层 | typecheck 通过 | 17 <!-- commit:2ac2616 --> |
+| 09-23 19:40 | refactor/ui-enso-language | `6bd0c54` | main: 无边框窗口与自绘标题栏的通道 | typecheck 通过；窗口能建、能拖、三个按钮可用（截图确认） | 4 <!-- commit:6bd0c54 --> |
