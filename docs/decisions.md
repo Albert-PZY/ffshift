@@ -219,6 +219,13 @@
   - 尺寸也不能照抄。上游 `text-sm` 在 14px 根字号下是 12.25px，中文读得动；但它的 `badge` 最小一档在桌面宽度下是 10px，中文会糊成一团，本项目把徽章字号上调一档。
   - 底栏由"输入框 + 状态行"两条压成一条：本项目的主动作只作用于队列，照搬两条会空掉半行。
   - 保留的旧行为：`.ffshift`/`.queue-row` 那套类名换成 `data-slot`，端到端测试同步改；`npm run test:e2e` 9 条全绿（28.2s）。
+  - **踩坑留档**：`scripts/sync-docs.mjs` 的 `autoCommitDocs()` 执行的是 `git add docs`——整个目录。
+    本次重构里 `docs/design-system.md`、`docs/ui-spec.md`、`docs/decisions.md`、`docs/architecture.md` 的改写，
+    就是被它的后台提交（`0b09686 docs: 自动沉淀 6fe2c37`）连带提交掉的，提交信息和内容对不上。
+    和"一个提交一件事"冲突，也和提交信息应该说明改了什么的规矩冲突。
+    按 ADR-010 的先例（自动沉淀的级联提交"历史里保留，不重写"）没有回改历史。
+    一处待评估的改法：`autoCommitDocs` 只 add 它自己写的那几个文件（`commitLogFile` / `testingFile` / 状态页），
+    而不是整个 `docs/`。这属于钩子自身的改动，没并在这次重构里做。
 
 ---
 
