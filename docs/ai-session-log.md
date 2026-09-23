@@ -182,3 +182,4 @@
 | 09-23 20:36 | refactor/ui-enso-language | `d71af2e` | docs: 把沉淀钩子卷走暂存内容这条记准 | 只有一份文档改动，pre-commit 文风检查通过 | 1 <!-- commit:d71af2e --> |
 | 09-23 21:05 | refactor/ui-enso-language | `6831d93` | ui: 移除 AI 参数建议 | src/、electron/、e2e/ 三处搜不到 ai-suggest / Suggestion / WORKBUDD | 15 <!-- commit:6831d93 --> |
 | 09-23 21:05 | refactor/ui-enso-language | `4e3aa3d` | tool: 提交 area 表去掉 ai | npm run lint:commit 通过（本条提交自己就是一次校验） | 1 <!-- commit:4e3aa3d --> |
+| 09-23 21:06 | refactor/ui-enso-language | `562adc8` | docs: 归档移除 AI 的规格提案 | openspec archive 通过（1 条 requirement 修改）；tasks 18 项全部勾上 | 5 <!-- commit:562adc8 --> |
