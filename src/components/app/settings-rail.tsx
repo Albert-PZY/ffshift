@@ -1,5 +1,4 @@
 import { Eraser, FolderInput, FolderOpen, Plus, SlidersHorizontal } from 'lucide-react';
-import { AssistantPanel } from '@/components/app/assistant-panel';
 import { SectionLabel } from '@/components/app/section-label';
 import { SelectField } from '@/components/app/select-field';
 import { Input } from '@/components/ui/input';
@@ -12,7 +11,7 @@ import { useStore } from '@/store';
 /**
  * 左侧设置栏。
  *
- * 两段：上面是"这次要用什么参数"，下面是"文件从哪来、往哪去"。
+ * 上面是"这次要用什么参数"，下面是"文件从哪来、往哪去"。
  * 底部那组是列表行形态（透明底 + hover 才亮），不是一排描边按钮——
  * 描边按钮一多，界面就会出现五六个看起来同等重要的入口。
  */
@@ -151,10 +150,11 @@ export function SettingsRail({ onOpenAdvanced }: { onOpenAdvanced: () => void })
               type="number"
               value={targetSizeMiB ?? ''}
             />
+            <p className="text-[11px] leading-relaxed text-muted-foreground">
+              留空就按档位走恒定质量；填了就按目标体积反推码率。它是这一批的临时设置，不记忆。
+            </p>
           </div>
         </section>
-
-        <AssistantPanel />
       </div>
 
       <div className="shrink-0 space-y-0.5 border-t p-2" data-slot="rail-actions">

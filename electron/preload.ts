@@ -13,7 +13,6 @@ import type {
   HardwareReport,
   ProbeResponse,
   ProgressEvent,
-  SuggestResponse,
   ThumbnailResponse,
 } from '../src/lib/ipc-types';
 
@@ -34,8 +33,6 @@ const api: FfshiftApi & { getPathForFile: (file: File) => string } = {
   cancel: (taskId) => ipcRenderer.invoke('ffshift:cancel', taskId) as Promise<{ ok: boolean }>,
   detectHardware: () => ipcRenderer.invoke('ffshift:detect-hardware') as Promise<HardwareReport>,
   ffmpegVersion: () => ipcRenderer.invoke('ffshift:ffmpeg-version') as Promise<string | null>,
-  suggest: (description) =>
-    ipcRenderer.invoke('ffshift:ai-suggest', description) as Promise<SuggestResponse>,
   loadSettings: () => ipcRenderer.invoke('ffshift:load-settings') as Promise<AppSettings>,
   saveSettings: (settings: AppSettings) =>
     ipcRenderer.invoke('ffshift:save-settings', settings) as Promise<AppSettings>,

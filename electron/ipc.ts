@@ -8,17 +8,14 @@ import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { extname, join } from 'node:path';
 import { promisify } from 'node:util';
 import { buildArgs } from '../src/lib/ffmpeg-args';
-import { fallbackSuggestion } from '../src/lib/ai-suggest';
 import { assessConvertibility } from '../src/lib/ffprobe';
 import type {
   ConvertRequest,
   ConvertResponse,
   HardwareReport,
   ProbeResponse,
-  SuggestResponse,
   ThumbnailResponse,
 } from '../src/lib/ipc-types';
-import { requestSuggestion } from './ai';
 import { loadSettings, saveSettings } from './settings';
 import { resolveBinaries } from './ffmpeg/binary';
 import { startConvert, type ConvertHandle } from './ffmpeg/convert';
@@ -242,13 +239,6 @@ export function registerIpc({ getWindow }: Deps): void {
     }
 
     return { available, checkedAt: new Date().toISOString() };
-  });
-
-  ipcMain.handle('ffshift:ai-suggest', async (_event, description: string): Promise<SuggestResponse> => {
-    if (typeof description !== 'string') {
-      return { suggestion: fallbackSuggestion(''), note: '输入无效，用的是本地规则' };
-    }
-    return requestSuggestion(description);
   });
 
   ipcMain.handle('ffshift:load-settings', async () => loadSettings());

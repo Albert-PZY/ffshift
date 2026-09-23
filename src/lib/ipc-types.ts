@@ -4,16 +4,9 @@
  */
 import type { ConvertOutcome, ProgressUpdate } from '../../electron/ffmpeg/convert';
 import type { AdvancedParams } from './advanced-params';
-import type { Suggestion } from './ai-suggest';
 import type { MediaInfo } from './ffprobe';
 import type { OutputFormat, Preset } from './ffmpeg-args';
 import type { AppSettings, Theme } from './settings';
-
-export interface SuggestResponse {
-  suggestion: Suggestion;
-  /** 一句话说明这次建议的来源（模型 / 本地规则） */
-  note: string;
-}
 
 export interface ProbeResponse {
   ok: boolean;
@@ -99,7 +92,6 @@ export interface FfshiftApi {
   cancel: (taskId: string) => Promise<{ ok: boolean }>;
   detectHardware: () => Promise<HardwareReport>;
   ffmpegVersion: () => Promise<string | null>;
-  suggest: (description: string) => Promise<SuggestResponse>;
   loadSettings: () => Promise<AppSettings>;
   saveSettings: (settings: AppSettings) => Promise<AppSettings>;
   revealOutput: (filePath: string) => Promise<{ ok: boolean }>;

@@ -68,7 +68,7 @@ const nextId = () => `task-${(sequence += 1)}`;
 interface State {
   tasks: TaskItem[];
   preset: Preset;
-  /** AI 建议里的目标体积（MiB）；null 表示不限体积 */
+  /** 目标体积（MiB）；null 表示不限体积 */
   targetSizeMiB: number | null;
   /** 输出格式；same 表示跟随输入 */
   outputFormat: OutputFormat;
@@ -99,8 +99,6 @@ interface State {
   setOutputFormat: (format: OutputFormat) => void;
   /** 直接指定目标体积（MiB）；null 表示不限体积。不持久化：它是针对当前批次的临时设置 */
   setTargetSize: (targetSizeMiB: number | null) => void;
-  /** 采纳 AI 建议：档位与目标体积一起生效（否则体积建议等于空话） */
-  applySuggestion: (preset: Preset, targetSizeMiB: number | null) => void;
   pickOutputDir: () => Promise<void>;
   clearOutputDir: () => void;
   /** 选一个文件夹，把里面的视频一次性加进来 */
@@ -313,11 +311,6 @@ export const useStore = create<State>((set, get) => {
 
     setTargetSize(targetSizeMiB) {
       set({ targetSizeMiB });
-    },
-
-    applySuggestion(preset, targetSizeMiB) {
-      set({ preset, targetSizeMiB });
-      void persistSettings(get());
     },
 
     async pickOutputDir() {

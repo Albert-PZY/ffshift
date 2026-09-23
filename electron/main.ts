@@ -92,8 +92,7 @@ function createWindow(): void {
           if (!started.ok) return { stage: 'convert', error: started.reason };
           const outcome = await done;
 
-          const advice = await window.ffshift.suggest('压到 50MB 发微信，画质别太差');
-          return { stage: 'done', width: probe.info.width, hasThumb: true, outcome, advice };
+          return { stage: 'done', width: probe.info.width, hasThumb: true, outcome };
         })()`;
 
         const result: unknown = await mainWindow?.webContents.executeJavaScript(script);
