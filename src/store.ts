@@ -256,4 +256,11 @@ export function bindIpcEvents(): void {
   void useStore.getState().detectHardware();
   void useStore.getState().loadSettings();
   void ffshift.ffmpegVersion().then((version) => useStore.setState({ ffmpegVersion: version }));
+
+  // 自检与调试入口：命令行里可以直接驱动界面状态（自动截图、端到端走查都用它）
+  (window as unknown as { __ffshift?: unknown }).__ffshift = {
+    addFiles: (paths: string[]) => useStore.getState().addFiles(paths),
+    startAll: () => useStore.getState().startAll(),
+    state: () => useStore.getState(),
+  };
 }

@@ -4,9 +4,15 @@ ffmpeg 的换挡键：不用懂参数，也能转好视频。
 
 Windows 优先的桌面视频格式转换器。界面用 Electron + React + TypeScript，转换调用 ffmpeg 命令行，视频与密钥都留在本机。
 
+## 界面
+
+![FFShift 主界面](docs/screenshots/main.png)
+
+截图由 `FFSHIFT_SMOKE=shot` 自动生成：加载窗口、导入一个真实素材、等探测与缩略图落地后再拍，所以图和当前代码永远一致。
+
 ## 现在到什么程度
 
-文档与工程规范已经就位，`src/` 还没有开始写代码。当前进度见 `docs/project-status.md`（每次提交后自动刷新）。
+功能已经完整可用：导入探测、缩略图、三档转换、进度与取消、错误翻译、AI 参数建议、设置记忆、Windows 安装包。逐条状态见 `docs/testing.md` 的冒烟清单（未实测的条目如实标注）。
 
 ## 环境要求
 

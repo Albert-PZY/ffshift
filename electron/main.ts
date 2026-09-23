@@ -1,4 +1,5 @@
 import { app, BrowserWindow, shell } from 'electron';
+import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { disposeIpc, registerIpc } from './ipc';
 
@@ -76,6 +77,32 @@ function createWindow(): void {
         app.exit(0);
       } catch (error) {
         console.error('[e2e] 失败：', error instanceof Error ? error.message : error);
+        app.exit(1);
+      }
+    });
+  }
+
+  // 自动截图：把真实界面拍下来放进 README，省得手工截图还每次都不一样
+  if (process.env.FFSHIFT_SMOKE === 'shot') {
+    mainWindow.webContents.once('did-finish-load', async () => {
+      try {
+        const target = process.env.FFSHIFT_SMOKE_OUTPUT ?? 'docs/screenshot.png';
+        const fixture = process.env.FFSHIFT_SMOKE_FILE;
+
+        if (fixture) {
+          await mainWindow?.webContents.executeJavaScript(
+            `window.__ffshift?.addFiles([${JSON.stringify(fixture)}])`,
+          );
+          // 等探测与缩略图落地，让截图里有真实内容
+          await new Promise((resolve) => setTimeout(resolve, 4000));
+        }
+
+        const image = await mainWindow?.webContents.capturePage();
+        if (image) writeFileSync(target, image.toPNG());
+        console.log('[shot] 截图已保存：', target);
+        app.exit(0);
+      } catch (error) {
+        console.error('[shot] 截图失败：', error instanceof Error ? error.message : error);
         app.exit(1);
       }
     });
