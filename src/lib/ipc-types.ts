@@ -5,7 +5,7 @@
 import type { ConvertOutcome, ProgressUpdate } from '../../electron/ffmpeg/convert';
 import type { Suggestion } from './ai-suggest';
 import type { MediaInfo } from './ffprobe';
-import type { Preset } from './ffmpeg-args';
+import type { OutputFormat, Preset } from './ffmpeg-args';
 import type { AppSettings } from './settings';
 
 export interface SuggestResponse {
@@ -33,6 +33,8 @@ export interface ConvertRequest {
   input: string;
   output: string;
   preset: Preset;
+  /** 目标格式；same 表示跟随输入文件的容器 */
+  format: OutputFormat;
   hw?: 'none' | 'nvenc' | 'qsv' | 'amf';
   hasAudio: boolean;
   durationSec: number | null;

@@ -11,6 +11,7 @@ export type ErrorKind =
   | 'output-permission'
   | 'disk-full'
   | 'encoder'
+  | 'container-codec'
   | 'cancelled'
   | 'unknown';
 
@@ -51,6 +52,14 @@ const RULES: ErrorRule[] = [
     test: /unknown encoder|cannot load|nvcuda|no capable devices|not found for encoder/i,
     title: '这个编码器在这台机器上不可用',
     hint: '到设置里重新检测硬件加速，或改用「均衡」档（CPU 软编）。',
+  },
+  {
+    kind: 'container-codec',
+    // 实测：webm 容器拒收 H.264 时，ffmpeg 只丢一句 "Only VP8 or VP9 ... are supported"
+    // 再加一句 "Could not write header"，不知道内情的人完全看不懂
+    test: /only vp8 or vp9|could not write header|incorrect codec parameters|codec not currently supported/i,
+    title: '这个组合装不进目标格式',
+    hint: '换一个目标格式再试：MP4 与 MKV 收 H.264 / H.265，WebM 只收 VP9 与 Opus。',
   },
   {
     kind: 'corrupt',
