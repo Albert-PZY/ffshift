@@ -166,3 +166,4 @@
 | 09-23 16:12 | feat/advanced-params | `afd7fd9` | convert: 专业参数的数据层、校验与参数构造 | 单测 222 条全绿（新增 42 条：校验 27、构造 15） | 11 <!-- commit:afd7fd9 --> |
 | 09-23 16:13 | feat/advanced-params | `61ab1df` | test: 预设层的边界用例 | 单测 237 条全绿（新增 15 条） | 1 <!-- commit:61ab1df --> |
 | 09-23 16:19 | feat/advanced-params | `7744e61` | ui: 专业参数面板 | typecheck 通过、单测 237 条全绿、端到端回归成功、两张截图已生成 | 5 <!-- commit:7744e61 --> |
+| 09-23 16:24 | docs/params-spec | `dbc2862` | docs: 把专业参数写进规格，并更新测试清单 | openspec validate 通过（4 个能力、0 失败） | 5 <!-- commit:dbc2862 --> |
