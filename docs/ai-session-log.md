@@ -185,3 +185,4 @@
 | 09-23 21:06 | refactor/ui-enso-language | `562adc8` | docs: 归档移除 AI 的规格提案 | openspec archive 通过（1 条 requirement 修改）；tasks 18 项全部勾上 | 5 <!-- commit:562adc8 --> |
 | 09-23 22:14 | refactor/ui-enso-language | `9ac5df3` | docs: 记下设置页的分工与参数持久化 | pre-commit 文风检查通过；openspec archive 通过（params 改 1 加 2，setting | 19 <!-- commit:9ac5df3 --> |
 | 09-23 22:15 | refactor/ui-enso-language | `313c386` | lib: 专业参数可持久化，校验改按输出格式 | 单测 245 条全绿（新增 10 条） | 5 <!-- commit:313c386 --> |
+| 09-23 22:15 | refactor/ui-enso-language | `f08593f` | ui: 新增设置页，主界面只留转换 | typecheck、build 通过；单测 245 条全绿；e2e 15 条全绿（57.3s）； | 17 <!-- commit:f08593f --> |
