@@ -21,7 +21,7 @@ const STATUS_LABEL: Record<TaskItem['status'], string> = {
   unsupported: '不支持',
 };
 
-function Assistant({ onApply }: { onApply: (preset: Preset) => void }) {
+function Assistant({ onApply }: { onApply: (preset: Preset, targetSizeMiB: number | null) => void }) {
   const [idea, setIdea] = useState('');
   const [advice, setAdvice] = useState<{ suggestion: Suggestion; text: string; note: string } | null>(null);
   const [thinking, setThinking] = useState(false);
@@ -71,7 +71,11 @@ function Assistant({ onApply }: { onApply: (preset: Preset) => void }) {
             {advice.text}
             <span className="advice-note">（{advice.note}）</span>
           </span>
-          <button type="button" className="btn-ghost" onClick={() => onApply(advice.suggestion.preset)}>
+          <button
+            type="button"
+            className="btn-ghost"
+            onClick={() => onApply(advice.suggestion.preset, advice.suggestion.targetSizeMiB)}
+          >
             用这个档
           </button>
         </div>
@@ -156,7 +160,8 @@ function TaskRow({ task }: { task: TaskItem }) {
 }
 
 export default function App() {
-  const { tasks, preset, addFiles, startAll, setPreset, clearFinished, ffmpegVersion, hardware } = useStore();
+  const { tasks, preset, targetSizeMiB, addFiles, startAll, setPreset, applySuggestion, clearFinished, ffmpegVersion, hardware } =
+    useStore();
   const [dragging, setDragging] = useState(false);
 
   const pendingCount = tasks.filter((t) => t.status === 'ready' || t.status === 'failed').length;
@@ -212,6 +217,7 @@ export default function App() {
             </button>
           ))}
         </div>
+        {targetSizeMiB !== null && <span className="hint">目标体积 {targetSizeMiB} MiB</span>}
         <div className="toolbar-right">
           <button type="button" className="btn-ghost" onClick={() => void clearFinished()}>
             清空已完成
@@ -222,7 +228,7 @@ export default function App() {
         </div>
       </section>
 
-      <Assistant onApply={setPreset} />
+      <Assistant onApply={applySuggestion} />
 
       <main className="list">
         {tasks.length === 0 ? (

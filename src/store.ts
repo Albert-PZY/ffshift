@@ -31,6 +31,8 @@ const nextId = () => `task-${(sequence += 1)}`;
 interface State {
   tasks: TaskItem[];
   preset: Preset;
+  /** AI 建议里的目标体积（MiB）；null 表示不限体积 */
+  targetSizeMiB: number | null;
   outputDir: string | null;
   hardware: string[];
   ffmpegVersion: string | null;
@@ -40,6 +42,8 @@ interface State {
   removeTask: (id: string) => void;
   clearFinished: () => void;
   setPreset: (preset: Preset) => void;
+  /** 采纳 AI 建议：档位与目标体积一起生效（否则体积建议等于空话） */
+  applySuggestion: (preset: Preset, targetSizeMiB: number | null) => void;
   pickOutputDir: () => Promise<void>;
   detectHardware: () => Promise<void>;
   loadSettings: () => Promise<void>;
@@ -76,6 +80,7 @@ export const useStore = create<State>((set, get) => {
       hw,
       hasAudio: next.info.hasAudio,
       durationSec: next.info.durationSec,
+      targetSizeMiB: get().targetSizeMiB,
     });
 
     if (response && !response.ok) {
@@ -95,6 +100,7 @@ export const useStore = create<State>((set, get) => {
     outputDir: null,
     hardware: [],
     ffmpegVersion: null,
+    targetSizeMiB: null,
 
     async addFiles(paths) {
       const ffshift = api();
@@ -178,6 +184,11 @@ export const useStore = create<State>((set, get) => {
 
     setPreset(preset) {
       set({ preset });
+      void persistSettings(get());
+    },
+
+    applySuggestion(preset, targetSizeMiB) {
+      set({ preset, targetSizeMiB });
       void persistSettings(get());
     },
 
