@@ -21,29 +21,42 @@
 
 ### 颜色
 
+深色单主题。底色分四层，层级靠它们与 1px 边框表达，不靠阴影堆叠。
+
 | Role | Value | CSS Var | 用途 |
 | --- | --- | --- | --- |
-| Background | `#0B0C0E` | `--bg` | 窗口底色 |
-| Surface | `#14161A` | `--surface` | 卡片、面板、列表底 |
-| Surface Hover | `#1A1D22` | `--surface-hover` | 行/控件悬停 |
-| Border | `rgba(255,255,255,.08)` | `--border` | 默认分隔（1px） |
-| Border Strong | `rgba(255,255,255,.16)` | `--border-strong` | 输入框、次级按钮 |
-| Text | `#F4F5F7` | `--text` | 主文字 |
-| Text Secondary | `#9AA3AE` | `--text-secondary` | 说明、元信息 |
-| Text Disabled | `#565E6B` | `--text-disabled` | 禁用 |
-| Accent | `#3B82F6` | `--accent` | 进度条、选中、链接、focus ring |
-| Accent Hover | `#2563EB` | `--accent-hover` | 强调色悬停/按压 |
-| On Accent | `#FFFFFF` | `--on-accent` | 强调底上的文字 |
-| Success | `#22C55E` | `--success` | 已完成 |
-| Warning | `#F59E0B` | `--warning` | 需要注意（少用） |
-| Danger | `#EF4444` | `--danger` | 失败、破坏性操作 |
-| Inverse Button | `#F5F6F7` / `#0B0C0E` | `--btn-inverse` | 主按钮：反白底 + 深色字 |
+| Canvas | `#0B0D10` | `--canvas` | 窗口底 |
+| Panel | `#12161B` | `--panel` | 顶栏、左栏、详情栏、列表底 |
+| Panel Soft | `#171C22` | `--panel-soft` | 工作区底、输入框底 |
+| Panel Raised | `#1B2128` | `--panel-raised` | 悬停、弹层、缩略图占位 |
+| Line | `#29313A` | `--line` | 全部 1px 分隔与描边 |
+| Ink | `#EDF1F5` | `--ink` | 主文字 |
+| Muted | `#8C98A6` | `--muted` | 说明、元信息 |
+| Dim | `#596572` | `--dim` | 禁用、次要标签 |
+| Accent | `#4D8DFF` | `--blue` | 进度、选中、focus、唯一主按钮 |
+| Success | `#35C98A` | `--green` | 已完成 |
+| Warning | `#E0A458` | `--amber` | 已取消 |
+| Danger | `#EF7272` | `--red` | 失败、不支持、破坏性操作 |
+
+> 这套变量来自 v0.app 生成的界面方案（2026-09-23 采纳，见 ADR-014）：三层底色比原来的
+> `bg + surface` 两级更适合三栏布局——面板、工作区底、悬停态各有各的层，不用靠阴影区分。
+
+状态色与状态的对应（八种状态各有归属，颜色只做辅助，文字必须同时表达）：
+
+| 状态 | 颜色 |
+| --- | --- |
+| 读取中 / 待转换 | `--muted`（中性） |
+| 排队中 / 转换中 | `--blue` |
+| 已完成 | `--green` |
+| 已取消 | `--amber` |
+| 失败 / 不支持 | `--red` |
 
 ### 字体
 
-- **Inter**（打包本地，不走 CDN）：正文 13–14px / 行高 1.5；标题 15–16px / 600；字重只用 400 / 500 / 600。
+- **Inter**（打包本地，不走 CDN）：正文 12px / 行高 1.5；面板标题 14px / 600；区块标签（kicker）10px + 大写字距。
 - 数字统一 `font-variant-numeric: tabular-nums`（进度、时长、体积对齐扫读）。
-- 日志与参数：等宽 `ui-monospace, "JetBrains Mono", Consolas, monospace`。
+- 进度与参数：等宽 `ui-monospace, "JetBrains Mono", Consolas, monospace`。
+- 三栏布局信息密度高，字号比单屏版本收了一档：这是有意的取舍，扫读优先。
 
 ### 间距 / 圆角
 
@@ -57,7 +70,7 @@
 
 ### 图标
 
-- Phosphor，线性，1.5px 描边；16 / 20px 两档；禁止 emoji 当图标；不给纯文字配装饰图标。
+lucide-react，线性，1.5px 描边；16 / 20px 两档；禁止 emoji 当图标；不给纯文字配装饰图标。
 
 ### 可访问性
 
@@ -68,17 +81,22 @@
 **主按钮（每屏仅一个）**
 
 ```css
-.btn-primary { background:#F5F6F7; color:#0B0C0E; border-radius:8px; padding:8px 16px;
-  font-weight:500; transition:background 150ms ease-out; cursor:pointer; }
-.btn-primary:hover { background:#FFFFFF; }
-.btn-primary:disabled { background:#1A1D22; color:#565E6B; cursor:not-allowed; }
+.primary-button {
+  display: inline-flex; align-items: center; gap: 7px;
+  min-height: 32px; padding: 0 11px;
+  border: 1px solid var(--blue); border-radius: 6px;
+  background: var(--blue); color: #fff; font-weight: 600; font-size: 11px;
+}
+.primary-button:hover:not(:disabled) { filter: brightness(1.08); }
+.primary-button:disabled { opacity: .45; cursor: not-allowed; }
 ```
 
-- **次级按钮 / 图标按钮**：透明底 + 1px `--border-strong`；hover 用 `--surface-hover`；纯图标按钮必须有 aria-label。
-- **列表行**：高 64px；缩略图 96×54（圆角 6）；文件名 14px/500，元信息 12px `--text-secondary`；hover 底 `--surface-hover`；选中：1px `--accent` 边框 + 左侧 2px `--accent` 指示条。
-- **进度条**：高 4px、圆角 2；轨道 `rgba(255,255,255,.08)`；转换中填充 `--accent`，完成变 `--success`。
-- **输入框**：底 `--surface`、1px `--border-strong`、圆角 8；focus 边框 `--accent`。
-- **对话框 / 抽屉**：底 `--surface`、圆角 12、遮罩 `rgba(0,0,0,.5)`、阴影克制（`0 8px 24px rgba(0,0,0,.4)`）。
+- 全屏只有"开始转换"用主按钮；"添加视频"、"清空已完成"、"收起详情"一律描边次级，避免两个入口抢注意力。
+- **次级按钮 / 图标按钮**：透明底 + 1px `--line`；hover 边框转 `--blue`；纯图标按钮必须有 aria-label。
+- **列表行**：行高 100px；缩略图 104×62（圆角 6）；文件名 12px/600，元信息 10px `--muted`；hover 与选中底 `color-mix(--blue 6%, --panel)`；选中另加左侧 2px `--blue` 内阴影（`inset`，不占位）。
+- **进度条**：高 4px、圆角 2；轨道 `--line`；转换中填充 `--blue`，完成变 `--green`；时长未知时走不确定态。
+- **输入框**：底 `--panel-soft`、1px `--line`、圆角 6；focus 边框 `--blue`。
+- **对话框 / 抽屉**：底 `--panel-raised`、圆角 12、遮罩 `rgba(0,0,0,.5)`、阴影克制（`0 16px 30px rgba(0,0,0,.25)`）。
 - **空态**：一句话 + 一个动作；不放插画；图片加载失败不留大灰块。
 
 ## 明确不做
@@ -87,7 +105,7 @@
 
 ## 交付自检
 
-- [ ] 只有一种强调色；主按钮反白，且每屏只有一个
+- [ ] 只有一种强调色；主按钮是强调色实心，且每屏只有一个
 - [ ] 无渐变、无发光、无装饰插画
 - [ ] 层级靠间距/字重/1px 边框，没有靠颜色堆砌
 - [ ] 正文对比度 ≥ 4.5:1；focus 可见；状态不只靠颜色
