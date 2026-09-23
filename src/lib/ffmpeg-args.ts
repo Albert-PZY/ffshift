@@ -2,19 +2,44 @@
  * ffmpeg 参数构造：唯一的参数来源，界面与 AI 建议最终都汇到这里。
  * 纯函数，不碰进程与文件系统。
  *
- * 细节依据 docs/architecture.md §6.4 与附录 A：
+ * 三条路径，由目标容器决定走哪条：
+ *   - video：视频转视频（容器决定编码器，见 CONTAINERS）
+ *   - audio：从视频里提取音轨（丢弃视频轨）
+ *   - gif：动图，用调色板两遍法
+ *
+ * 通用约定：
  *   - 数组传参，不做 shell 转义（中文与空格路径原样交给 ffmpeg）；
  *   - 进度用 `-progress pipe:1 -nostats`，stdout 交给进度解析器；
  *   - 目标体积按 `8192 × 目标MB ÷ 时长 - 音频kbps` 反推码率。
- *
- * 输出格式（容器）决定编码器，不是反过来：容器只接受特定编码组合，
- * 选错了 ffmpeg 会直接拒绝写文件（例如 WebM 不收 H.264）。
  */
 
 export type Preset = 'clear' | 'balanced' | 'small';
 export type HwAccel = 'none' | 'nvenc' | 'qsv' | 'amf';
+
 /** 目标格式；same 表示跟随输入文件的容器 */
-export type OutputFormat = 'same' | 'mp4' | 'mkv' | 'mov' | 'webm';
+export type OutputFormat =
+  | 'same'
+  | 'mp4'
+  | 'mkv'
+  | 'mov'
+  | 'webm'
+  | 'gif'
+  | 'mp3'
+  | 'm4a'
+  | 'opus'
+  | 'flac'
+  | 'wav';
+
+export type ContainerKind = Exclude<OutputFormat, 'same'>;
+
+/** 源视频的渲染信息，用来判断要不要先合成底色 */
+export interface SourceVideoInfo {
+  width: number | null;
+  height: number | null;
+  fps: number | null;
+  /** 带透明通道的源转 yuv 编码会把透明区变黑，需要先合成背景 */
+  hasAlpha: boolean;
+}
 
 export interface ConvertOptions {
   input: string;
@@ -24,12 +49,14 @@ export interface ConvertOptions {
   format?: OutputFormat;
   /** 硬件加速方式，缺省为软编 */
   hw?: HwAccel;
-  /** 源文件是否有音轨；无音轨时不能带音频参数，否则 ffmpeg 直接报错 */
+  /** 源文件是否有音轨；无音轨时不能带音频参数，音频目标也无法进行 */
   hasAudio?: boolean;
   /** 目标体积（MiB）；给出后改用码率模式 */
   targetSizeMiB?: number | null;
   /** 源时长（秒）；目标体积模式必需。null 表示未知 */
   durationSec?: number | null;
+  /** 源视频信息；缺省视为不带透明通道 */
+  source?: SourceVideoInfo;
 }
 
 interface PresetSpec {
@@ -47,12 +74,18 @@ const PRESETS: Record<Preset, PresetSpec> = {
 };
 
 export interface ContainerSpec {
-  kind: 'mp4' | 'mkv' | 'mov' | 'webm';
+  kind: ContainerKind;
   extension: string;
-  /** 该容器是否吃得下硬件编码器（WebM 只认 VP8/VP9/AV1，硬编帮不上忙） */
+  /** 这个容器装什么 */
+  media: 'video' | 'audio' | 'gif';
+  /** 能不能吃硬件编码器（WebM 只认 VP9，GIF 没有硬件实现） */
   hardware: boolean;
-  videoCodec: (preset: Preset, hw?: HwAccel) => string;
-  audioCodec: string;
+  /** 容器强制的视频编码器；不写就按档位与硬件加速选 */
+  forcedVideoCodec?: string;
+  /** 视频容器的音频编码器；null 表示这个容器本来就不带音频 */
+  audioCodec?: string | null;
+  /** 音频容器的完整音频参数（各格式的码率与质量参数不同） */
+  audioArgs?: string[];
   /** 容器专属的封装参数 */
   muxerArgs: string[];
 }
@@ -75,8 +108,8 @@ const CONTAINERS: ContainerSpec[] = [
   {
     kind: 'mp4',
     extension: 'mp4',
+    media: 'video',
     hardware: true,
-    videoCodec: h26xEncoder,
     audioCodec: 'aac',
     // moov 前置，播放器可以边下边播
     muxerArgs: ['-movflags', '+faststart'],
@@ -84,16 +117,16 @@ const CONTAINERS: ContainerSpec[] = [
   {
     kind: 'mov',
     extension: 'mov',
+    media: 'video',
     hardware: true,
-    videoCodec: h26xEncoder,
     audioCodec: 'aac',
     muxerArgs: ['-movflags', '+faststart'],
   },
   {
     kind: 'mkv',
     extension: 'mkv',
+    media: 'video',
     hardware: true,
-    videoCodec: h26xEncoder,
     audioCodec: 'aac',
     // Matroska 不是 MP4 家族，没有 movflags 这个选项，加了也是被静默忽略
     muxerArgs: [],
@@ -101,13 +134,70 @@ const CONTAINERS: ContainerSpec[] = [
   {
     kind: 'webm',
     extension: 'webm',
+    media: 'video',
     hardware: false,
     // 容器只接受 VP8 / VP9 / AV1，所以忽略硬件加速
-    videoCodec: () => 'libvpx-vp9',
+    forcedVideoCodec: 'libvpx-vp9',
     audioCodec: 'libopus',
     muxerArgs: [],
   },
+  {
+    kind: 'gif',
+    extension: 'gif',
+    media: 'gif',
+    hardware: false,
+    audioCodec: null,
+    // 0 表示无限循环；GIF 没有音轨
+    muxerArgs: ['-loop', '0'],
+  },
+  // 以下为音频容器：把视频当音源，丢弃视频轨
+  {
+    kind: 'mp3',
+    extension: 'mp3',
+    media: 'audio',
+    hardware: false,
+    audioArgs: ['-c:a', 'libmp3lame', '-q:a', '2'],
+    muxerArgs: [],
+  },
+  {
+    kind: 'm4a',
+    extension: 'm4a',
+    media: 'audio',
+    hardware: false,
+    audioArgs: ['-c:a', 'aac', '-b:a', '192k'],
+    muxerArgs: ['-movflags', '+faststart'],
+  },
+  {
+    kind: 'opus',
+    extension: 'opus',
+    media: 'audio',
+    hardware: false,
+    audioArgs: ['-c:a', 'libopus', '-b:a', '160k'],
+    muxerArgs: [],
+  },
+  {
+    kind: 'flac',
+    extension: 'flac',
+    media: 'audio',
+    hardware: false,
+    // 无损：不带码率参数
+    audioArgs: ['-c:a', 'flac'],
+    muxerArgs: [],
+  },
+  {
+    kind: 'wav',
+    extension: 'wav',
+    media: 'audio',
+    hardware: false,
+    audioArgs: ['-c:a', 'pcm_s16le'],
+    muxerArgs: [],
+  },
 ];
+
+/** 这个容器最终用哪个视频编码器：容器强制的优先，否则按档位与硬件加速选。 */
+export function videoCodecFor(container: ContainerSpec, preset: Preset, hw: HwAccel = 'none'): string {
+  return container.forcedVideoCodec ?? h26xEncoder(preset, hw);
+}
 
 function extensionOf(path: string): string | null {
   const lastDot = path.lastIndexOf('.');
@@ -151,68 +241,132 @@ export function estimateVideoBitrateKbps(
   return Math.max(100, Math.round(kbps));
 }
 
-export function buildArgs(options: ConvertOptions): string[] {
-  const {
-    input,
-    output,
-    preset,
-    format = 'same',
-    hw = 'none',
-    hasAudio = false,
-    targetSizeMiB,
-    durationSec,
-  } = options;
+interface AlphaComposite {
+  /** 额外那路底色输入的 lavfi 描述 */
+  input: string;
+  filter: string;
+  label: string;
+}
 
-  const spec = PRESETS[preset];
-  if (!spec) throw new Error(`未知档位：${preset}`);
+/**
+ * 带透明通道的源需要先合成底色。
+ *
+ * 为什么：DXV3（rgba）、RLE（argb）这类素材的透明区在 RGB 里是 0，也就是黑色；
+ * 直接转成 yuv 编码（H.264 / H.265 / VP9）会丢掉 alpha，透明区就变成黑块。
+ * 做法是加一路纯色输入，用 overlay 把源叠在上面。
+ */
+function alphaComposite(container: ContainerSpec, source?: SourceVideoInfo): AlphaComposite | null {
+  if (container.media !== 'video' || !source?.hasAlpha) return null;
 
-  const container = resolveContainer(format, input, output);
-  const effectiveHw: HwAccel = container.hardware ? hw : 'none';
+  const width = source.width && source.width > 0 ? source.width : 1280;
+  const height = source.height && source.height > 0 ? source.height : 720;
+  const fps = source.fps && source.fps > 0 ? source.fps : 30;
 
-  const args: string[] = [
-    '-hide_banner',
-    '-y',
-    '-progress',
-    'pipe:1',
-    '-nostats',
-    '-i',
-    input,
-    '-c:v',
-    container.videoCodec(preset, effectiveHw),
-  ];
+  return {
+    input: `color=white:s=${width}x${height}:r=${fps}`,
+    filter: '[1:v][0:v]overlay=shortest=1[composited]',
+    label: 'composited',
+  };
+}
+
+function videoArgs(
+  options: ConvertOptions,
+  container: ContainerSpec,
+  presetSpec: PresetSpec,
+): string[] {
+  const { preset, hasAudio = false, targetSizeMiB, durationSec, source } = options;
+  const hw: HwAccel = container.hardware ? (options.hw ?? 'none') : 'none';
+
+  const args: string[] = [];
+  const composite = alphaComposite(container, source);
+  if (composite) args.push('-f', 'lavfi', '-i', composite.input);
+
+  args.push('-c:v', videoCodecFor(container, preset, hw));
 
   if (targetSizeMiB !== undefined && targetSizeMiB !== null) {
     if (durationSec === undefined || durationSec === null || !Number.isFinite(durationSec) || durationSec <= 0) {
       throw new Error('目标体积模式需要时长（durationSec），否则无法反推码率');
     }
-    args.push('-b:v', `${estimateVideoBitrateKbps(targetSizeMiB, durationSec, spec.audioKbps)}k`);
+    args.push('-b:v', `${estimateVideoBitrateKbps(targetSizeMiB, durationSec, presetSpec.audioKbps)}k`);
   } else if (container.kind === 'webm') {
     // VP9 要恒定质量必须把目标码率设 0，否则会变成受限质量模式；
     // row-mt 开多线程，不然 VP9 慢到没法用
-    args.push('-crf', String(spec.quality), '-b:v', '0', '-row-mt', '1');
+    args.push('-crf', String(presetSpec.quality), '-b:v', '0', '-row-mt', '1');
   } else {
-    switch (effectiveHw) {
+    switch (hw) {
       case 'nvenc':
-        args.push('-cq', String(spec.quality));
+        args.push('-cq', String(presetSpec.quality));
         break;
       case 'qsv':
-        args.push('-global_quality', String(spec.quality));
+        args.push('-global_quality', String(presetSpec.quality));
         break;
       case 'amf':
-        args.push('-rc', 'cqp', '-qp_i', String(spec.quality), '-qp_p', String(spec.quality));
+        args.push('-rc', 'cqp', '-qp_i', String(presetSpec.quality), '-qp_p', String(presetSpec.quality));
         break;
       default:
-        args.push('-crf', String(spec.quality), '-preset', spec.x264Preset);
+        args.push('-crf', String(presetSpec.quality), '-preset', presetSpec.x264Preset);
         break;
     }
   }
 
-  if (hasAudio) {
-    args.push('-c:a', container.audioCodec, '-b:a', `${spec.audioKbps}k`);
+  if (hasAudio && container.audioCodec) {
+    args.push('-c:a', container.audioCodec, '-b:a', `${presetSpec.audioKbps}k`);
   }
 
-  args.push(...container.muxerArgs, output);
+  if (composite) {
+    // 用了 filter_complex 之后默认流选择失效，视频与音频都要显式映射
+    args.push('-filter_complex', composite.filter, '-map', `[${composite.label}]`);
+    if (hasAudio && container.audioCodec) args.push('-map', '0:a?');
+  }
+
   return args;
+}
+
+function audioArgs(options: ConvertOptions, container: ContainerSpec): string[] {
+  if (!options.hasAudio) {
+    throw new Error('源文件没有音频轨道，无法转换成音频格式');
+  }
+
+  const args: string[] = ['-vn', ...(container.audioArgs ?? [])];
+
+  // 指定了目标体积时，用码率覆盖掉容器自带的码率/质量参数
+  const { targetSizeMiB, durationSec } = options;
+  if (targetSizeMiB !== undefined && targetSizeMiB !== null) {
+    if (durationSec === undefined || durationSec === null || !Number.isFinite(durationSec) || durationSec <= 0) {
+      throw new Error('目标体积模式需要时长（durationSec），否则无法反推码率');
+    }
+    const audioKbps = Math.max(32, Math.round((8192 * targetSizeMiB) / durationSec));
+    const rateIndex = args.indexOf('-b:a');
+    if (rateIndex >= 0) args.splice(rateIndex + 1, 1, `${audioKbps}k`);
+    else args.push('-b:a', `${audioKbps}k`);
+  }
+
+  return args;
+}
+
+function gifArgs(): string[] {
+  // 调色板两遍法：先用 palettegen 生成调色板，再用 paletteuse 上色。
+  // stats_mode=diff 按帧差异生成，减少闪烁；sierra2_4a 抖动让渐变更平滑。
+  return [
+    '-vf',
+    'fps=12,scale=min(720\\,iw):-2:flags=lanczos,split[s0][s1];[s0]palettegen=stats_mode=diff[p];[s1][p]paletteuse=dither=sierra2_4a',
+  ];
+}
+
+export function buildArgs(options: ConvertOptions): string[] {
+  const presetSpec = PRESETS[options.preset];
+  if (!presetSpec) throw new Error(`未知档位：${options.preset}`);
+
+  const container = resolveContainer(options.format ?? 'same', options.input, options.output);
+  const head = ['-hide_banner', '-y', '-progress', 'pipe:1', '-nostats', '-i', options.input];
+
+  if (container.media === 'audio') {
+    return [...head, ...audioArgs(options, container), ...container.muxerArgs, options.output];
+  }
+  if (container.media === 'gif') {
+    return [...head, ...gifArgs(), ...container.muxerArgs, options.output];
+  }
+  return [...head, ...videoArgs(options, container, presetSpec), ...container.muxerArgs, options.output];
 }
 
 /** 输出路径：同目录、按目标格式给扩展名，插入 .ffshift 后缀，绝不覆盖源文件。 */

@@ -10,12 +10,29 @@ const PRESETS: Array<{ id: Preset; label: string; note: string }> = [
   { id: 'small', label: '更小', note: '发手机、省空间' },
 ];
 
-const FORMAT_OPTIONS: Array<{ id: OutputFormat; label: string }> = [
-  { id: 'same', label: '保持原格式' },
-  { id: 'mp4', label: 'MP4' },
-  { id: 'mkv', label: 'MKV' },
-  { id: 'mov', label: 'MOV' },
-  { id: 'webm', label: 'WebM' },
+/** 输出格式按用途分组：视频 / 动图 / 音频（从视频里提取声音） */
+const FORMAT_GROUPS: Array<{ label: string; options: Array<{ id: OutputFormat; label: string }> }> = [
+  {
+    label: '视频',
+    options: [
+      { id: 'same', label: '保持原格式' },
+      { id: 'mp4', label: 'MP4（最通用）' },
+      { id: 'mkv', label: 'MKV（装得下几乎一切）' },
+      { id: 'mov', label: 'MOV（苹果生态）' },
+      { id: 'webm', label: 'WebM（网页、体积小）' },
+    ],
+  },
+  { label: '动图', options: [{ id: 'gif', label: 'GIF（自动调色板）' }] },
+  {
+    label: '音频（只留声音）',
+    options: [
+      { id: 'mp3', label: 'MP3' },
+      { id: 'm4a', label: 'M4A' },
+      { id: 'opus', label: 'Opus' },
+      { id: 'flac', label: 'FLAC（无损）' },
+      { id: 'wav', label: 'WAV（无损）' },
+    ],
+  },
 ];
 
 const STATUS_LABEL: Record<TaskItem['status'], string> = {
@@ -253,10 +270,14 @@ export default function App() {
             onChange={(event) => setOutputFormat(event.target.value as OutputFormat)}
             aria-label="输出格式"
           >
-            {FORMAT_OPTIONS.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.label}
-              </option>
+            {FORMAT_GROUPS.map((group) => (
+              <optgroup key={group.label} label={group.label}>
+                {group.options.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </label>

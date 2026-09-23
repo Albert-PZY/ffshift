@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildArgs, outputPathFor, resolveContainer, type OutputFormat } from './ffmpeg-args';
+import { buildArgs, outputPathFor, resolveContainer, videoCodecFor, type OutputFormat } from './ffmpeg-args';
 
 const base = { input: 'D:\\素材\\片段.mkv', hasAudio: true };
 
@@ -17,7 +17,7 @@ describe('resolveContainer', () => {
 
   it('WebM 用 VP9 + Opus：容器只认这几个编码，写别的直接失败', () => {
     const webm = resolveContainer('webm', 'x.mkv');
-    expect(webm.videoCodec('balanced')).toMatch(/vp9|av1/);
+    expect(videoCodecFor(webm, 'balanced')).toMatch(/vp9|av1/);
     expect(webm.audioCodec).toBe('libopus');
     expect(webm.muxerArgs).toHaveLength(0);
   });
@@ -34,19 +34,19 @@ describe('resolveContainer', () => {
   it('保持原格式且原格式是 webm 时，同样走 VP9 而不是 H.264', () => {
     const same = resolveContainer('same', 'D:\\素材\\网页.webm');
     expect(same.extension).toBe('webm');
-    expect(same.videoCodec('balanced')).toMatch(/vp9/);
+    expect(videoCodecFor(same, 'balanced')).toMatch(/vp9/);
   });
 
   it('更小档在 MP4/MKV 里换成 H.265', () => {
-    expect(resolveContainer('mp4', 'x.mov').videoCodec('small')).toBe('libx265');
-    expect(resolveContainer('balanced' as never, 'x.mov').videoCodec('small')).toBe('libx265');
+    expect(videoCodecFor(resolveContainer('mp4', 'x.mov'), 'small')).toBe('libx265');
+    expect(videoCodecFor(resolveContainer('balanced' as never, 'x.mov'), 'small')).toBe('libx265');
   });
 
   it('输出扩展名与格式参数打架时，听输出扩展名的', () => {
     // ffmpeg 按输出文件名选 muxer；参数必须跟它一致，否则会写进不接受的容器
     const byOutput = resolveContainer('same', 'D:\\素材\\片段.mp4', 'D:\\素材\\片段.ffshift.webm');
     expect(byOutput.extension).toBe('webm');
-    expect(byOutput.videoCodec('balanced')).toMatch(/vp9/);
+    expect(videoCodecFor(byOutput, 'balanced')).toMatch(/vp9/);
   });
 
   it('输出扩展名认不出来时，回到格式参数', () => {

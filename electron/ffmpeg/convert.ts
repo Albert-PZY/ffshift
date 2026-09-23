@@ -12,6 +12,7 @@ import {
   ProgressChunker,
   computePercent,
   computeRemaining,
+  parseDurationFromStderr,
   parseProgressBlock,
 } from '../../src/lib/progress';
 
@@ -83,6 +84,8 @@ export function startConvert(options: ConvertOptions): ConvertHandle {
 
   let cancelled = false;
   let lastEmit = 0;
+  // 探针没给出时长时，从 ffmpeg 自己的输出里补一个，避免进度条只能显示"进行中"
+  let effectiveDuration = durationSec;
 
   child.stdout?.setEncoding('utf8');
   child.stdout?.on('data', (chunk: string) => {
@@ -94,9 +97,12 @@ export function startConvert(options: ConvertOptions): ConvertHandle {
       lastEmit = now;
 
       onProgress?.({
-        percent: sample.outTimeSec === null ? null : computePercent(sample.outTimeSec, durationSec ?? 0),
+        percent:
+          sample.outTimeSec === null ? null : computePercent(sample.outTimeSec, effectiveDuration ?? 0),
         remainingSec:
-          sample.outTimeSec === null ? null : computeRemaining(sample.outTimeSec, durationSec ?? 0, sample.speed),
+          sample.outTimeSec === null
+            ? null
+            : computeRemaining(sample.outTimeSec, effectiveDuration ?? 0, sample.speed),
         outTimeSec: sample.outTimeSec,
         speed: sample.speed,
         totalSizeBytes: sample.totalSizeBytes,
@@ -106,6 +112,11 @@ export function startConvert(options: ConvertOptions): ConvertHandle {
 
   child.stderr?.setEncoding('utf8');
   child.stderr?.on('data', (chunk: string) => {
+    // 探针没给出时长时，从 ffmpeg 自己的输出里补一个
+    if (effectiveDuration === null) {
+      const parsed = parseDurationFromStderr(chunk);
+      if (parsed !== null) effectiveDuration = parsed;
+    }
     // 只留最后 50 行：再多也没人看，还会占内存
     stderrLines.push(...chunk.split(/\r?\n/).filter(Boolean));
     if (stderrLines.length > 50) stderrLines.splice(0, stderrLines.length - 50);

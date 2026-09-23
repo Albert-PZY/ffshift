@@ -85,6 +85,12 @@ export const useStore = create<State>((set, get) => {
       hasAudio: next.info.hasAudio,
       durationSec: next.info.durationSec,
       targetSizeMiB: get().targetSizeMiB,
+      source: {
+        width: next.info.width,
+        height: next.info.height,
+        fps: next.info.fps,
+        hasAlpha: next.info.hasAlpha,
+      },
     });
 
     if (response && !response.ok) {

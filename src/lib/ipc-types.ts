@@ -39,6 +39,13 @@ export interface ConvertRequest {
   hasAudio: boolean;
   durationSec: number | null;
   targetSizeMiB?: number | null;
+  /** 源视频的渲染信息：带透明通道时需要先合成底色 */
+  source?: {
+    width: number | null;
+    height: number | null;
+    fps: number | null;
+    hasAlpha: boolean;
+  };
 }
 
 export type ConvertResponse = { ok: true } | { ok: false; reason: string };

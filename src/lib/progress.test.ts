@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { ProgressChunker, computePercent, computeRemaining, parseProgressBlock } from './progress';
+import {
+  ProgressChunker,
+  computePercent,
+  computeRemaining,
+  parseDurationFromStderr,
+  parseProgressBlock,
+} from './progress';
 
 /** ffmpeg -progress pipe:1 的真实输出片段 */
 const block = [
@@ -111,6 +117,34 @@ describe('ProgressChunker', () => {
     const [block] = chunker.push(blockA);
     expect(block).toBeDefined();
     expect(parseProgressBlock(block ?? '').outTimeSec).toBeCloseTo(1, 3);
+  });
+
+  it('从 stderr 里兜底解析源时长（探针没给出时长时用）', () => {
+    const line = '  Duration: 00:01:23.45, start: 0.000000, bitrate: 1234 kb/s';
+    expect(parseDurationFromStderr(line)).toBeCloseTo(83.45, 2);
+  });
+
+  it('时长不带毫秒也能解析', () => {
+    expect(parseDurationFromStderr('Duration: 00:00:07, start: 0.0, bitrate: 800 kb/s')).toBe(7);
+  });
+
+  it('超过一小时按小时算', () => {
+    expect(parseDurationFromStderr('Duration: 01:02:03.50, start: 0.0')).toBeCloseTo(3723.5, 2);
+  });
+
+  it('没有时长信息时返回 null，不瞎猜', () => {
+    expect(parseDurationFromStderr('Input #0, mov,mp4')).toBeNull();
+    expect(parseDurationFromStderr('')).toBeNull();
+    expect(parseDurationFromStderr('Duration: N/A, start: 0.0')).toBeNull();
+  });
+
+  it('多路输入时只认第一处，避免把附加输入的时长当成源时长', () => {
+    const text = [
+      '  Duration: 00:00:10.00, start: 0.0',
+      'Input #1, lavfi, from color',
+      '  Duration: 00:00:99.00, start: 0.0',
+    ].join('\n');
+    expect(parseDurationFromStderr(text)).toBe(10);
   });
 
   it('没有 progress 结束行的内容不会提前返回', () => {

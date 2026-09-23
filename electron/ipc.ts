@@ -109,6 +109,7 @@ export function registerIpc({ getWindow }: Deps): void {
         hasAudio: request.hasAudio,
         targetSizeMiB: request.targetSizeMiB ?? null,
         durationSec: request.durationSec,
+        source: request.source,
       });
 
       const window = getWindow();

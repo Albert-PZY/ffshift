@@ -18,6 +18,21 @@ export interface MediaInfo {
   container: string | null;
   bitrateKbps: number | null;
   hasAudio: boolean;
+  /** 视频像素格式，例如 yuv420p、rgba；没有视频流时为 null */
+  pixelFormat: string | null;
+  /** 是否带透明通道。带 alpha 的源转成 yuv 编码会把透明区变黑，需要先合成背景 */
+  hasAlpha: boolean;
+}
+
+/**
+ * 判断像素格式是否带透明通道。
+ * FFmpeg 里带 alpha 的格式是 rgba / argb / bgra / abgr / ya8 / ya16 与 yuva* 系列。
+ */
+const ALPHA_PIXEL_FORMAT = /^(rgba|argb|bgra|abgr|ya8|ya16|yuva)/i;
+
+export function hasAlphaChannel(pixelFormat: string | null | undefined): boolean {
+  if (typeof pixelFormat !== 'string' || pixelFormat.trim().length === 0) return false;
+  return ALPHA_PIXEL_FORMAT.test(pixelFormat.trim());
 }
 
 function numOrNull(value: unknown): number | null {
@@ -40,7 +55,8 @@ export function parseFrameRate(rate: string | null | undefined): number | null {
   return Math.round((numerator / denominator) * 1000) / 1000;
 }
 
-export function parseMediaInfo(json: unknown, meta: { path: string; sizeBytes: number }): MediaInfo {  if (!json || typeof json !== 'object') {
+export function parseMediaInfo(json: unknown, meta: { path: string; sizeBytes: number }): MediaInfo {
+  if (!json || typeof json !== 'object') {
     throw new Error('ffprobe 输出不是对象');
   }
 
@@ -59,6 +75,7 @@ export function parseMediaInfo(json: unknown, meta: { path: string; sizeBytes: n
 
   const duration = numOrNull(format.duration);
   const bitRate = numOrNull(format.bit_rate);
+  const pixelFormat = video && typeof video.pix_fmt === 'string' ? video.pix_fmt : null;
 
   return {
     path: meta.path,
@@ -73,6 +90,8 @@ export function parseMediaInfo(json: unknown, meta: { path: string; sizeBytes: n
     container: typeof format.format_name === 'string' ? format.format_name : null,
     bitrateKbps: bitRate !== null ? Math.round(bitRate / 1000) : null,
     hasAudio: Boolean(audio),
+    pixelFormat,
+    hasAlpha: hasAlphaChannel(pixelFormat),
   };
 }
 
