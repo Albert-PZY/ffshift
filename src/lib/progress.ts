@@ -86,6 +86,27 @@ export function computeRemaining(
 }
 
 /**
+ * 从 ffmpeg 的 stderr 里兜底解析源时长。
+ *
+ * 什么时候用得上：ffprobe 没给出时长（少数流），但 ffmpeg 自己会打印
+ * `Duration: 00:01:23.45`。有了它，进度条才不是瞎转。
+ * 只认第一处——多路输入（例如 alpha 合成时加的底色）的时长不是源时长。
+ */
+export function parseDurationFromStderr(text: string): number | null {
+  if (typeof text !== 'string' || text.length === 0) return null;
+
+  const match = /Duration:\s*(\d+):(\d{2}):(\d{2}(?:\.\d+)?)/.exec(text);
+  if (!match) return null;
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const seconds = Number(match[3]);
+  const total = hours * 3600 + minutes * 60 + seconds;
+
+  return Number.isFinite(total) && total > 0 ? total : null;
+}
+
+/**
  * 把流式 stdout 切成一个个完整的进度块。
  *
  * ffmpeg 的进度是持续的 key=value 流，块之间用 `progress=continue|end` 分隔，

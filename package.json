@@ -19,7 +19,8 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "make-icon": "node scripts/make-icon.mjs",
-    "package": "electron-vite build && electron-builder --win --publish never"
+    "prepare-ffmpeg": "node scripts/prepare-ffmpeg.mjs",
+    "package": "node scripts/prepare-ffmpeg.mjs && electron-vite build && electron-builder --win --publish never"
   },
   "build": {
     "appId": "top.albert-go.ffshift",
@@ -31,6 +32,13 @@
     "files": [
       "out/**/*",
       "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/ffmpeg",
+        "to": "ffmpeg",
+        "filter": ["ffmpeg.exe", "ffprobe.exe"]
+      }
     ],
     "win": {
       "target": [

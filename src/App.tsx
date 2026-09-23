@@ -1,3 +1,10 @@
+/**
+ * 主界面：导入的文件排成一列，选档位与输出格式，按顺序转换。
+ *
+ * 布局对应 docs/design-system.md：顶栏放运行状态，工具栏放档位与格式，
+ * 中间是任务列表，底部只有一个主动作（开始转换）。
+ * 所有 ffmpeg 相关的事都走 window.ffshift（preload 暴露的白名单），界面不碰 Node。
+ */
 import { useState, type DragEvent } from 'react';
 import { describeSuggestion, type Suggestion } from './lib/ai-suggest';
 import { formatBytes, formatDuration, formatPercent, formatRemaining, formatSpeed } from './lib/format';
@@ -10,12 +17,29 @@ const PRESETS: Array<{ id: Preset; label: string; note: string }> = [
   { id: 'small', label: '更小', note: '发手机、省空间' },
 ];
 
-const FORMAT_OPTIONS: Array<{ id: OutputFormat; label: string }> = [
-  { id: 'same', label: '保持原格式' },
-  { id: 'mp4', label: 'MP4' },
-  { id: 'mkv', label: 'MKV' },
-  { id: 'mov', label: 'MOV' },
-  { id: 'webm', label: 'WebM' },
+/** 输出格式按用途分组：视频 / 动图 / 音频（从视频里提取声音） */
+const FORMAT_GROUPS: Array<{ label: string; options: Array<{ id: OutputFormat; label: string }> }> = [
+  {
+    label: '视频',
+    options: [
+      { id: 'same', label: '保持原格式' },
+      { id: 'mp4', label: 'MP4（最通用）' },
+      { id: 'mkv', label: 'MKV（装得下几乎一切）' },
+      { id: 'mov', label: 'MOV（苹果生态）' },
+      { id: 'webm', label: 'WebM（网页、体积小）' },
+    ],
+  },
+  { label: '动图', options: [{ id: 'gif', label: 'GIF（自动调色板）' }] },
+  {
+    label: '音频（只留声音）',
+    options: [
+      { id: 'mp3', label: 'MP3' },
+      { id: 'm4a', label: 'M4A' },
+      { id: 'opus', label: 'Opus' },
+      { id: 'flac', label: 'FLAC（无损）' },
+      { id: 'wav', label: 'WAV（无损）' },
+    ],
+  },
 ];
 
 const STATUS_LABEL: Record<TaskItem['status'], string> = {
@@ -29,6 +53,10 @@ const STATUS_LABEL: Record<TaskItem['status'], string> = {
   unsupported: '不支持',
 };
 
+/**
+ * AI 建议区：一句话描述用途，拿到档位建议。
+ * 界面上会标出建议来自模型还是本地规则——降级发生时用户有权知道。
+ */
 function Assistant({ onApply }: { onApply: (preset: Preset, targetSizeMiB: number | null) => void }) {
   const [idea, setIdea] = useState('');
   const [advice, setAdvice] = useState<{ suggestion: Suggestion; text: string; note: string } | null>(null);
@@ -92,6 +120,7 @@ function Assistant({ onApply }: { onApply: (preset: Preset, targetSizeMiB: numbe
   );
 }
 
+/** 进度条：时长未知时走不确定态（来回滑动），不让用户误以为卡在某个固定百分比 */
 function ProgressBar({ task }: { task: TaskItem }) {
   const percent = task.progress?.percent ?? null;
   const width = percent === null ? 100 : Math.round(percent * 100);
@@ -107,6 +136,7 @@ function ProgressBar({ task }: { task: TaskItem }) {
   );
 }
 
+/** 一行任务：缩略图 + 媒体信息 + 状态 + 该状态下可用的动作 */
 function TaskRow({ task }: { task: TaskItem }) {
   const cancelTask = useStore((s) => s.cancelTask);
   const removeTask = useStore((s) => s.removeTask);
@@ -253,10 +283,14 @@ export default function App() {
             onChange={(event) => setOutputFormat(event.target.value as OutputFormat)}
             aria-label="输出格式"
           >
-            {FORMAT_OPTIONS.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.label}
-              </option>
+            {FORMAT_GROUPS.map((group) => (
+              <optgroup key={group.label} label={group.label}>
+                {group.options.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </label>

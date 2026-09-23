@@ -1,21 +1,21 @@
 # 项目状态 · FFShift
 
-> 本文件由 `scripts/lib/status.mjs` 在每次提交后自动生成，**不要手改**。数据截至 2026-09-23 05:16:35。
+> 本文件由 `scripts/lib/status.mjs` 在每次提交后自动生成，**不要手改**。数据截至 2026-09-23 05:35:48。
 > 用途：一眼看清项目当前的信息密度——代码、规格、测试、文档各到什么程度。
 
 ## 概览
 
 | 项 | 值 |
 | --- | --- |
-| 提交总数 | 27 |
+| 提交总数 | 30 |
 | 首个提交 | 2026-09-23 |
-| 最近提交 | 2026-09-23T13:16:24+08:00 |
-| 累计改动 | 80 files changed, 12125 insertions(+), 85 deletions(-) |
-| 分支 | chore/repo-bootstrap、chore/tidy-structure、main |
+| 最近提交 | 2026-09-23T13:35:36+08:00 |
+| 累计改动 | 90 files changed, 13147 insertions(+), 85 deletions(-) |
+| 分支 | chore/repo-bootstrap、feat/ffmpeg-bundled-and-media、main |
 | 版本 Tag | v1.0.0、v0.1.0 |
 | 文档数 | 9 份 |
-| 能力规格 | 2 个 |
-| 在途变更 | 0 个（已归档 2 个） |
+| 能力规格 | 3 个 |
+| 在途变更 | 0 个（已归档 4 个） |
 
 ## 模块进度
 
@@ -27,5 +27,6 @@
 
 ## 能力规格清单
 
+- `code-standards`
 - `convert`
 - `media`

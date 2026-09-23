@@ -285,6 +285,103 @@ describe.skipIf(!ready)('缩略图与转换集成', () => {
     }, 120_000);
   });
 
+  describe('音频与动图输出', () => {
+    it('mp4 提取成 mp3：产物只剩音频流', async () => {
+      const output = join(outDir, '提取音频.mp3');
+      const handle = startConvert({
+        ffmpegPath: paths.ffmpeg,
+        args: buildArgs({ input: source, output, preset: 'balanced', format: 'mp3', hasAudio: true }),
+        outputPath: output,
+        durationSec: 4,
+      });
+      const outcome = await handle.promise;
+      expect(outcome.status, outcome.status === 'failed' ? outcome.error.raw : '').toBe('done');
+
+      const info = await probeFile(paths.ffprobe, output);
+      expect(info.videoCodec).toBeNull();
+      expect(info.container).toContain('mp3');
+      expect(info.hasAudio).toBe(true);
+    }, 120_000);
+
+    it('转成 GIF：调色板两遍法产出可用的动图', async () => {
+      const output = join(outDir, '动图.gif');
+      const handle = startConvert({
+        ffmpegPath: paths.ffmpeg,
+        args: buildArgs({ input: source, output, preset: 'balanced', format: 'gif', hasAudio: false }),
+        outputPath: output,
+        durationSec: 4,
+      });
+      const outcome = await handle.promise;
+      expect(outcome.status, outcome.status === 'failed' ? outcome.error.raw : '').toBe('done');
+      // 调色板两遍法产出的 GIF 不会是几字节的空壳
+      expect(statSync(output).size).toBeGreaterThan(5_000);
+    }, 180_000);
+
+    it('无音轨的源提取音频：明确失败，不产出空文件', () => {
+      expect(() =>
+        buildArgs({
+          input: longer,
+          output: join(outDir, '不该存在.mp3'),
+          preset: 'balanced',
+          format: 'mp3',
+          hasAudio: false,
+        }),
+      ).toThrow(/没有音频/);
+    });
+  });
+
+  describe('Alpha 通道合成', () => {
+    it('带透明通道的源转 mp4：透明区合成白底，而不是变黑', async () => {
+      const alphaSource = join(workDir, '透明素材.mov');
+      // qtrle 编码保留 alpha 通道
+      execFileSync(
+        paths.ffmpeg,
+        [
+          '-hide_banner', '-y',
+          '-f', 'lavfi', '-i', 'color=c=red@0.5:s=320x240:r=25,format=rgba',
+          '-t', '2', '-c:v', 'qtrle',
+          alphaSource,
+        ],
+        { stdio: 'ignore', timeout: 60_000 },
+      );
+
+      const info = await probeFile(paths.ffprobe, alphaSource);
+      // 先确认素材真的带 alpha，否则这个用例什么也没验证
+      expect(info.hasAlpha).toBe(true);
+
+      const output = join(outDir, '透明转mp4.mp4');
+      const handle = startConvert({
+        ffmpegPath: paths.ffmpeg,
+        args: buildArgs({
+          input: alphaSource,
+          output,
+          preset: 'balanced',
+          format: 'mp4',
+          hasAudio: false,
+          source: { width: info.width, height: info.height, fps: info.fps, hasAlpha: info.hasAlpha },
+        }),
+        outputPath: output,
+        durationSec: 2,
+      });
+      const outcome = await handle.promise;
+      expect(outcome.status, outcome.status === 'failed' ? outcome.error.raw : '').toBe('done');
+
+      // 把第一帧缩成 1 像素来看合成结果：白底叠半透明红 ≈ 粉红。
+      // 如果没做合成，透明处会是黑色，绿蓝分量会接近 0。
+      const pixel = execFileSync(
+        paths.ffmpeg,
+        [
+          '-hide_banner', '-i', output,
+          '-vf', 'select=eq(n\\,0),scale=1:1',
+          '-frames:v', '1', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-',
+        ],
+        { timeout: 60_000 },
+      );
+      expect(pixel[0] ?? 0).toBeGreaterThan(150); // 红分量高
+      expect(pixel[1] ?? 0).toBeGreaterThan(80); // 绿分量说明叠了白底
+    }, 180_000);
+  });
+
   describe('输出路径', () => {
     it('默认输出落在同目录，且不与源文件重名', () => {
       const suggested = suggestOutputPath(source);
