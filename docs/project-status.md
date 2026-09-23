@@ -1,18 +1,18 @@
 # 项目状态 · FFShift
 
-> 本文件由 `scripts/lib/status.mjs` 在每次提交后自动生成，**不要手改**。数据截至 2026-09-23 07:37:10。
+> 本文件由 `scripts/lib/status.mjs` 在每次提交后自动生成，**不要手改**。数据截至 2026-09-23 08:12:42。
 > 用途：一眼看清项目当前的信息密度——代码、规格、测试、文档各到什么程度。
 
 ## 概览
 
 | 项 | 值 |
 | --- | --- |
-| 提交总数 | 35 |
+| 提交总数 | 37 |
 | 首个提交 | 2026-09-23 |
-| 最近提交 | 2026-09-23T15:36:58+08:00 |
-| 累计改动 | 107 files changed, 15210 insertions(+), 2737 deletions(-) |
-| 分支 | chore/repo-bootstrap、docs/spec-and-testing、main |
-| 版本 Tag | v1.2.0、v1.1.0、v1.0.0、v0.1.0 |
+| 最近提交 | 2026-09-23T16:12:30+08:00 |
+| 累计改动 | 111 files changed, 16420 insertions(+), 2737 deletions(-) |
+| 分支 | chore/bump-1.3.0、chore/repo-bootstrap、feat/advanced-params、main |
+| 版本 Tag | v1.3.0、v1.2.0、v1.1.0、v1.0.0、v0.1.0 |
 | 文档数 | 10 份 |
 | 能力规格 | 3 个 |
 | 在途变更 | 0 个（已归档 5 个） |
