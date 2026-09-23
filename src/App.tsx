@@ -1,4 +1,5 @@
 import { useState, type DragEvent } from 'react';
+import { describeSuggestion, type Suggestion } from './lib/ai-suggest';
 import { formatBytes, formatDuration, formatPercent, formatRemaining, formatSpeed } from './lib/format';
 import type { Preset } from './lib/ffmpeg-args';
 import { useStore, type TaskItem } from './store';
@@ -19,6 +20,65 @@ const STATUS_LABEL: Record<TaskItem['status'], string> = {
   cancelled: '已取消',
   unsupported: '不支持',
 };
+
+function Assistant({ onApply }: { onApply: (preset: Preset) => void }) {
+  const [idea, setIdea] = useState('');
+  const [advice, setAdvice] = useState<{ suggestion: Suggestion; text: string; note: string } | null>(null);
+  const [thinking, setThinking] = useState(false);
+
+  const ask = async () => {
+    if (!window.ffshift || idea.trim().length === 0) return;
+    setThinking(true);
+    try {
+      const response = await window.ffshift.suggest(idea);
+      setAdvice({
+        suggestion: response.suggestion,
+        text: describeSuggestion(response.suggestion),
+        note: response.note,
+      });
+    } finally {
+      setThinking(false);
+    }
+  };
+
+  return (
+    <section className="assistant">
+      <input
+        className="idea-input"
+        placeholder="一句话说用途，比如：压到 50MB 发微信"
+        value={idea}
+        onChange={(event) => setIdea(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') void ask();
+        }}
+        aria-label="描述用途"
+      />
+      <button
+        type="button"
+        className="btn-secondary"
+        disabled={thinking || idea.trim().length === 0}
+        onClick={() => void ask()}
+      >
+        {thinking ? '正在想…' : '让 AI 给建议'}
+      </button>
+
+      {advice && (
+        <div className="advice">
+          <span className={`advice-tag ${advice.suggestion.source === 'ai' ? 'is-ai' : 'is-rules'}`}>
+            {advice.suggestion.source === 'ai' ? '模型建议' : '本地规则'}
+          </span>
+          <span className="advice-text">
+            {advice.text}
+            <span className="advice-note">（{advice.note}）</span>
+          </span>
+          <button type="button" className="btn-ghost" onClick={() => onApply(advice.suggestion.preset)}>
+            用这个档
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
 
 function ProgressBar({ task }: { task: TaskItem }) {
   const percent = task.progress?.percent ?? null;
@@ -161,6 +221,8 @@ export default function App() {
           </button>
         </div>
       </section>
+
+      <Assistant onApply={setPreset} />
 
       <main className="list">
         {tasks.length === 0 ? (

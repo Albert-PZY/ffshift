@@ -3,8 +3,15 @@
  * 两侧共用这一份类型，改名时编译期就会报错，不用靠记忆对齐字符串。
  */
 import type { ConvertOutcome, ProgressUpdate } from '../../electron/ffmpeg/convert';
+import type { Suggestion } from './ai-suggest';
 import type { MediaInfo } from './ffprobe';
 import type { Preset } from './ffmpeg-args';
+
+export interface SuggestResponse {
+  suggestion: Suggestion;
+  /** 一句话说明这次建议的来源（模型 / 本地规则） */
+  note: string;
+}
 
 export interface ProbeResponse {
   ok: boolean;
@@ -56,6 +63,7 @@ export interface FfshiftApi {
   cancel: (taskId: string) => Promise<{ ok: boolean }>;
   detectHardware: () => Promise<HardwareReport>;
   ffmpegVersion: () => Promise<string | null>;
+  suggest: (description: string) => Promise<SuggestResponse>;
   onProgress: (listener: (event: ProgressEvent) => void) => () => void;
   onFinished: (listener: (event: FinishedEvent) => void) => () => void;
   /** 拖放的 File 对象在渲染进程拿不到磁盘路径，必须走它 */

@@ -339,6 +339,72 @@ body {
   border-top: 1px solid var(--border);
 }
 
+/* AI 建议区：输入一句话，拿到档位建议 */
+.assistant {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 24px 12px;
+  flex-wrap: wrap;
+}
+
+.idea-input {
+  flex: 1;
+  min-width: 260px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+  padding: 8px 12px;
+  transition: border-color 150ms ease-out;
+}
+
+.idea-input::placeholder {
+  color: var(--text-disabled);
+}
+
+.idea-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.advice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.advice-tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border-strong);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.advice-tag.is-ai {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.advice-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.advice-note {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation: none !important;

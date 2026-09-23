@@ -8,6 +8,7 @@ import { existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { buildArgs } from '../src/lib/ffmpeg-args';
+import { fallbackSuggestion } from '../src/lib/ai-suggest';
 import { assessConvertibility } from '../src/lib/ffprobe';
 import { hashKey } from '../src/lib/thumbnail-cache';
 import type {
@@ -15,8 +16,10 @@ import type {
   ConvertResponse,
   HardwareReport,
   ProbeResponse,
+  SuggestResponse,
   ThumbnailResponse,
 } from '../src/lib/ipc-types';
+import { requestSuggestion } from './ai';
 import { resolveBinaries } from './ffmpeg/binary';
 import { startConvert, type ConvertHandle } from './ffmpeg/convert';
 import { probeFile } from './ffmpeg/probe';
@@ -159,6 +162,13 @@ export function registerIpc({ getWindow }: Deps): void {
     }
 
     return { available, checkedAt: new Date().toISOString() };
+  });
+
+  ipcMain.handle('ffshift:ai-suggest', async (_event, description: string): Promise<SuggestResponse> => {
+    if (typeof description !== 'string') {
+      return { suggestion: fallbackSuggestion(''), note: '输入无效，用的是本地规则' };
+    }
+    return requestSuggestion(description);
   });
 
   // 供测试与排错：主进程启动时把二进制来源写进日志
