@@ -2,7 +2,7 @@
  * 主进程的 IPC 处理器：把渲染进程的请求接到 ffmpeg 能力上。
  * 每个处理函数只做三件事：校验入参、调用能力、把结果/错误整理成契约形状。
  */
-import { app, dialog, ipcMain, shell, type BrowserWindow } from 'electron';
+import { app, dialog, ipcMain, Notification, shell, type BrowserWindow } from 'electron';
 import { execFile } from 'node:child_process';
 import { existsSync, readdirSync } from 'node:fs';
 import { extname, join } from 'node:path';
@@ -82,6 +82,18 @@ export function registerIpc({ getWindow }: Deps): void {
         .sort();
     } catch {
       return [];
+    }
+  });
+
+  ipcMain.handle('ffshift:notify', async (_event, title: string, body: string) => {
+    // 系统通知让用户能去干别的：长任务跑完时人往往不在窗口前面
+    if (!Notification.isSupported()) return { ok: false };
+    if (typeof title !== 'string' || title.length === 0) return { ok: false };
+    try {
+      new Notification({ title, body: typeof body === 'string' ? body : '' }).show();
+      return { ok: true };
+    } catch {
+      return { ok: false };
     }
   });
 

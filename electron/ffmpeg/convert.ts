@@ -5,7 +5,7 @@
  * 报错翻译从 src/lib/errors.ts 来，都是纯函数，可单测。
  */
 import { spawn, type ChildProcess } from 'node:child_process';
-import { existsSync, mkdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync, statSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { translateError, type TranslatedError } from '../../src/lib/errors';
 import {
@@ -25,7 +25,12 @@ export interface ProgressUpdate {
 }
 
 export type ConvertOutcome =
-  | { status: 'done'; elapsedMs: number }
+  | {
+      status: 'done';
+      elapsedMs: number;
+      /** 产物大小；用来在界面上和源文件比体积（读不到时为 null） */
+      outputSizeBytes: number | null;
+    }
   | { status: 'failed'; error: TranslatedError; exitCode: number | null }
   | { status: 'cancelled' };
 
@@ -43,6 +48,15 @@ export interface ConvertHandle {
   promise: Promise<ConvertOutcome>;
   cancel: () => void;
   pid: number | undefined;
+}
+
+/** 读产物大小；读不到（被删、权限问题）返回 null，界面按"未知"处理 */
+function sizeOf(filePath: string): number | null {
+  try {
+    return statSync(filePath).size;
+  } catch {
+    return null;
+  }
 }
 
 /** 取消后删掉半成品：留着会让用户以为转换成功过。 */
@@ -138,7 +152,7 @@ export function startConvert(options: ConvertOptions): ConvertHandle {
         return;
       }
       if (code === 0) {
-        resolve({ status: 'done', elapsedMs: Date.now() - started });
+        resolve({ status: 'done', elapsedMs: Date.now() - started, outputSizeBytes: sizeOf(outputPath) });
         return;
       }
       // 失败同样要清：留着损坏的半成品，用户会以为转换成功过

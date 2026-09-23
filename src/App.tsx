@@ -71,6 +71,16 @@ function readTargetSize(raw: string): number | null {
   return Math.round(Math.min(value, 10_000));
 }
 
+/** 体积对比：源 → 产物，带增减百分比。数据不全时返回 null，界面显示 — */
+function describeSizeChange(task: TaskItem): string | null {
+  const output = task.outcome?.status === 'done' ? task.outcome.outputSizeBytes : null;
+  if (!output || !task.sizeBytes) return null;
+
+  const delta = Math.round(((output - task.sizeBytes) / task.sizeBytes) * 100);
+  const sign = delta > 0 ? '+' : '';
+  return `${formatBytes(task.sizeBytes)} → ${formatBytes(output)}（${sign}${delta}%）`;
+}
+
 /** 自定义下拉：原生 select 太系统化，这里做成菜单，支持外部点击与 Esc 关闭 */
 function Menu<T extends string>({
   value,
@@ -332,6 +342,7 @@ function Inspector({ task, onClose }: { task: TaskItem; onClose: () => void }) {
 
         <p className="field-group-title">处理</p>
         {field('状态', STATUS_LABEL[task.status])}
+        {field('体积变化', describeSizeChange(task))}
         {field('输出文件', task.output ? (task.output.split(/[\\/]/).pop() ?? null) : null)}
       </div>
 

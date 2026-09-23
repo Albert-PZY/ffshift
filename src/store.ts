@@ -37,6 +37,20 @@ const api = () => window.ffshift;
 /** 失败任务自动重试的上限；到顶后只能手动点重试 */
 const MAX_AUTO_RETRY = 2;
 
+/**
+ * 队列跑完时发一条系统通知。
+ * 长任务结束时用户多半已经切去干别的了，只在界面上变个状态等于没提醒。
+ */
+function notifyQueueFinished(tasks: TaskItem[]): void {
+  const done = tasks.filter((t) => t.status === 'done').length;
+  const failed = tasks.filter((t) => t.status === 'failed').length;
+  if (done + failed === 0) return;
+
+  const parts = [`完成 ${done} 个`];
+  if (failed > 0) parts.push(`失败 ${failed} 个`);
+  void api()?.notify('转换结束', parts.join('，'));
+}
+
 let sequence = 0;
 const nextId = () => `task-${(sequence += 1)}`;
 
@@ -339,7 +353,10 @@ export function bindIpcEvents(): void {
     }));
 
     // 只推进队列，不要调 startAll —— 那会把所有等待中的任务重新入队，等于重复排队
-    void useStore.getState().pumpNext().catch(() => undefined);
+    const state = useStore.getState();
+    const stillQueued = state.tasks.some((t) => t.status === 'running' || t.status === 'queued');
+    if (!stillQueued) notifyQueueFinished(state.tasks);
+    void state.pumpNext().catch(() => undefined);
   });
 
   void useStore.getState().detectHardware();
