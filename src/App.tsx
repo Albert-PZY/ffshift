@@ -102,11 +102,14 @@ function Menu<T extends string>({
   options,
   onChange,
   ariaLabel,
+  id,
 }: {
   value: T;
   options: Array<{ value: T; label: string; note?: string }>;
   onChange: (value: T) => void;
   ariaLabel: string;
+  /** 供左侧 label 的 htmlFor 指向；没有它 label 就是空指 */
+  id?: string;
 }) {
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -132,6 +135,7 @@ function Menu<T extends string>({
     <div className="menu" ref={boxRef}>
       <button
         type="button"
+        id={id}
         className="menu-trigger"
         aria-label={ariaLabel}
         aria-expanded={open}
@@ -929,6 +933,7 @@ export default function App() {
             <section className="rail-section">
               <label htmlFor="preset-menu">质量档位</label>
               <Menu
+                id="preset-menu"
                 ariaLabel="质量档位"
                 value={preset}
                 onChange={setPreset}
@@ -937,6 +942,7 @@ export default function App() {
 
               <label htmlFor="format-menu">输出格式</label>
               <Menu
+                id="format-menu"
                 ariaLabel="输出格式"
                 value={outputFormat}
                 onChange={setOutputFormat}
