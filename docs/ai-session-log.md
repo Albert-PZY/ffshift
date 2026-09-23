@@ -143,3 +143,5 @@
 | 09-23 13:31 | feat/ffmpeg-bundled-and-media | `447ae3d` | convert: 支持音频与 GIF 输出，透明素材先合成底色 | 单测 165 条、集成测试 22 条全绿；alpha 合成用取像素验证（白底叠加后绿分量 > 80） | 15 <!-- commit:447ae3d --> |
 | 09-23 13:35 | feat/ffmpeg-bundled-and-media | `a227185` | docs: 补代码规范与新增转换能力的规格 | openspec validate 通过（3 个能力 0 失败）；README 通过 oil-tone 检查 | 13 <!-- commit:a227185 --> |
 | 09-23 13:37 | docs/refresh-screenshot | `66d0cb1` | docs: 更新界面截图（格式下拉已按视频/动图/音频分组） | 截图为最新构建产出 | 1 <!-- commit:66d0cb1 --> |
+| 09-23 13:55 | chore/version-and-cursor | `4f27c77` | tool: 移除 Cursor 的工具配置 | 其余三个工具目录未受影响，openspec 命令仍可用 | 14 <!-- commit:4f27c77 --> |
+| 09-23 13:55 | chore/version-and-cursor | `534a908` | build: 版本号升到 1.1.0 | 重新打包后产物为 FFShift-1.1.0-setup.exe | 1 <!-- commit:534a908 --> |
