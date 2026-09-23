@@ -26,17 +26,27 @@ TBD - created by archiving change 2026-09-23-add-settings-page. Update Purpose a
 
 ### Requirement: 主题偏好的入口在设置里
 
-系统 SHALL 提供亮色与暗色两套主题，默认亮色。切换入口 SHALL 只在设置的「外观」分类里，主界面顶栏 SHALL NOT 提供主题切换。选择 SHALL 被记住，且应用启动的第一帧 SHALL 就是所选主题。
+系统 SHALL 提供三套主题：亮色（默认）、浅黑、暗色。浅黑 SHALL 是偏灰的一套——底色为中性深灰而非近黑，前景不用纯白，SHALL 比暗色更适合长时间观看。切换入口 SHALL 只在设置的「外观」分类里，主界面顶栏 SHALL NOT 提供主题切换。选择 SHALL 被记住，且应用启动的第一帧 SHALL 就是所选主题。切换 SHALL NOT 让两套主题的类名同时留在根节点上。
 
 #### Scenario: 切换主题
 
-- **WHEN** 用户在设置里选择暗色
-- **THEN** 界面立即切换，且主界面顶栏没有主题按钮
+- **WHEN** 用户在设置里选择浅黑
+- **THEN** 界面立即切换，根节点上只有 `dim` 一个主题类
 
 #### Scenario: 记住选择
 
-- **WHEN** 用户选了暗色后重启应用
-- **THEN** 首帧就是暗色，不会先闪一下亮色
+- **WHEN** 用户选了浅黑后重启应用
+- **THEN** 首帧就是浅黑，不会先闪一下亮色
+
+#### Scenario: 换主题不串台
+
+- **WHEN** 用户从浅黑切到暗色
+- **THEN** 根节点上只剩 `dark`，不会两套令牌同时生效
+
+#### Scenario: 系统配色不参与
+
+- **WHEN** 系统处于暗色模式，而应用里选的是亮色
+- **THEN** 界面按亮色渲染，输入框的底色也跟随应用主题而不是系统
 
 ### Requirement: 引擎信息在设置里
 
@@ -60,6 +70,7 @@ TBD - created by archiving change 2026-09-23-add-settings-page. Update Purpose a
 
 - **WHEN** 用户在设置里选了输出目录并返回
 - **THEN** 主界面底栏显示新的输出位置
+
 ### Requirement: 界面字号
 
 系统 SHALL 在设置页的「外观」分类里提供界面字号选择，取值范围 SHALL 为 10–24px 的每一个整数，默认 14px。选择 SHALL 被记住。字号 SHALL 作为根字号生效，全站文字、间距与控件高度 SHALL 一起等比缩放。界面 SHALL 报出由基准派生出的可见字号（正文、元信息、小节标题）。
@@ -92,4 +103,3 @@ TBD - created by archiving change 2026-09-23-add-settings-page. Update Purpose a
 
 - **WHEN** 用户在 940×600 的窗口里把字号调到 24px
 - **THEN** 窗口最小尺寸仍是 940×600，两栏宽度不变，顶栏与底栏文字被截断但按钮完整可点
-
