@@ -77,7 +77,7 @@ $bytes = [System.IO.File]::ReadAllBytes("fixture_10s.mp4")[0..1048575]
 | --- | --- |
 | 系统 | Windows |
 | Node / npm | v22.23.2 / 10.9.8 |
-| ffmpeg / ffprobe | 8.0.1 essentials build（gyan.dev） |
+| ffmpeg / ffprobe | 9.0.2 essentials build（gyan.dev），2026-09-23 从 8.0.1 升级 |
 | git | 2.45.1.windows.1 |
 
 ## 5. 开发期记录
@@ -105,3 +105,9 @@ $bytes = [System.IO.File]::ReadAllBytes("fixture_10s.mp4")[0..1048575]
 | `a435dbb` | 端到端：AI 建议 | 模型两次不按 JSON 输出：一次长篇反问（要分辨率、时长、场景），一次直接给方案分析。定案：不指望模型守格式，改从回答里提取要点；体积优先取用户输入里的数字，避免把模型说的"微信限制 100MB"当成用户目标 |
 | `9daba8f` | 单测：设置解析 | 手写设置文件（缺 `version` 字段）被过度保守地整份丢弃。改为只有版本号冲突才回默认，缺字段逐项补默认值 |
 | `685b344` | 端到端（打包后的 exe） | 通过：探测 → 抽帧 → 转换 896ms，输出 2.2 MB；打包产物与开发环境行为一致 |
+
+### 环境变更记录
+
+| 日期 | 变更 | 重测结果 |
+| --- | --- | --- |
+| 2026-09-23 | ffmpeg / ffprobe 8.0.1 → 9.0.2（同一来源 gyan.dev essentials build，配置一致） | 集成测试 15 条全绿；应用端到端自检通过（795ms、输出 2.2 MB）。旧版本目录已删除，系统 PATH 指向新目录；改动前的系统 PATH 备份在 `G:\develop\path-backup-before-ffmpeg-9.0.2.txt` |
