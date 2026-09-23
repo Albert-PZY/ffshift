@@ -354,15 +354,18 @@ ffshift/
 │  ├─ git-workflow.md        # 提交与分支规范（题 5）
 │  ├─ automation.md          # 钩子与文档沉淀机制
 │  ├─ writing-style.md       # 文案契约（tone 规则）
-│  └─ project-status.md      # 项目状态页（自动生成，勿手改）
+│  ├─ design-system.md       # 设计系统：颜色 / 字体 / 间距 / 组件规范
+│  ├─ project-status.md      # 项目状态页（自动生成，勿手改）
+│  └─ screenshots/           # 界面截图（自动生成）
 ├─ openspec/                 # 规格驱动：specs 是现状，changes 是提案
+├─ scripts/                  # 钩子实现、文档沉淀、验证、素材与图标脚本
+├─ resources/                # 应用图标（打包用）
 ├─ .githooks/                # git 钩子（core.hooksPath 指向这里）
-├─ .ffshift/config.json      # 自动化开关与阈值
-├─ scripts/                  # 钩子实现、文档沉淀、验证脚本
-├─ design-system/ffshift/MASTER.md
-├─ scripts/gen-fixtures.ps1  # 生成测试视频
+├─ .ffshift/                 # 自动化配置：config.json、ai-context.md
 └─ README.md
 ```
+
+**关于 `src/` 的分层**：原计划按 `features/media`、`features/convert` 分，实际没这么做。当前界面只有一屏，状态集中在 `store.ts`，纯逻辑进 `src/lib/`，拆 features 只会多出空目录。等界面长出第二个屏（比如批量任务页、设置页独立）再拆，那时按业务边界分才有依据。
 
 模块按业务归属组织（features），纯逻辑进 `lib/`（可单测，主进程与渲染进程共用），通用组件只有确实复用时才进 `components/`。
 
@@ -471,7 +474,7 @@ ffprobe -v error -print_format json -show_format -show_streams "input.mp4"
 
 ## 7. 界面规范（ui-ux-pro-max 落地）
 
-> 设计系统已持久化：`design-system/ffshift/MASTER.md`（界面实现以该文件为准）。
+> 设计系统已持久化：`docs/design-system.md`（界面实现以该文件为准）。
 > 来源与调整：风格、动效、检查清单来自 ui-ux-pro-max 的 **Minimalism & Swiss Style** 条目；暗色底参考其 **Developer Tool / IDE** 调色条目。经检索验证，数据集的现成配色没有可直接套用的"桌面工具 / 暗色 / 极简"条目，故按风格约束做两处标注调整：背景改中性近黑、交互强调色统一为单色蓝、绿色只保留给"已完成"。落地页版式不适用于桌面应用，不采用。
 
 ### 7.1 布局与信息结构
@@ -496,7 +499,7 @@ ffprobe -v error -print_format json -show_format -show_streams "input.mp4"
 - 转换中：行内进度；总进度只在底部出现一次；
 - 完成：行内变为「已完成 · 打开输出目录」，托盘通知一次。
 
-### 7.2 视觉规范（摘要，完整见 MASTER.md）
+### 7.2 视觉规范（摘要，完整见 `docs/design-system.md`）
 
 原则：**颜色不参与分层**。层级用间距、字重和 1px 边框表达；颜色只表达状态和唯一主按钮。
 

@@ -1,6 +1,7 @@
-# Design System Master File · FFShift
+# Design System · FFShift
 
-> 构建界面前先读本文件；若存在 `design-system/ffshift/pages/[page].md`，该页以页面文件为准。
+> 这份文件原位于 `design-system/ffshift/MASTER.md`，2026-09-23 目录整理时并入 `docs/`，内容未改。
+> 构建界面前先读本文件：颜色、字体、间距、组件规范都在这里，界面实现以它为准。
 
 **Project:** FFShift（桌面视频格式转换器）
 **Generated:** 2026-09-22 · **Dials:** 克制 2/10 · 动效 2/10 · 密度 6/10
