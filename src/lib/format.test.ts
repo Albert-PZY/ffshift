@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { formatBytes, formatDuration, formatPercent, formatRemaining, formatSpeed } from './format';
+import {
+  formatBytes,
+  formatDuration,
+  formatPercent,
+  formatRemaining,
+  formatSizeChange,
+  formatSizeDelta,
+  formatSpeed,
+} from './format';
 
 describe('formatBytes', () => {
   it('按二进制单位换算，保留一位小数', () => {
@@ -84,5 +92,35 @@ describe('formatRemaining', () => {
   it('无法估算时返回占位符', () => {
     expect(formatRemaining(Number.NaN)).toBe('—');
     expect(formatRemaining(Number.POSITIVE_INFINITY)).toBe('—');
+  });
+});
+
+describe('formatSizeChange', () => {
+  it('给出源 → 产物与增减百分比', () => {
+    const hundredMiB = 100 * 1024 * 1024;
+    const fiftyMiB = 50 * 1024 * 1024;
+    expect(formatSizeChange(hundredMiB, fiftyMiB)).toBe('100.0 MiB → 50.0 MiB（-50%）');
+    expect(formatSizeChange(fiftyMiB, hundredMiB)).toBe('50.0 MiB → 100.0 MiB（+100%）');
+  });
+
+  it('拿不到产物体积时返回 null，而不是编一个 0%', () => {
+    expect(formatSizeChange(1024, null)).toBeNull();
+    expect(formatSizeChange(1024, 0)).toBeNull();
+    // 源文件大小没读出来时同样算不出来
+    expect(formatSizeChange(0, 1024)).toBeNull();
+    expect(formatSizeChange(Number.NaN, 1024)).toBeNull();
+  });
+});
+
+describe('formatSizeDelta', () => {
+  it('只给百分比，正数带加号', () => {
+    expect(formatSizeDelta(1000, 2000)).toBe('+100%');
+    expect(formatSizeDelta(1000, 500)).toBe('-50%');
+    expect(formatSizeDelta(1000, 1000)).toBe('0%');
+  });
+
+  it('数据不全时返回 null', () => {
+    expect(formatSizeDelta(1000, null)).toBeNull();
+    expect(formatSizeDelta(0, 1000)).toBeNull();
   });
 });

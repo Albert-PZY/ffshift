@@ -17,9 +17,10 @@ import {
 import { createPreset, exportPresets, importPresets, type CustomPreset } from './lib/presets';
 import { DEFAULT_ADVANCED, type AdvancedParams } from './lib/advanced-params';
 import type { MediaInfo } from './lib/ffprobe';
+import type { TaskStatus } from './lib/task-status';
 
-/** 任务状态；界面上的五个状态词与这里一一对应 */
-export type TaskStatus = 'reading' | 'ready' | 'queued' | 'running' | 'done' | 'failed' | 'cancelled' | 'unsupported';
+/** 任务状态；界面上的五个状态词与这里一一对应（定义在 lib/task-status.ts） */
+export type { TaskStatus };
 
 export interface TaskItem {
   id: string;
