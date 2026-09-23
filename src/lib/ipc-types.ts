@@ -6,7 +6,7 @@ import type { ConvertOutcome, ProgressUpdate } from '../../electron/ffmpeg/conve
 import type { AdvancedParams } from './advanced-params';
 import type { MediaInfo } from './ffprobe';
 import type { OutputFormat, Preset } from './ffmpeg-args';
-import type { AppSettings, Theme } from './settings';
+import type { AppSettings, FontSize, Theme } from './settings';
 
 export interface ProbeResponse {
   ok: boolean;
@@ -104,6 +104,11 @@ export interface FfshiftApi {
    * 否则第一帧永远是亮色，暗色用户每次启动都会看见一记白闪。
    */
   initialTheme: Theme;
+  /**
+   * 启动时的界面字号档位。与主题同理：根字号决定整个界面的尺寸，
+   * 晚一帧就会看见界面先小后大地跳一下。
+   */
+  initialFontSize: FontSize;
   onProgress: (listener: (event: ProgressEvent) => void) => () => void;
   onFinished: (listener: (event: FinishedEvent) => void) => () => void;
   /** 拖放的 File 对象在渲染进程拿不到磁盘路径，必须走它 */

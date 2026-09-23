@@ -8,6 +8,7 @@ import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { extname, join } from 'node:path';
 import { promisify } from 'node:util';
 import { buildArgs } from '../src/lib/ffmpeg-args';
+import { minWindowSize } from '../src/lib/font-scale';
 import { assessConvertibility } from '../src/lib/ffprobe';
 import type {
   ConvertRequest,
@@ -16,6 +17,7 @@ import type {
   ProbeResponse,
   ThumbnailResponse,
 } from '../src/lib/ipc-types';
+import type { FontSize } from '../src/lib/settings';
 import { loadSettings, saveSettings } from './settings';
 import { resolveBinaries } from './ffmpeg/binary';
 import { startConvert, type ConvertHandle } from './ffmpeg/convert';
@@ -242,7 +244,33 @@ export function registerIpc({ getWindow }: Deps): void {
   });
 
   ipcMain.handle('ffshift:load-settings', async () => loadSettings());
-  ipcMain.handle('ffshift:save-settings', async (_event, settings: unknown) => saveSettings(settings));
+
+  /**
+   * 字号变了，窗口的下限也要跟着变。
+   *
+   * 只设 min 不够：当前窗口可能已经比新下限还小（用户在小窗口里选了大字号），
+   * 那就主动撑开——三栏挤不下的界面不叫"字号可用"。
+   * 最大化 / 全屏时不碰尺寸，那是用户自己定的。
+   */
+  const applyMinSize = (fontSize: FontSize): void => {
+    const window = getWindow();
+    if (!window) return;
+
+    const min = minWindowSize(fontSize);
+    window.setMinimumSize(min.width, min.height);
+    if (window.isMaximized() || window.isFullScreen()) return;
+
+    const [width = 0, height = 0] = window.getSize();
+    if (width < min.width || height < min.height) {
+      window.setSize(Math.max(width, min.width), Math.max(height, min.height));
+    }
+  };
+
+  ipcMain.handle('ffshift:save-settings', async (_event, settings: unknown) => {
+    const saved = saveSettings(settings);
+    applyMinSize(saved.fontSize);
+    return saved;
+  });
 
   // 无边框窗口：标题栏是自己画的，三个按钮与最大化状态都得有对应通道。
   // 用 send 而不是 invoke：这些都是"发出去就完成"的动作，等回执只会让按钮感觉有延迟。

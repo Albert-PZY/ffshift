@@ -1,6 +1,7 @@
 import { app, BrowserWindow, shell } from 'electron';
 import { rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { FONT_SIZE_ARG_PREFIX, minWindowSize } from '../src/lib/font-scale';
 import { THEME_ARG_PREFIX, windowBackground } from '../src/lib/theme';
 import { disposeIpc, registerIpc } from './ipc';
 import { loadSettings } from './settings';
@@ -21,15 +22,18 @@ if (process.env.FFSHIFT_SMOKE === 'shot' && !process.argv.some((arg) => arg.star
 let mainWindow: BrowserWindow | null = null;
 
 function createWindow(): void {
-  // 主题要在建窗口之前读出来：窗口底色与首帧都靠它，
-  // 晚一步就是每次启动闪一下另一个颜色（暗色用户尤其明显）
-  const theme = loadSettings().theme;
+  // 主题与字号要在建窗口之前读出来：窗口底色与首帧都靠它们，
+  // 晚一步就是每次启动闪一下另一个颜色、或者界面先小后大地跳一下
+  const settings = loadSettings();
+  const theme = settings.theme;
+  // 最小尺寸跟着字号走：三栏按当前字号排得下才叫"能用"（见 font-scale.ts）
+  const minSize = minWindowSize(settings.fontSize);
 
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    minWidth: 940,
-    minHeight: 600,
+    minWidth: minSize.width,
+    minHeight: minSize.height,
     // 与当前主题的 --background 同一个值：窗口先出来时不该闪一下另一个颜色
     backgroundColor: windowBackground(theme),
     show: false,
@@ -42,8 +46,8 @@ function createWindow(): void {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
-      // 渲染进程要能同步拿到主题，见 src/lib/ipc-types.ts 的 initialTheme
-      additionalArguments: [`${THEME_ARG_PREFIX}${theme}`],
+      // 渲染进程要能同步拿到主题与字号，见 src/lib/ipc-types.ts 的 initialTheme
+      additionalArguments: [`${THEME_ARG_PREFIX}${theme}`, `${FONT_SIZE_ARG_PREFIX}${settings.fontSize}`],
     },
   });
 

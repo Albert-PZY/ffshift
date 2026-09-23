@@ -3,6 +3,7 @@
  * 渲染进程拿不到 Node，只能调这里列出的方法。
  */
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
+import { fontSizeFromArgv } from '../src/lib/font-scale';
 import type { AppSettings } from '../src/lib/settings';
 import { themeFromArgv } from '../src/lib/theme';
 import type {
@@ -46,8 +47,9 @@ const api: FfshiftApi & { getPathForFile: (file: File) => string } = {
     isMaximized: () => ipcRenderer.invoke('ffshift:frame-maximized') as Promise<boolean>,
   },
 
-  // 主进程在建窗口时写进 argv，所以这里是同步值
+  // 主进程在建窗口时写进 argv，所以这两个是同步值
   initialTheme: themeFromArgv(process.argv),
+  initialFontSize: fontSizeFromArgv(process.argv),
 
   onProgress: (listener) => {
     const handler = (_event: unknown, payload: ProgressEvent) => listener(payload);
