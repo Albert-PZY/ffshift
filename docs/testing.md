@@ -5,7 +5,7 @@
 
 ## 1. 自动化测试（已落地）
 
-命令：`npm run test:unit`（251 条）、`npm run test:integration`（25 条，真实调用本机 ffmpeg）、`npm run test:e2e`（9 条，驱动真实界面）。
+命令：`npm run test:unit`（257 条）、`npm run test:integration`（25 条，真实调用本机 ffmpeg）、`npm run test:e2e`（12 条，驱动真实界面）。
 集成测试在环境没有 ffmpeg 时整组跳过（`describe.skipIf`），不会挡住协作者。
 
 三层测试的分工：单测盯纯逻辑与参数构造；集成测试盯 ffmpeg 跑不跑得通；端到端盯"界面上点一下，整条链路对不对"。
@@ -16,6 +16,7 @@
 | `src/lib/format.test.ts` | 字节 / 时长 / 百分比 / 速度 / 剩余时间 / 体积变化，含非法输入与越界收敛 |
 | `src/lib/task-status.test.ts` | 八个状态的标签与色档、状态词与文案契约一致、活跃/结束判定 |
 | `src/lib/ffmpeg-version.test.ts` | 从完整版本串里取版本号：构建标签、git 构建前缀、认不出时的兜底 |
+| `src/lib/theme.test.ts` | 主题两态切换、显示名、窗口底色与令牌的对应、从 argv 认主题的兜底 |
 | `src/lib/progress.test.ts` | `key=value` 块解析、`out_time_ms` 实为微秒的坑、流式分块拼接 |
 | `src/lib/ffmpeg-args.test.ts` | 三档预设、硬件加速、无音轨不加音频参数、目标体积反推码率、输出路径 |
 | `src/lib/errors.test.ts` | 五类常见报错转人话、取消、兜底、输出打不开的误判 |
@@ -133,3 +134,4 @@ $bytes = [System.IO.File]::ReadAllBytes("fixture_10s.mp4")[0..1048575]
 | 2026-09-23 | `refactor/ui-enso-language` 界面重构（内化 EnsoCode 设计语言） | 见 ADR-015 | 待人工确认（验证信息：单测 251 条全绿、typecheck 通过、`npm run build` 通过、e2e 9 条全绿（28.2s）；截图重拍，5 个中间态（待转换 / 转换中 / 已完成 / 历史 / hover）人工看过） |
 | 2026-09-23 | `fcda2bd` lib: 抽出状态、格式与版本号的纯函数 | 9 个文件 | 待人工确认（验证信息：单测 251 条全绿（新增 14 条）） <!-- commit:fcda2bd --> |
 | 2026-09-23 | `bbc881b` ui: 用 EnsoCode 的语言重写界面 | 22 个文件 | 待人工确认（验证信息：typecheck、build 通过；五个中间态（待转换 / 转换中 / 已完成 / 历史 / ho） <!-- commit:bbc881b --> |
+| 2026-09-23 | 修复参数面板（下拉层被对话框遮罩盖住）+ 亮暗主题 | 见 ADR-016 | 待人工确认（验证信息：单测 257 条全绿、typecheck 通过、build 通过、e2e 12 条全绿（40.1s，新增 3 条：对话框内下拉选值 / 数字与文本输入 / 主题切换与重启记忆）；诊断脚本逐个驱动 19 个控件，改到的 store 字段全部正确；亮暗两套主题各自截图人工看过） |
