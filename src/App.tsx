@@ -1,11 +1,28 @@
 /**
- * 主界面：导入的文件排成一列，选档位与输出格式，按顺序转换。
+ * 主界面：三栏工作台。
  *
- * 布局对应 docs/design-system.md：顶栏放运行状态，工具栏放档位与格式，
- * 中间是任务列表，底部只有一个主动作（开始转换）。
- * 所有 ffmpeg 相关的事都走 window.ffshift（preload 暴露的白名单），界面不碰 Node。
+ *   左栏：批量设置（档位、输出格式）+ AI 建议 + 文件操作
+ *   中栏：转换队列
+ *   右栏：选中任务的真实媒体信息
+ *
+ * 布局参考 v0.app 生成的版本；数据与动作全部接真实的 store 与 IPC ——
+ * 界面上的每个控件都对应一个已实现的能力。v0 原稿里的编码器选择、CRF 滑块、
+ * 音频与帧率下拉都不在这里：后端是按档位固定参数的，做出来只会骗用户。
  */
-import { useState, type DragEvent } from 'react';
+import { useEffect, useRef, useState, type DragEvent } from 'react';
+import {
+  Check,
+  ChevronDown,
+  FolderOpen,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Play,
+  Plus,
+  Sparkles,
+  Trash2,
+  Upload,
+  X,
+} from 'lucide-react';
 import { describeSuggestion, type Suggestion } from './lib/ai-suggest';
 import { formatBytes, formatDuration, formatPercent, formatRemaining, formatSpeed } from './lib/format';
 import type { OutputFormat, Preset } from './lib/ffmpeg-args';
@@ -18,28 +35,18 @@ const PRESETS: Array<{ id: Preset; label: string; note: string }> = [
 ];
 
 /** 输出格式按用途分组：视频 / 动图 / 音频（从视频里提取声音） */
-const FORMAT_GROUPS: Array<{ label: string; options: Array<{ id: OutputFormat; label: string }> }> = [
-  {
-    label: '视频',
-    options: [
-      { id: 'same', label: '保持原格式' },
-      { id: 'mp4', label: 'MP4（最通用）' },
-      { id: 'mkv', label: 'MKV（装得下几乎一切）' },
-      { id: 'mov', label: 'MOV（苹果生态）' },
-      { id: 'webm', label: 'WebM（网页、体积小）' },
-    ],
-  },
-  { label: '动图', options: [{ id: 'gif', label: 'GIF（自动调色板）' }] },
-  {
-    label: '音频（只留声音）',
-    options: [
-      { id: 'mp3', label: 'MP3' },
-      { id: 'm4a', label: 'M4A' },
-      { id: 'opus', label: 'Opus' },
-      { id: 'flac', label: 'FLAC（无损）' },
-      { id: 'wav', label: 'WAV（无损）' },
-    ],
-  },
+const FORMAT_OPTIONS: Array<{ value: OutputFormat; label: string; note: string }> = [
+  { value: 'same', label: '保持原格式', note: '跟随源文件容器' },
+  { value: 'mp4', label: 'MP4', note: '最通用' },
+  { value: 'mkv', label: 'MKV', note: '装得下几乎一切' },
+  { value: 'mov', label: 'MOV', note: '苹果生态' },
+  { value: 'webm', label: 'WebM', note: '网页、体积小' },
+  { value: 'gif', label: 'GIF', note: '动图，自动调色板' },
+  { value: 'mp3', label: 'MP3', note: '只留声音' },
+  { value: 'm4a', label: 'M4A', note: '只留声音' },
+  { value: 'opus', label: 'Opus', note: '只留声音' },
+  { value: 'flac', label: 'FLAC', note: '只留声音，无损' },
+  { value: 'wav', label: 'WAV', note: '只留声音，无损' },
 ];
 
 const STATUS_LABEL: Record<TaskItem['status'], string> = {
@@ -53,10 +60,246 @@ const STATUS_LABEL: Record<TaskItem['status'], string> = {
   unsupported: '不支持',
 };
 
-/**
- * AI 建议区：一句话描述用途，拿到档位建议。
- * 界面上会标出建议来自模型还是本地规则——降级发生时用户有权知道。
- */
+/** 自定义下拉：原生 select 太系统化，这里做成菜单，支持外部点击与 Esc 关闭 */
+function Menu<T extends string>({
+  value,
+  options,
+  onChange,
+  ariaLabel,
+}: {
+  value: T;
+  options: Array<{ value: T; label: string; note?: string }>;
+  onChange: (value: T) => void;
+  ariaLabel: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const boxRef = useRef<HTMLDivElement>(null);
+  const current = options.find((item) => item.value === value) ?? options[0];
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: MouseEvent) => {
+      if (boxRef.current && !boxRef.current.contains(event.target as Node)) setOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div className="menu" ref={boxRef}>
+      <button
+        type="button"
+        className="menu-trigger"
+        aria-label={ariaLabel}
+        aria-expanded={open}
+        onClick={() => setOpen((previous) => !previous)}
+      >
+        <span>{current?.label ?? '—'}</span>
+        <ChevronDown className={open ? 'is-open' : ''} />
+      </button>
+
+      {open && (
+        <div className="menu-popover" role="listbox" aria-label={ariaLabel}>
+          {options.map((item) => (
+            <button
+              type="button"
+              key={item.value}
+              role="option"
+              aria-selected={item.value === value}
+              className={`menu-item ${item.value === value ? 'active' : ''}`}
+              onClick={() => {
+                onChange(item.value);
+                setOpen(false);
+              }}
+            >
+              <span>{item.label}</span>
+              {item.note && <small>{item.note}</small>}
+              {item.value === value && <Check />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** 进度条：时长未知时走不确定态，不让用户误以为卡在某个固定百分比 */
+function ProgressBar({ task }: { task: TaskItem }) {
+  const percent = task.progress?.percent ?? null;
+  const indeterminate = percent === null && task.status === 'running';
+
+  return (
+    <div className={`progress ${indeterminate ? 'is-indeterminate' : ''}`}>
+      <i
+        className={task.status === 'done' ? 'is-done' : ''}
+        style={indeterminate ? undefined : { width: `${Math.round((percent ?? 0) * 100)}%` }}
+      />
+    </div>
+  );
+}
+
+/** 一行任务：缩略图 + 名称 + 媒体信息 + 状态 + 该状态下可用的动作 */
+function QueueRow({ task, selected, onSelect }: { task: TaskItem; selected: boolean; onSelect: () => void }) {
+  const cancelTask = useStore((s) => s.cancelTask);
+  const removeTask = useStore((s) => s.removeTask);
+
+  const running = task.status === 'running';
+  const finished = ['done', 'failed', 'cancelled', 'unsupported'].includes(task.status);
+
+  return (
+    <article
+      className={`queue-row ${selected ? 'is-selected' : ''}`}
+      role="button"
+      tabIndex={0}
+      aria-label={`${task.name}，${STATUS_LABEL[task.status]}`}
+      onClick={onSelect}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') onSelect();
+      }}
+    >
+      <div className="thumb">
+        {task.thumbnail ? (
+          <img src={task.thumbnail} alt="" />
+        ) : (
+          <span className="thumb-empty">{task.status === 'reading' ? '读取中' : '无预览'}</span>
+        )}
+      </div>
+
+      <div className="queue-main">
+        <div className="queue-title">
+          <strong title={task.path}>{task.name}</strong>
+          <span className={`status status-${task.status}`}>
+            <i />
+            {STATUS_LABEL[task.status]}
+          </span>
+        </div>
+
+        <span className="queue-meta">
+          {task.info
+            ? [
+                task.info.durationSec !== null ? formatDuration(task.info.durationSec) : '时长未知',
+                task.info.width ? `${task.info.width}×${task.info.height ?? '?'}` : null,
+                task.sizeBytes ? formatBytes(task.sizeBytes) : null,
+              ]
+                .filter(Boolean)
+                .join(' · ')
+            : (task.reason ?? '正在读取…')}
+        </span>
+
+        {running && (
+          <div className="progress-row">
+            <ProgressBar task={task} />
+            <small>
+              {task.progress?.percent != null ? formatPercent(task.progress.percent) : '进行中'}
+              {task.progress?.remainingSec != null ? ` · 剩余 ${formatRemaining(task.progress.remainingSec)}` : ''}
+              {task.progress?.speed ? ` · ${formatSpeed(task.progress.speed)}` : ''}
+            </small>
+          </div>
+        )}
+      </div>
+
+      <div className="row-actions" onClick={(event) => event.stopPropagation()}>
+        {running && (
+          <button
+            type="button"
+            className="row-action"
+            title="取消"
+            aria-label={`取消 ${task.name}`}
+            onClick={() => void cancelTask(task.id)}
+          >
+            <X />
+          </button>
+        )}
+        {finished && (
+          <button
+            type="button"
+            className="row-action is-danger"
+            title="移除"
+            aria-label={`移除 ${task.name}`}
+            onClick={() => removeTask(task.id)}
+          >
+            <Trash2 />
+          </button>
+        )}
+      </div>
+    </article>
+  );
+}
+
+/** 详情栏：选中任务的完整媒体信息；字段缺失显示 —，不显示 NaN */
+function Inspector({ task, onClose }: { task: TaskItem; onClose: () => void }) {
+  const info = task.info;
+
+  const field = (label: string, value: string | null) => (
+    <div className="field">
+      <dt>{label}</dt>
+      <dd className={value ? '' : 'is-empty'}>{value ?? '—'}</dd>
+    </div>
+  );
+
+  return (
+    <aside className="inspector">
+      <div className="inspector-head">
+        <div>
+          <span className="kicker">任务详情</span>
+          <h2 title={task.path}>{task.name}</h2>
+        </div>
+        <button type="button" className="icon-button" aria-label="收起详情" onClick={onClose}>
+          <X />
+        </button>
+      </div>
+
+      <div className="inspector-body">
+        <div className="inspector-preview">
+          {task.thumbnail ? <img src={task.thumbnail} alt="" /> : <span>无预览</span>}
+        </div>
+
+        {task.reason && <p className="reason">{task.reason}</p>}
+
+        <p className="field-group-title">媒体信息</p>
+        {field('时长', info?.durationSec != null ? formatDuration(info.durationSec) : null)}
+        {field('分辨率', info?.width ? `${info.width} × ${info.height ?? '?'}` : null)}
+        {field('帧率', info?.fps ? `${info.fps} fps` : null)}
+        {field('视频编码', info?.videoCodec ?? null)}
+        {field('音频编码', info?.audioCodec ?? null)}
+        {field('声道', info?.channels != null ? String(info.channels) : null)}
+        {field('容器', info?.container ?? null)}
+        {field('码率', info?.bitrateKbps != null ? `${info.bitrateKbps} kbps` : null)}
+        {field('像素格式', info?.pixelFormat ?? null)}
+        {field('体积', task.sizeBytes ? formatBytes(task.sizeBytes) : null)}
+
+        <p className="field-group-title">处理</p>
+        {field('状态', STATUS_LABEL[task.status])}
+        {field('输出文件', task.output ? (task.output.split(/[\\/]/).pop() ?? null) : null)}
+      </div>
+
+      <div className="inspector-foot">
+        {task.status === 'done' && task.output && (
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => void window.ffshift?.revealOutput(task.output ?? '')}
+          >
+            <FolderOpen />
+            打开输出目录
+          </button>
+        )}
+        <button type="button" className="secondary-button" onClick={onClose}>
+          收起
+        </button>
+      </div>
+    </aside>
+  );
+}
+
+/** AI 建议：一句话说用途；降级到本地规则时如实标注来源 */
 function Assistant({ onApply }: { onApply: (preset: Preset, targetSizeMiB: number | null) => void }) {
   const [idea, setIdea] = useState('');
   const [advice, setAdvice] = useState<{ suggestion: Suggestion; text: string; note: string } | null>(null);
@@ -78,131 +321,49 @@ function Assistant({ onApply }: { onApply: (preset: Preset, targetSizeMiB: numbe
   };
 
   return (
-    <section className="assistant">
-      <input
-        className="idea-input"
-        placeholder="一句话说用途，比如：压到 50MB 发微信"
-        value={idea}
-        onChange={(event) => setIdea(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') void ask();
-        }}
-        aria-label="描述用途"
-      />
-      <button
-        type="button"
-        className="btn-secondary"
-        disabled={thinking || idea.trim().length === 0}
-        onClick={() => void ask()}
-      >
-        {thinking ? '正在想…' : '让 AI 给建议'}
-      </button>
+    <section className="rail-section">
+      <label>让 AI 给建议</label>
+      <div className="assistant">
+        <input
+          className="idea-input"
+          placeholder="一句话说用途，比如：压到 50MB 发微信"
+          value={idea}
+          aria-label="描述用途"
+          onChange={(event) => setIdea(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') void ask();
+          }}
+        />
+        <button
+          type="button"
+          className="secondary-button full"
+          disabled={thinking || idea.trim().length === 0}
+          onClick={() => void ask()}
+        >
+          <Sparkles />
+          {thinking ? '正在想…' : '给出建议'}
+        </button>
 
-      {advice && (
-        <div className="advice">
-          <span className={`advice-tag ${advice.suggestion.source === 'ai' ? 'is-ai' : 'is-rules'}`}>
-            {advice.suggestion.source === 'ai' ? '模型建议' : '本地规则'}
-          </span>
-          <span className="advice-text">
-            {advice.text}
-            <span className="advice-note">（{advice.note}）</span>
-          </span>
-          <button
-            type="button"
-            className="btn-ghost"
-            onClick={() => onApply(advice.suggestion.preset, advice.suggestion.targetSizeMiB)}
-          >
-            用这个档
-          </button>
-        </div>
-      )}
-    </section>
-  );
-}
-
-/** 进度条：时长未知时走不确定态（来回滑动），不让用户误以为卡在某个固定百分比 */
-function ProgressBar({ task }: { task: TaskItem }) {
-  const percent = task.progress?.percent ?? null;
-  const width = percent === null ? 100 : Math.round(percent * 100);
-  const indeterminate = percent === null && task.status === 'running';
-
-  return (
-    <div className={`progress ${indeterminate ? 'is-indeterminate' : ''}`} aria-hidden={percent === null}>
-      <div
-        className={`progress-fill ${task.status === 'done' ? 'is-done' : ''}`}
-        style={{ width: indeterminate ? '35%' : `${width}%` }}
-      />
-    </div>
-  );
-}
-
-/** 一行任务：缩略图 + 媒体信息 + 状态 + 该状态下可用的动作 */
-function TaskRow({ task }: { task: TaskItem }) {
-  const cancelTask = useStore((s) => s.cancelTask);
-  const removeTask = useStore((s) => s.removeTask);
-
-  return (
-    <li className="row">
-      <div className="thumb">
-        {task.thumbnail ? (
-          <img src={task.thumbnail} alt="" />
-        ) : (
-          <span className="thumb-empty">{task.status === 'reading' ? '…' : '无图'}</span>
-        )}
-      </div>
-
-      <div className="meta">
-        <div className="name" title={task.path}>
-          {task.name}
-        </div>
-        <div className="sub">
-          {task.info ? (
-            <>
-              {task.info.durationSec !== null ? formatDuration(task.info.durationSec) : '时长未知'}
-              {task.info.width ? ` · ${task.info.width}×${task.info.height ?? '?'}` : ''}
-              {task.sizeBytes ? ` · ${formatBytes(task.sizeBytes)}` : ''}
-            </>
-          ) : (
-            task.reason ?? '正在读取…'
-          )}
-        </div>
-        {task.status === 'running' && (
-          <div className="progress-line">
-            <ProgressBar task={task} />
-            <span className="progress-text">
-              {task.progress?.percent !== null && task.progress?.percent !== undefined
-                ? formatPercent(task.progress.percent)
-                : '进行中'}
-              {task.progress?.remainingSec != null ? ` · 剩余 ${formatRemaining(task.progress.remainingSec)}` : ''}
-              {task.progress?.speed ? ` · ${formatSpeed(task.progress.speed)}` : ''}
+        {advice && (
+          <div className="advice">
+            <span className={`advice-tag ${advice.suggestion.source === 'ai' ? 'is-ai' : ''}`}>
+              {advice.suggestion.source === 'ai' ? '模型建议' : '本地规则'}
             </span>
+            <span className="advice-text">
+              {advice.text}
+              <span className="advice-note">（{advice.note}）</span>
+            </span>
+            <button
+              type="button"
+              className="secondary-button full"
+              onClick={() => onApply(advice.suggestion.preset, advice.suggestion.targetSizeMiB)}
+            >
+              用这个档
+            </button>
           </div>
         )}
       </div>
-
-      <div className="right">
-        <span className={`status status-${task.status}`}>{STATUS_LABEL[task.status]}</span>
-        {task.status === 'running' && (
-          <button type="button" className="btn-ghost" onClick={() => void cancelTask(task.id)}>
-            取消
-          </button>
-        )}
-        {task.status === 'done' && task.output && (
-          <button
-            type="button"
-            className="btn-ghost"
-            onClick={() => void window.ffshift?.revealOutput(task.output ?? '')}
-          >
-            打开输出目录
-          </button>
-        )}
-        {['done', 'failed', 'cancelled', 'unsupported'].includes(task.status) && (
-          <button type="button" className="btn-ghost" onClick={() => removeTask(task.id)}>
-            移除
-          </button>
-        )}
-      </div>
-    </li>
+    </section>
   );
 }
 
@@ -212,32 +373,43 @@ export default function App() {
     preset,
     outputFormat,
     targetSizeMiB,
+    hardware,
+    ffmpegVersion,
     addFiles,
     startAll,
     setPreset,
     setOutputFormat,
     applySuggestion,
     clearFinished,
-    ffmpegVersion,
-    hardware,
   } = useStore();
+
   const [dragging, setDragging] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [railOpen, setRailOpen] = useState(true);
+  const [inspectorOpen, setInspectorOpen] = useState(true);
 
-  const pendingCount = tasks.filter((t) => t.status === 'ready' || t.status === 'failed').length;
-  const runningCount = tasks.filter((t) => t.status === 'running').length;
+  const selected = tasks.find((task) => task.id === selectedId) ?? tasks[0] ?? null;
+  const runnableCount = tasks.filter((task) => task.status === 'ready' || task.status === 'failed').length;
+  const runningCount = tasks.filter((task) => task.status === 'running').length;
 
+  const pickFiles = async () => {
+    const paths = await window.ffshift?.pickFiles();
+    if (paths?.length) await addFiles(paths);
+  };
+
+  /** 拖放要走真实路径：Electron 里 File 对象拿不到磁盘路径，需经 preload 的 webUtils */
   const handleDrop = async (event: DragEvent<HTMLElement>) => {
     event.preventDefault();
     setDragging(false);
     const paths = Array.from(event.dataTransfer.files)
       .map((file) => window.ffshift?.getPathForFile(file))
       .filter((path): path is string => Boolean(path));
-    await addFiles(paths);
+    if (paths.length) await addFiles(paths);
   };
 
   return (
-    <div
-      className={`app ${dragging ? 'is-dragging' : ''}`}
+    <main
+      className="ffshift"
       onDragOver={(event) => {
         event.preventDefault();
         setDragging(true);
@@ -245,93 +417,150 @@ export default function App() {
       onDragLeave={() => setDragging(false)}
       onDrop={(event) => void handleDrop(event)}
     >
-      <header className="bar">
-        <div className="brand">
-          <strong>FFShift</strong>
-          <span className="tagline">ffmpeg 的换挡键</span>
-        </div>
-        <div className="bar-right">
-          <span className="hint">
-            {hardware.length > 0 ? `硬件加速可用：${hardware.join(' / ')}` : '使用 CPU 编码'}
-          </span>
-          <span className="hint" title={ffmpegVersion ?? ''}>
-            {ffmpegVersion ? ffmpegVersion.split(' ').slice(0, 3).join(' ') : '未检测到 ffmpeg'}
-          </span>
-        </div>
-      </header>
-
-      <section className="toolbar">
-        <div className="presets" role="radiogroup" aria-label="转换档位">
-          {PRESETS.map((item) => (
+      <div className={`app-shell ${railOpen ? '' : 'rail-hidden'}`}>
+        <header className="topbar">
+          <div className="brand">
             <button
-              key={item.id}
               type="button"
-              role="radio"
-              aria-checked={preset === item.id}
-              className={`chip ${preset === item.id ? 'is-active' : ''}`}
-              onClick={() => setPreset(item.id)}
-              title={item.note}
+              className="icon-button"
+              aria-label={railOpen ? '收起设置栏' : '展开设置栏'}
+              onClick={() => setRailOpen((open) => !open)}
             >
-              {item.label}
+              {railOpen ? <PanelLeftClose /> : <PanelLeftOpen />}
             </button>
-          ))}
-        </div>
-        <label className="format-picker">
-          <span className="hint">输出格式</span>
-          <select
-            value={outputFormat}
-            onChange={(event) => setOutputFormat(event.target.value as OutputFormat)}
-            aria-label="输出格式"
-          >
-            {FORMAT_GROUPS.map((group) => (
-              <optgroup key={group.label} label={group.label}>
-                {group.options.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-        </label>
-        {targetSizeMiB !== null && <span className="hint">目标体积 {targetSizeMiB} MiB</span>}
-        <div className="toolbar-right">
-          <button type="button" className="btn-ghost" onClick={() => void clearFinished()}>
-            清空已完成
-          </button>
-          <button type="button" className="btn-secondary" onClick={() => void window.ffshift?.pickFiles().then((paths) => addFiles(paths ?? []))}>
-            选择文件
-          </button>
-        </div>
-      </section>
-
-      <Assistant onApply={applySuggestion} />
-
-      <main className="list">
-        {tasks.length === 0 ? (
-          <div className="empty">
-            <p>把视频拖进来，或者点上面的「选择文件」。</p>
-            <p className="empty-sub">支持 mp4、mov、mkv、avi、webm 等常见格式。</p>
+            <div className="brand-mark">F</div>
+            <strong>FFShift</strong>
+            <span className="topbar-divider" />
+            <span className="topbar-context">ffmpeg 的换挡键</span>
           </div>
-        ) : (
-          <ul>
-            {tasks.map((task) => (
-              <TaskRow key={task.id} task={task} />
-            ))}
-          </ul>
-        )}
-      </main>
+          <div className="topbar-actions">
+            <span title="编码器可用情况">
+              <span className={`engine-dot ${hardware.length > 0 ? '' : 'is-off'}`} />
+              {hardware.length > 0 ? `硬件加速：${hardware.join(' / ')}` : 'CPU 编码'}
+            </span>
+            <span title={ffmpegVersion ?? ''}>
+              {ffmpegVersion ? ffmpegVersion.split(' ').slice(0, 3).join(' ') : '未检测到 ffmpeg'}
+            </span>
+          </div>
+        </header>
 
-      <footer className="actions">
-        <span className="hint">
-          {tasks.length === 0
-            ? '还没有文件'
-            : `共 ${tasks.length} 个 · 待转换 ${pendingCount} 个${runningCount ? ` · 正在进行 ${runningCount} 个` : ''}`}
-        </span>
-        <button type="button" className="btn-primary" disabled={pendingCount === 0} onClick={() => void startAll()}>
-          {runningCount > 0 ? '继续排队' : '开始转换'}
-        </button>
-      </footer>
-    </div>
+        {railOpen && (
+          <aside className="left-rail">
+            <div className="rail-title">
+              <span className="kicker">转换设置</span>
+            </div>
+
+            <section className="rail-section">
+              <label htmlFor="preset-menu">质量档位</label>
+              <Menu
+                ariaLabel="质量档位"
+                value={preset}
+                onChange={setPreset}
+                options={PRESETS.map((item) => ({ value: item.id, label: item.label, note: item.note }))}
+              />
+
+              <label htmlFor="format-menu">输出格式</label>
+              <Menu
+                ariaLabel="输出格式"
+                value={outputFormat}
+                onChange={setOutputFormat}
+                options={FORMAT_OPTIONS}
+              />
+
+              {targetSizeMiB !== null && <span className="kicker">目标体积 {targetSizeMiB} MiB</span>}
+            </section>
+
+            <Assistant onApply={applySuggestion} />
+
+            <div className="rail-spacer" />
+
+            <button type="button" className="secondary-button full" onClick={() => void clearFinished()}>
+              <Trash2 />
+              清空已完成
+            </button>
+            <button type="button" className="secondary-button full" onClick={() => void pickFiles()}>
+              <Plus />
+              添加视频
+            </button>
+          </aside>
+        )}
+
+        <section className="workspace">
+          <div className="workspace-head">
+            <div>
+              <span className="kicker">工作区</span>
+              <h1>转换队列</h1>
+            </div>
+            <div className="head-actions">
+              <span className="count-pill">{tasks.length} 个文件</span>
+              <button type="button" className="secondary-button" onClick={() => setInspectorOpen((open) => !open)}>
+                {inspectorOpen ? '收起详情' : '打开详情'}
+              </button>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className={`dropzone ${dragging ? 'is-dragging' : ''}`}
+            onClick={() => void pickFiles()}
+          >
+            <Upload />
+            <span>拖入视频，或点击添加</span>
+            <small>支持 MP4、MOV、MKV、WebM、AVI</small>
+          </button>
+
+          {tasks.length === 0 ? (
+            <div className="empty-state">
+              <p>把视频拖进来，或者点上面的「添加视频」。</p>
+              <small>支持 mp4、mov、mkv、avi、webm 等常见格式。</small>
+            </div>
+          ) : (
+            <div className="queue-list">
+              {tasks.map((task) => (
+                <QueueRow
+                  key={task.id}
+                  task={task}
+                  selected={selected?.id === task.id}
+                  onSelect={() => {
+                    setSelectedId(task.id);
+                    setInspectorOpen(true);
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+
+        {inspectorOpen && selected && <Inspector task={selected} onClose={() => setInspectorOpen(false)} />}
+
+        <footer className="bottom-bar">
+          <div>
+            <span className={`live-dot ${runningCount > 0 ? '' : 'is-off'}`} />
+            {tasks.length === 0
+              ? '还没有文件'
+              : `共 ${tasks.length} 个 · 待转换 ${runnableCount} 个${
+                  runningCount ? ` · 正在进行 ${runningCount} 个` : ''
+                }`}
+            <span className="muted">· 输出到原文件夹</span>
+          </div>
+          <button
+            type="button"
+            className="primary-button start"
+            disabled={runnableCount === 0}
+            onClick={() => void startAll()}
+          >
+            <Play />
+            {runningCount > 0 ? '继续排队' : '开始转换'}
+          </button>
+        </footer>
+      </div>
+
+      {dragging && (
+        <div className="drop-overlay">
+          <Upload />
+          <span>松开以添加视频</span>
+        </div>
+      )}
+    </main>
   );
 }
