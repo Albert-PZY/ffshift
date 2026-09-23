@@ -4,7 +4,7 @@
  */
 import { app, dialog, ipcMain, Notification, shell, type BrowserWindow } from 'electron';
 import { execFile } from 'node:child_process';
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { extname, join } from 'node:path';
 import { promisify } from 'node:util';
 import { buildArgs } from '../src/lib/ffmpeg-args';
@@ -85,6 +85,44 @@ export function registerIpc({ getWindow }: Deps): void {
     }
   });
 
+  ipcMain.handle('ffshift:read-presets', async () => {
+    const window = getWindow();
+    const options = {
+      title: '导入参数预设',
+      filters: [{ name: 'JSON 文件', extensions: ['json'] }],
+      properties: ['openFile' as const],
+    };
+    const result = window ? await dialog.showOpenDialog(window, options) : await dialog.showOpenDialog(options);
+    const file = result.filePaths[0];
+    if (result.canceled || !file) return null;
+
+    try {
+      return readFileSync(file, 'utf8');
+    } catch {
+      return null;
+    }
+  });
+
+  ipcMain.handle('ffshift:write-presets', async (_event, content: string) => {
+    if (typeof content !== 'string' || content.length === 0) return { ok: false };
+
+    const window = getWindow();
+    const options = {
+      title: '导出参数预设',
+      defaultPath: 'ffshift-presets.json',
+      filters: [{ name: 'JSON 文件', extensions: ['json'] }],
+    };
+    const result = window ? await dialog.showSaveDialog(window, options) : await dialog.showSaveDialog(options);
+    if (result.canceled || !result.filePath) return { ok: false };
+
+    try {
+      writeFileSync(result.filePath, content, 'utf8');
+      return { ok: true };
+    } catch {
+      return { ok: false };
+    }
+  });
+
   ipcMain.handle('ffshift:notify', async (_event, title: string, body: string) => {
     // 系统通知让用户能去干别的：长任务跑完时人往往不在窗口前面
     if (!Notification.isSupported()) return { ok: false };
@@ -148,6 +186,7 @@ export function registerIpc({ getWindow }: Deps): void {
         targetSizeMiB: request.targetSizeMiB ?? null,
         durationSec: request.durationSec,
         source: request.source,
+        advanced: request.advanced ?? null,
       });
 
       const window = getWindow();

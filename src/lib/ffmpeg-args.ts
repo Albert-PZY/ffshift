@@ -16,6 +16,10 @@
 export type Preset = 'clear' | 'balanced' | 'small';
 export type HwAccel = 'none' | 'nvenc' | 'qsv' | 'amf';
 
+// 只用类型：运行时是 advanced-params 依赖本文件（校验要用 videoCodecFor），
+// 反向再来一次会成环。import type 编译后会被抹掉，不会真的循环引用。
+import type { AdvancedParams } from './advanced-params';
+
 /** 目标格式；same 表示跟随输入文件的容器 */
 export type OutputFormat =
   | 'same'
@@ -57,6 +61,11 @@ export interface ConvertOptions {
   durationSec?: number | null;
   /** 源视频信息；缺省视为不带透明通道 */
   source?: SourceVideoInfo;
+  /**
+   * 专业参数：给懂行的人用。字段为 null 表示不干预，由档位决定，
+   * 所以不填时产出与以前完全一致。校验见 validateAdvanced。
+   */
+  advanced?: AdvancedParams | null;
 }
 
 interface PresetSpec {
@@ -249,10 +258,8 @@ export function estimateVideoBitrateKbps(
 }
 
 interface AlphaComposite {
-  /** 额外那路底色输入的 lavfi 描述 */
+  /** 额外那路底色输入的 lavfi 描述；滤镜图在 videoArgs 里拼，因为它还要考虑画面滤镜 */
   input: string;
-  filter: string;
-  label: string;
 }
 
 /**
@@ -271,9 +278,141 @@ function alphaComposite(container: ContainerSpec, source?: SourceVideoInfo): Alp
 
   return {
     input: `color=white:s=${width}x${height}:r=${fps}`,
-    filter: '[1:v][0:v]overlay=shortest=1[composited]',
-    label: 'composited',
   };
+}
+
+/** 封装参数：专业设置里的 faststart 覆盖容器默认，关掉时整对删掉不留孤立开关 */
+function muxerArgsFor(container: ContainerSpec, advanced: AdvancedParams | null): string[] {
+  const base = [...container.muxerArgs];
+  if (!advanced || advanced.faststart === null) return base;
+
+  const index = base.indexOf('-movflags');
+
+  if (!advanced.faststart) {
+    if (index >= 0) base.splice(index, 2);
+    return base;
+  }
+  if (index < 0 && ['mp4', 'mov', 'm4a'].includes(container.kind)) {
+    base.push('-movflags', '+faststart');
+  }
+  return base;
+}
+
+/**
+ * 画面滤镜：缩放与帧率。
+ * 不填专业参数时返回空数组——不产生 -vf，产出与以前完全一致。
+ */
+function videoFilters(advanced: AdvancedParams | null | undefined): string[] {
+  if (!advanced) return [];
+
+  const filters: string[] = [];
+  if (advanced.scale) {
+    filters.push(`scale=${advanced.scale}:flags=${advanced.scaleAlgorithm ?? 'bicubic'}`);
+  }
+  if (advanced.fps !== null && advanced.fps !== undefined) {
+    filters.push(`fps=${advanced.fps}`);
+  }
+  return filters;
+}
+
+/**
+ * 质量与码率参数。优先级写死在这里，免得界面上的开关互相打架：
+ * 专业设置 → 目标体积 → 容器的固定编码器 → 档位。
+ */
+function qualityArgs(
+  options: ConvertOptions,
+  container: ContainerSpec,
+  presetSpec: PresetSpec,
+  codec: string,
+  hw: HwAccel,
+): string[] {
+  const advanced = options.advanced ?? null;
+  const { targetSizeMiB, durationSec } = options;
+  const vp9Like = /vp8|vp9/i.test(codec);
+
+  // 填了值就算数，不必先选一遍"用哪种模式"；显式选了码率才优先走码率
+  const useBitrate =
+    advanced?.rateControl === 'bitrate' &&
+    advanced.videoBitrateKbps !== null &&
+    advanced.videoBitrateKbps !== undefined;
+  const useCrf = !useBitrate && advanced?.crf !== null && advanced?.crf !== undefined;
+
+  /** 速度预设：专业设置优先，软编给个默认，硬编不吃这个参数 */
+  const speedArgs = (): string[] => {
+    if (advanced?.encoderPreset) return ['-preset', advanced.encoderPreset];
+    return hw === 'none' ? ['-preset', presetSpec.x264Preset] : [];
+  };
+
+  if (useBitrate) {
+    return ['-b:v', `${advanced.videoBitrateKbps}k`, ...speedArgs()];
+  }
+
+  if (useCrf) {
+    // VP9 要恒定质量必须把目标码率设 0，否则会变成受限质量模式
+    const args = ['-crf', String(advanced.crf)];
+    if (vp9Like) args.push('-b:v', '0', '-row-mt', '1');
+    return [...args, ...speedArgs()];
+  }
+
+  if (targetSizeMiB !== undefined && targetSizeMiB !== null) {
+    if (durationSec === undefined || durationSec === null || !Number.isFinite(durationSec) || durationSec <= 0) {
+      throw new Error('目标体积模式需要时长（durationSec），否则无法反推码率');
+    }
+    return ['-b:v', `${estimateVideoBitrateKbps(targetSizeMiB, durationSec, presetSpec.audioKbps)}k`];
+  }
+
+  if (container.kind === 'webm') {
+    // VP9 要恒定质量必须把目标码率设 0，否则会变成受限质量模式；
+    // row-mt 开多线程，不然 VP9 慢到没法用
+    return ['-crf', String(presetSpec.quality), '-b:v', '0', '-row-mt', '1'];
+  }
+
+  switch (hw) {
+    case 'nvenc':
+      return ['-cq', String(presetSpec.quality)];
+    case 'qsv':
+      return ['-global_quality', String(presetSpec.quality)];
+    case 'amf':
+      return ['-rc', 'cqp', '-qp_i', String(presetSpec.quality), '-qp_p', String(presetSpec.quality)];
+    default:
+      return ['-crf', String(presetSpec.quality), ...speedArgs()];
+  }
+}
+
+/**
+ * 视频容器的音频参数。
+ * carriesAudio 单独返回：用了 filter_complex 之后必须显式映射音频，
+ * 而"有没有音频轨"要在拼参数的时候就定下来。
+ */
+function videoAudioArgs(
+  options: ConvertOptions,
+  container: ContainerSpec,
+  presetSpec: PresetSpec,
+): { args: string[]; carriesAudio: boolean } {
+  const advanced = options.advanced ?? null;
+
+  if (advanced?.audioMode === 'none') return { args: ['-an'], carriesAudio: false };
+  if (!options.hasAudio) return { args: [], carriesAudio: false };
+
+  const args: string[] = [];
+
+  if (advanced?.audioMode === 'copy') {
+    args.push('-c:a', 'copy');
+  } else if (container.audioCodec) {
+    args.push('-c:a', advanced?.audioCodec ?? container.audioCodec);
+    args.push('-b:a', `${advanced?.audioBitrateKbps ?? presetSpec.audioKbps}k`);
+  } else {
+    return { args: [], carriesAudio: false };
+  }
+
+  if (advanced?.sampleRate !== null && advanced?.sampleRate !== undefined) {
+    args.push('-ar', String(advanced.sampleRate));
+  }
+  if (advanced?.channels !== null && advanced?.channels !== undefined) {
+    args.push('-ac', String(advanced.channels));
+  }
+
+  return { args, carriesAudio: true };
 }
 
 function videoArgs(
@@ -281,52 +420,49 @@ function videoArgs(
   container: ContainerSpec,
   presetSpec: PresetSpec,
 ): string[] {
-  const { preset, hasAudio = false, targetSizeMiB, durationSec, source } = options;
+  const { preset, source } = options;
+  const advanced = options.advanced ?? null;
   const hw: HwAccel = container.hardware ? (options.hw ?? 'none') : 'none';
 
   const args: string[] = [];
   const composite = alphaComposite(container, source);
+  const filters = videoFilters(advanced);
+
   if (composite) args.push('-f', 'lavfi', '-i', composite.input);
 
-  args.push('-c:v', videoCodecFor(container, preset, hw));
+  const codec = advanced?.videoCodec ?? videoCodecFor(container, preset, hw);
+  args.push('-c:v', codec);
+  args.push(...qualityArgs(options, container, presetSpec, codec, hw));
 
-  if (targetSizeMiB !== undefined && targetSizeMiB !== null) {
-    if (durationSec === undefined || durationSec === null || !Number.isFinite(durationSec) || durationSec <= 0) {
-      throw new Error('目标体积模式需要时长（durationSec），否则无法反推码率');
-    }
-    args.push('-b:v', `${estimateVideoBitrateKbps(targetSizeMiB, durationSec, presetSpec.audioKbps)}k`);
-  } else if (container.kind === 'webm') {
-    // VP9 要恒定质量必须把目标码率设 0，否则会变成受限质量模式；
-    // row-mt 开多线程，不然 VP9 慢到没法用
-    args.push('-crf', String(presetSpec.quality), '-b:v', '0', '-row-mt', '1');
-  } else {
-    switch (hw) {
-      case 'nvenc':
-        args.push('-cq', String(presetSpec.quality));
-        break;
-      case 'qsv':
-        args.push('-global_quality', String(presetSpec.quality));
-        break;
-      case 'amf':
-        args.push('-rc', 'cqp', '-qp_i', String(presetSpec.quality), '-qp_p', String(presetSpec.quality));
-        break;
-      default:
-        args.push('-crf', String(presetSpec.quality), '-preset', presetSpec.x264Preset);
-        break;
-    }
-  }
+  if (advanced?.tune) args.push('-tune', advanced.tune);
+  if (advanced?.profile) args.push('-profile:v', advanced.profile);
+  if (advanced?.pixelFormat) args.push('-pix_fmt', advanced.pixelFormat);
+  if (advanced?.gop !== null && advanced?.gop !== undefined) args.push('-g', String(advanced.gop));
 
-  if (hasAudio && container.audioCodec) {
-    args.push('-c:a', container.audioCodec, '-b:a', `${presetSpec.audioKbps}k`);
-  }
+  const audio = videoAudioArgs(options, container, presetSpec);
+  args.push(...audio.args);
 
   if (composite) {
-    // 用了 filter_complex 之后默认流选择失效，视频与音频都要显式映射
-    args.push('-filter_complex', composite.filter, '-map', `[${composite.label}]`);
-    if (hasAudio && container.audioCodec) args.push('-map', '0:a?');
+    // 用了 filter_complex 之后默认流选择失效，视频与音频都要显式映射。
+    // 有画面滤镜时先作用到源，再合成底色。
+    const graph =
+      filters.length > 0
+        ? `[0:v]${filters.join(',')}[scaled];[scaled][1:v]overlay=shortest=1[composited]`
+        : '[1:v][0:v]overlay=shortest=1[composited]';
+    args.push('-filter_complex', graph, '-map', '[composited]');
+    if (audio.carriesAudio) args.push('-map', '0:a?');
+  } else if (filters.length > 0) {
+    args.push('-vf', filters.join(','));
   }
 
   return args;
+}
+
+/** 从容器的音频参数里取出默认编码器，供专业参数覆盖时兜底 */
+function defaultAudioCodecFor(container: ContainerSpec): string {
+  const args = container.audioArgs ?? [];
+  const index = args.indexOf('-c:a');
+  return index >= 0 ? (args[index + 1] ?? 'aac') : 'aac';
 }
 
 function audioArgs(options: ConvertOptions, container: ContainerSpec): string[] {
@@ -334,7 +470,25 @@ function audioArgs(options: ConvertOptions, container: ContainerSpec): string[] 
     throw new Error('源文件没有音频轨道，无法转换成音频格式');
   }
 
-  const args: string[] = ['-vn', ...(container.audioArgs ?? [])];
+  const advanced = options.advanced ?? null;
+  const args: string[] = ['-vn'];
+
+  if (advanced?.audioCodec || (advanced?.audioBitrateKbps !== null && advanced?.audioBitrateKbps !== undefined)) {
+    // 专业参数接管编码器与码率时，容器自带的那组参数整组让位
+    args.push('-c:a', advanced.audioCodec ?? defaultAudioCodecFor(container));
+    if (advanced.audioBitrateKbps !== null && advanced.audioBitrateKbps !== undefined) {
+      args.push('-b:a', `${advanced.audioBitrateKbps}k`);
+    }
+  } else {
+    args.push(...(container.audioArgs ?? []));
+  }
+
+  if (advanced?.sampleRate !== null && advanced?.sampleRate !== undefined) {
+    args.push('-ar', String(advanced.sampleRate));
+  }
+  if (advanced?.channels !== null && advanced?.channels !== undefined) {
+    args.push('-ac', String(advanced.channels));
+  }
 
   // 指定了目标体积时，用码率覆盖掉容器自带的码率/质量参数
   const { targetSizeMiB, durationSec } = options;
@@ -367,13 +521,23 @@ export function buildArgs(options: ConvertOptions): string[] {
   const container = resolveContainer(options.format ?? 'same', options.input, options.output);
   const head = ['-hide_banner', '-y', '-progress', 'pipe:1', '-nostats', '-i', options.input];
 
+  // 线程数与额外参数对三类输出都适用，统一放在输出路径之前
+  const tail = [
+    ...muxerArgsFor(container, options.advanced ?? null),
+    ...(options.advanced?.threads !== null && options.advanced?.threads !== undefined
+      ? ['-threads', String(options.advanced.threads)]
+      : []),
+    ...(options.advanced?.extraArgs?.trim() ? options.advanced.extraArgs.trim().split(/\s+/) : []),
+    options.output,
+  ];
+
   if (container.media === 'audio') {
-    return [...head, ...audioArgs(options, container), ...container.muxerArgs, options.output];
+    return [...head, ...audioArgs(options, container), ...tail];
   }
   if (container.media === 'gif') {
-    return [...head, ...gifArgs(), ...container.muxerArgs, options.output];
+    return [...head, ...gifArgs(), ...tail];
   }
-  return [...head, ...videoArgs(options, container, presetSpec), ...container.muxerArgs, options.output];
+  return [...head, ...videoArgs(options, container, presetSpec), ...tail];
 }
 
 /**

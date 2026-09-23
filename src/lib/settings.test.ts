@@ -11,12 +11,13 @@ import {
 describe('parseSettings', () => {
   it('完整设置原样返回', () => {
     const stored = {
-      version: 2,
+      version: 3,
       preset: 'small',
       outputFormat: 'mp4',
       outputDir: 'D:\\输出',
       hw: 'nvenc',
       history: [],
+      presets: [],
     };
     expect(parseSettings(stored)).toEqual(stored);
   });
@@ -57,16 +58,17 @@ describe('parseSettings', () => {
     }
   });
 
-  it('版本号不同时不猜，直接回到默认', () => {
+  it('比当前更高的版本号不猜，直接回到默认', () => {
     expect(parseSettings({ version: 99, preset: 'clear' })).toEqual(DEFAULT_SETTINGS);
   });
 
-  it('v1 设置能升到 v2：偏好留着，历史为空', () => {
+  it('旧版本能升级：偏好留着，新字段给默认值', () => {
     const parsed = parseSettings({ version: 1, preset: 'clear', outputFormat: 'mp3' });
-    expect(parsed.version).toBe(2);
+    expect(parsed.version).toBe(3);
     expect(parsed.preset).toBe('clear');
     expect(parsed.outputFormat).toBe('mp3');
     expect(parsed.history).toEqual([]);
+    expect(parsed.presets).toEqual([]);
   });
 });
 
@@ -118,12 +120,13 @@ describe('历史记录', () => {
 describe('serializeSettings', () => {
   it('写出的 JSON 能被读回来，字段不丢', () => {
     const settings = {
-      version: 2,
+      version: 3,
       preset: 'small' as const,
       outputFormat: 'webm' as const,
       outputDir: 'D:\\输出',
       hw: 'qsv' as const,
       history: [],
+      presets: [],
     };
     expect(parseSettings(JSON.parse(serializeSettings(settings)))).toEqual(settings);
   });
