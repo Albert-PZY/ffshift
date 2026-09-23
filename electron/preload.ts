@@ -18,6 +18,8 @@ import type {
 
 const api: FfshiftApi & { getPathForFile: (file: File) => string } = {
   pickFiles: () => ipcRenderer.invoke('ffshift:pick-files') as Promise<string[]>,
+  pickFolder: (title?: string) => ipcRenderer.invoke('ffshift:pick-folder', title) as Promise<string[]>,
+  scanFolder: (folder: string) => ipcRenderer.invoke('ffshift:scan-folder', folder) as Promise<string[]>,
   probe: (path) => ipcRenderer.invoke('ffshift:probe', path) as Promise<ProbeResponse>,
   thumbnail: (path, durationSec) =>
     ipcRenderer.invoke('ffshift:thumbnail', path, durationSec) as Promise<ThumbnailResponse>,

@@ -60,6 +60,16 @@ const STATUS_LABEL: Record<TaskItem['status'], string> = {
   unsupported: '不支持',
 };
 
+/** 目标体积输入：空 → 不限；越界收敛到 1–10000，不把 NaN 或负数传下去 */
+function readTargetSize(raw: string): number | null {
+  const trimmed = raw.trim();
+  if (trimmed.length === 0) return null;
+
+  const value = Number(trimmed);
+  if (!Number.isFinite(value) || value < 1) return null;
+  return Math.round(Math.min(value, 10_000));
+}
+
 /** 自定义下拉：原生 select 太系统化，这里做成菜单，支持外部点击与 Esc 关闭 */
 function Menu<T extends string>({
   value,
@@ -372,6 +382,7 @@ export default function App() {
     tasks,
     preset,
     outputFormat,
+    outputDir,
     targetSizeMiB,
     hardware,
     ffmpegVersion,
@@ -379,7 +390,11 @@ export default function App() {
     startAll,
     setPreset,
     setOutputFormat,
+    setTargetSize,
     applySuggestion,
+    pickOutputDir,
+    clearOutputDir,
+    addFolder,
     clearFinished,
   } = useStore();
 
@@ -467,20 +482,50 @@ export default function App() {
                 options={FORMAT_OPTIONS}
               />
 
-              {targetSizeMiB !== null && <span className="kicker">目标体积 {targetSizeMiB} MiB</span>}
+              <label>输出目录</label>
+              <button
+                type="button"
+                className="path-button"
+                title={outputDir ?? '与源文件同目录'}
+                onClick={() => void pickOutputDir()}
+              >
+                <FolderOpen />
+                <span>{outputDir ? (outputDir.split(/[\\/]/).pop() ?? outputDir) : '与源文件同目录'}</span>
+              </button>
+              {outputDir && (
+                <button type="button" className="secondary-button full" onClick={clearOutputDir}>
+                  恢复默认目录
+                </button>
+              )}
+
+              <label htmlFor="target-size">目标体积（MiB）</label>
+              <input
+                id="target-size"
+                className="size-input"
+                type="number"
+                min={1}
+                max={10000}
+                placeholder="不限"
+                value={targetSizeMiB ?? ''}
+                onChange={(event) => setTargetSize(readTargetSize(event.target.value))}
+              />
             </section>
 
             <Assistant onApply={applySuggestion} />
 
             <div className="rail-spacer" />
 
-            <button type="button" className="secondary-button full" onClick={() => void clearFinished()}>
-              <Trash2 />
-              清空已完成
-            </button>
             <button type="button" className="secondary-button full" onClick={() => void pickFiles()}>
               <Plus />
               添加视频
+            </button>
+            <button type="button" className="secondary-button full" onClick={() => void addFolder()}>
+              <FolderOpen />
+              导入文件夹
+            </button>
+            <button type="button" className="secondary-button full" onClick={() => void clearFinished()}>
+              <Trash2 />
+              清空已完成
             </button>
           </aside>
         )}

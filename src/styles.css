@@ -299,6 +299,62 @@ button {
   font-size: 11px;
 }
 
+/* 输出目录：长得像菜单触发器，但点开的是系统目录选择框 */
+.path-button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  min-height: 33px;
+  padding: 0 9px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-soft);
+  color: var(--ink);
+  font-size: 11px;
+  text-align: left;
+}
+
+.path-button:hover {
+  border-color: var(--blue);
+}
+
+.path-button svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--muted);
+}
+
+.path-button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 目标体积：只收正整数，其它值由 readTargetSize 收敛 */
+.size-input {
+  width: 100%;
+  min-height: 33px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-soft);
+  color: var(--ink);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.size-input::placeholder {
+  color: var(--dim);
+}
+
+.size-input:focus {
+  outline: none;
+  border-color: var(--blue);
+}
+
 .idea-input::placeholder {
   color: var(--dim);
 }

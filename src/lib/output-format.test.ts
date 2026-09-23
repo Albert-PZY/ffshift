@@ -140,3 +140,36 @@ describe('outputPathFor', () => {
     expect(outputPathFor('D:\\我的 素材.v2\\片段', 'mkv')).toBe('D:\\我的 素材.v2\\片段.ffshift.mkv');
   });
 });
+
+describe('outputPathFor 的输出目录', () => {
+  it('没指定目录时落在源文件旁边', () => {
+    expect(outputPathFor('D:\\素材\\片段.mkv', 'mp4')).toBe('D:\\素材\\片段.ffshift.mp4');
+    expect(outputPathFor('D:\\素材\\片段.mkv', 'mp4', null)).toBe('D:\\素材\\片段.ffshift.mp4');
+  });
+
+  it('指定目录时落在那个目录里', () => {
+    expect(outputPathFor('D:\\素材\\片段.mkv', 'mp4', 'E:\\输出')).toBe('E:\\输出\\片段.ffshift.mp4');
+  });
+
+  it('目录结尾的分隔符不产生双斜杠', () => {
+    expect(outputPathFor('D:\\素材\\片段.mkv', 'mp4', 'E:\\输出\\')).toBe('E:\\输出\\片段.ffshift.mp4');
+    expect(outputPathFor('D:\\素材\\片段.mkv', 'mp4', 'E:\\输出\\\\')).toBe('E:\\输出\\片段.ffshift.mp4');
+  });
+
+  it('目录用正斜杠时也用正斜杠拼接', () => {
+    expect(outputPathFor('D:\\素材\\片段.mkv', 'mp4', 'E:/输出')).toBe('E:/输出/片段.ffshift.mp4');
+  });
+
+  it('空目录字符串按未指定处理，不拼出奇怪的路径', () => {
+    expect(outputPathFor('D:\\素材\\片段.mkv', 'mp4', '')).toBe('D:\\素材\\片段.ffshift.mp4');
+    expect(outputPathFor('D:\\素材\\片段.mkv', 'mp4', '   ')).toBe('D:\\素材\\片段.ffshift.mp4');
+  });
+
+  it('无扩展名的源文件也能放到指定目录', () => {
+    expect(outputPathFor('D:\\素材\\无名', 'webm', 'E:\\输出')).toBe('E:\\输出\\无名.ffshift.webm');
+  });
+
+  it('换格式时扩展名跟着目标变，不受源文件影响', () => {
+    expect(outputPathFor('D:\\素材\\片段.mkv', 'mp3', 'E:\\输出')).toBe('E:\\输出\\片段.ffshift.mp3');
+  });
+});

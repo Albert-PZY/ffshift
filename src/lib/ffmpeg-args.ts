@@ -369,15 +369,32 @@ export function buildArgs(options: ConvertOptions): string[] {
   return [...head, ...videoArgs(options, container, presetSpec), ...container.muxerArgs, options.output];
 }
 
-/** 输出路径：同目录、按目标格式给扩展名，插入 .ffshift 后缀，绝不覆盖源文件。 */
-export function outputPathFor(input: string, format: OutputFormat): string {
+/**
+ * 输出路径：按目标格式给扩展名，插入 .ffshift 后缀，绝不覆盖源文件。
+ *
+ * 默认落在源文件旁边；给了 outputDir 就放那里。目录为空或只有空格时按"未指定"处理，
+ * 免得拼出一个指向当前工作目录的路径。只做字符串拼接，不引 node:path —— 这个函数
+ * 渲染进程也要用，那边没有 Node。
+ */
+export function outputPathFor(input: string, format: OutputFormat, outputDir?: string | null): string {
   const container = resolveContainer(format, input);
   const lastDot = input.lastIndexOf('.');
   const lastSlash = Math.max(input.lastIndexOf('\\'), input.lastIndexOf('/'));
   const hasExtension = lastDot > lastSlash && lastDot > 0;
-  const stem = hasExtension ? input.slice(0, lastDot) : input;
 
-  return `${stem}.ffshift.${container.extension}`;
+  const directory = outputDir?.trim() ?? '';
+  if (directory.length === 0) {
+    const stem = hasExtension ? input.slice(0, lastDot) : input;
+    return `${stem}.ffshift.${container.extension}`;
+  }
+
+  const fileName = input.slice(lastSlash + 1);
+  const stem = hasExtension ? fileName.slice(0, fileName.lastIndexOf('.')) : fileName;
+  // 用目录自己的分隔符风格拼接，避免 Windows 路径里混进正斜杠
+  const separator = directory.includes('/') && !directory.includes('\\') ? '/' : '\\';
+  const cleaned = directory.replace(/[\\/]+$/, '');
+
+  return `${cleaned}${separator}${stem}.ffshift.${container.extension}`;
 }
 
 /** 保留旧名字：默认跟随输入格式 */

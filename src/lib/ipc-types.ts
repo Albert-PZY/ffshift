@@ -67,6 +67,10 @@ export interface HardwareReport {
 
 export interface FfshiftApi {
   pickFiles: () => Promise<string[]>;
+  /** 选一个文件夹（用于批量导入，或指定输出目录） */
+  pickFolder: (title?: string) => Promise<string[]>;
+  /** 扫描文件夹里的视频文件（按扩展名过滤，不递归） */
+  scanFolder: (folder: string) => Promise<string[]>;
   probe: (path: string) => Promise<ProbeResponse>;
   thumbnail: (path: string, durationSec: number | null) => Promise<ThumbnailResponse>;
   convert: (request: ConvertRequest) => Promise<ConvertResponse>;

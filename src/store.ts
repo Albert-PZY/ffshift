@@ -50,9 +50,14 @@ interface State {
   clearFinished: () => void;
   setPreset: (preset: Preset) => void;
   setOutputFormat: (format: OutputFormat) => void;
+  /** 直接指定目标体积（MiB）；null 表示不限体积。不持久化：它是针对当前批次的临时设置 */
+  setTargetSize: (targetSizeMiB: number | null) => void;
   /** 采纳 AI 建议：档位与目标体积一起生效（否则体积建议等于空话） */
   applySuggestion: (preset: Preset, targetSizeMiB: number | null) => void;
   pickOutputDir: () => Promise<void>;
+  clearOutputDir: () => void;
+  /** 选一个文件夹，把里面的视频一次性加进来 */
+  addFolder: () => Promise<void>;
   detectHardware: () => Promise<void>;
   loadSettings: () => Promise<void>;
 }
@@ -66,7 +71,7 @@ export const useStore = create<State>((set, get) => {
     const next = tasks.find((t) => t.status === 'queued');
     if (!next || !next.info) return;
 
-    const output = next.output ?? outputPathFor(next.path, get().outputFormat);
+    const output = next.output ?? outputPathFor(next.path, get().outputFormat, outputDir);
     set((state) => ({
       tasks: state.tasks.map((t) => (t.id === next.id ? { ...t, status: 'running', output } : t)),
     }));
@@ -208,17 +213,34 @@ export const useStore = create<State>((set, get) => {
       void persistSettings(get());
     },
 
+    setTargetSize(targetSizeMiB) {
+      set({ targetSizeMiB });
+    },
+
     applySuggestion(preset, targetSizeMiB) {
       set({ preset, targetSizeMiB });
       void persistSettings(get());
     },
 
     async pickOutputDir() {
-      const dir = await api()?.pickFiles();
-      if (dir && dir[0]) {
-        set({ outputDir: dir[0] });
+      const folders = await api()?.pickFolder('选择输出目录');
+      if (folders?.[0]) {
+        set({ outputDir: folders[0] });
         void persistSettings(get());
       }
+    },
+
+    clearOutputDir() {
+      set({ outputDir: null });
+      void persistSettings(get());
+    },
+
+    async addFolder() {
+      const folders = await api()?.pickFolder('选择要导入的文件夹');
+      const folder = folders?.[0];
+      if (!folder) return;
+      const files = await api()?.scanFolder(folder);
+      if (files?.length) await get().addFiles(files);
     },
 
     async detectHardware() {
