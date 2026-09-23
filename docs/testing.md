@@ -132,3 +132,4 @@ $bytes = [System.IO.File]::ReadAllBytes("fixture_10s.mp4")[0..1048575]
 | 2026-09-23 | `2c4110f` test: 真正的端到端测试（9 条，驱动真实界面） | 8 个文件 | 待人工确认（验证信息：e2e 9 条全绿（29.7s）、typecheck 通过） <!-- commit:2c4110f --> |
 | 2026-09-23 | `refactor/ui-enso-language` 界面重构（内化 EnsoCode 设计语言） | 见 ADR-015 | 待人工确认（验证信息：单测 251 条全绿、typecheck 通过、`npm run build` 通过、e2e 9 条全绿（28.2s）；截图重拍，5 个中间态（待转换 / 转换中 / 已完成 / 历史 / hover）人工看过） |
 | 2026-09-23 | `fcda2bd` lib: 抽出状态、格式与版本号的纯函数 | 9 个文件 | 待人工确认（验证信息：单测 251 条全绿（新增 14 条）） <!-- commit:fcda2bd --> |
+| 2026-09-23 | `bbc881b` ui: 用 EnsoCode 的语言重写界面 | 22 个文件 | 待人工确认（验证信息：typecheck、build 通过；五个中间态（待转换 / 转换中 / 已完成 / 历史 / ho） <!-- commit:bbc881b --> |

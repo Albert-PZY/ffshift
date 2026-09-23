@@ -2,11 +2,14 @@
 
 ffmpeg 的换挡键：不用懂参数，也能转好视频。
 
-Windows 优先的桌面视频格式转换器。界面用 Electron + React + TypeScript，转换调用 ffmpeg 命令行，视频与密钥都留在本机。
+Windows 优先的桌面视频格式转换器。界面用 Electron + React + TypeScript + Tailwind v4 + Base UI，转换调用 ffmpeg 命令行，视频与密钥都留在本机。
 
 ## 界面
 
 ![FFShift 主界面](docs/screenshots/main.png)
+
+界面语言内化自 [EnsoCode](https://github.com/J3n5en/EnsoCode)（MIT）：同一套 OKLCH 语义令牌、同一套组件配方。
+两面板之间只有 1px 边框，颜色只表达状态与那一个反白主按钮。规则与逐条来源见 `docs/design-system.md`。
 
 截图由 `FFSHIFT_SMOKE=shot` 自动生成：加载窗口、导入一个真实素材、等探测与缩略图落地后再拍，所以图和当前代码永远一致。
 
@@ -52,6 +55,8 @@ npm run lint:commit      # 校验最近一次提交信息
 | 文件 | 内容 |
 | --- | --- |
 | `docs/architecture.md` | 方案与选型：竞品分析、技术栈对比、模块设计 |
+| `docs/design-system.md` | 设计令牌与组件规范（颜色的来源与偏离都在这里） |
+| `docs/ui-spec.md` | 界面结构与交互契约（含 `data-slot` 测试锚点） |
 | `docs/decisions.md` | 决策记录（ADR）：每条决策的备选、理由、代价、反馈 |
 | `docs/git-workflow.md` | 分支模型、提交规范、仓库红线、版本与发布 |
 | `docs/automation.md` | 钩子清单、文档沉淀范围、AI 使用边界 |
