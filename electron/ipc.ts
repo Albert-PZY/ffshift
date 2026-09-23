@@ -2,10 +2,10 @@
  * 主进程的 IPC 处理器：把渲染进程的请求接到 ffmpeg 能力上。
  * 每个处理函数只做三件事：校验入参、调用能力、把结果/错误整理成契约形状。
  */
-import { app, dialog, ipcMain, shell, type BrowserWindow } from 'electron';
+import { app, dialog, ipcMain, Notification, shell, type BrowserWindow } from 'electron';
 import { execFile } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readdirSync } from 'node:fs';
+import { extname, join } from 'node:path';
 import { promisify } from 'node:util';
 import { buildArgs } from '../src/lib/ffmpeg-args';
 import { fallbackSuggestion } from '../src/lib/ai-suggest';
@@ -27,8 +27,11 @@ import { ensureThumbnail } from './ffmpeg/thumbnail';
 
 const execFileAsync = promisify(execFile);
 
+/** 能被转换器认下的视频扩展名；文件对话框与文件夹扫描都用这一份 */
+const VIDEO_EXTENSIONS = ['mp4', 'mov', 'mkv', 'avi', 'webm', 'flv', 'wmv', 'm4v', 'mpg', 'mpeg', 'ts', 'mxf'];
+
 const VIDEO_FILTERS = [
-  { name: '视频文件', extensions: ['mp4', 'mov', 'mkv', 'avi', 'webm', 'flv', 'wmv', 'm4v', 'mpg', 'mpeg', 'ts', 'mxf'] },
+  { name: '视频文件', extensions: VIDEO_EXTENSIONS },
   { name: '全部文件', extensions: ['*'] },
 ];
 
@@ -56,6 +59,42 @@ export function registerIpc({ getWindow }: Deps): void {
       ? await dialog.showOpenDialog(window, { properties: ['openFile', 'multiSelections'], filters: VIDEO_FILTERS })
       : await dialog.showOpenDialog({ properties: ['openFile', 'multiSelections'], filters: VIDEO_FILTERS });
     return result.canceled ? [] : result.filePaths;
+  });
+
+  ipcMain.handle('ffshift:pick-folder', async (_event, title?: string) => {
+    const window = getWindow();
+    const options = {
+      title: typeof title === 'string' && title.length > 0 ? title : '选择文件夹',
+      properties: ['openDirectory' as const],
+    };
+    const result = window ? await dialog.showOpenDialog(window, options) : await dialog.showOpenDialog(options);
+    return result.canceled ? [] : result.filePaths;
+  });
+
+  ipcMain.handle('ffshift:scan-folder', async (_event, folder: string) => {
+    if (typeof folder !== 'string' || !existsSync(folder)) return [];
+    try {
+      // 只扫一层：用户选的是一个文件夹，不是整棵目录树；递归容易把系统里的零碎视频也拖进来
+      return readdirSync(folder, { withFileTypes: true })
+        .filter((entry) => entry.isFile())
+        .map((entry) => join(folder, entry.name))
+        .filter((fullPath) => VIDEO_EXTENSIONS.includes(extname(fullPath).slice(1).toLowerCase()))
+        .sort();
+    } catch {
+      return [];
+    }
+  });
+
+  ipcMain.handle('ffshift:notify', async (_event, title: string, body: string) => {
+    // 系统通知让用户能去干别的：长任务跑完时人往往不在窗口前面
+    if (!Notification.isSupported()) return { ok: false };
+    if (typeof title !== 'string' || title.length === 0) return { ok: false };
+    try {
+      new Notification({ title, body: typeof body === 'string' ? body : '' }).show();
+      return { ok: true };
+    } catch {
+      return { ok: false };
+    }
   });
 
   ipcMain.handle('ffshift:ffmpeg-version', async () => {

@@ -158,3 +158,7 @@
 | 09-23 13:55 | chore/version-and-cursor | `534a908` | build: 版本号升到 1.1.0 | 重新打包后产物为 FFShift-1.1.0-setup.exe | 1 <!-- commit:534a908 --> |
 | 09-23 14:16 | docs/ui-spec | `dfe6429` | docs: 加一份交给 v0.app 的界面规格 | 文档通过 oil-tone 检查 | 1 <!-- commit:dfe6429 --> |
 | 09-23 15:01 | feat/ui-refresh | `6503cad` | ui: 按 v0.app 的三栏布局重构界面 | typecheck 通过；单测 165 条全绿；端到端实测转换成功（837ms） | 6 <!-- commit:6503cad --> |
+| 09-23 15:03 | chore/bump-1.2.0 | `4554b15` | build: 版本号升到 1.2.0 | 重新打包后产物为 FFShift-1.2.0-setup.exe | 1 <!-- commit:4554b15 --> |
+| 09-23 15:17 | feat/settings-and-folder | `165f0fb` | ui: 补上输出目录、目标体积与文件夹导入 | 单测 172 条全绿、typecheck 通过、界面截图已更新 | 11 <!-- commit:165f0fb --> |
+| 09-23 15:22 | feat/settings-and-folder | `f6840ff` | ui: 失败的原始日志可展开复制，连续失败两次就停下 | 单测 172 条、集成测试 22 条全绿（新增断言：失败时 error.raw 非空） | 4 <!-- commit:f6840ff --> |
+| 09-23 15:24 | feat/settings-and-folder | `2d13d18` | ui: 转换完成后发系统通知，并显示体积变化 | typecheck 通过；端到端实测 outputSizeBytes = 2311319（约 2.3 MB） | 7 <!-- commit:2d13d18 --> |

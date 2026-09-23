@@ -9,6 +9,11 @@
 import { create } from 'zustand';
 import type { ConvertOutcome, ProgressUpdate } from '../electron/ffmpeg/convert';
 import { outputPathFor, type OutputFormat, type Preset } from './lib/ffmpeg-args';
+import {
+  SETTINGS_VERSION,
+  appendHistory,
+  type HistoryEntry,
+} from './lib/settings';
 import type { MediaInfo } from './lib/ffprobe';
 
 /** 任务状态；界面上的五个状态词与这里一一对应 */
@@ -26,9 +31,30 @@ export interface TaskItem {
   outcome: ConvertOutcome | null;
   output: string | null;
   reason: string | null;
+  /** 连续失败次数；到 2 就停止自动入队，逼用户先看看文件本身有没有问题 */
+  failCount: number;
+  /** ffmpeg 的原始输出末尾若干行，供"查看原始日志"展开 */
+  errorRaw: string | null;
 }
 
 const api = () => window.ffshift;
+
+/** 失败任务自动重试的上限；到顶后只能手动点重试 */
+const MAX_AUTO_RETRY = 2;
+
+/**
+ * 队列跑完时发一条系统通知。
+ * 长任务结束时用户多半已经切去干别的了，只在界面上变个状态等于没提醒。
+ */
+function notifyQueueFinished(tasks: TaskItem[]): void {
+  const done = tasks.filter((t) => t.status === 'done').length;
+  const failed = tasks.filter((t) => t.status === 'failed').length;
+  if (done + failed === 0) return;
+
+  const parts = [`完成 ${done} 个`];
+  if (failed > 0) parts.push(`失败 ${failed} 个`);
+  void api()?.notify('转换结束', parts.join('，'));
+}
 
 let sequence = 0;
 const nextId = () => `task-${(sequence += 1)}`;
@@ -41,18 +67,34 @@ interface State {
   /** 输出格式；same 表示跟随输入 */
   outputFormat: OutputFormat;
   outputDir: string | null;
+  /** 转换历史（最近的在前）；上限见 HISTORY_LIMIT */
+  history: HistoryEntry[];
+  /** 工作区当前显示队列还是历史 */
+  view: 'queue' | 'history';
   hardware: string[];
   ffmpegVersion: string | null;
   addFiles: (paths: string[]) => Promise<void>;
   startAll: () => Promise<void>;
+  /** 只推进队列：跑完一个接着下一个，不重置其它任务 */
+  pumpNext: () => Promise<void>;
   cancelTask: (id: string) => Promise<void>;
+  /** 手动重试：清掉失败计数与原始日志，重新排队 */
+  retryTask: (id: string) => void;
   removeTask: (id: string) => void;
   clearFinished: () => void;
   setPreset: (preset: Preset) => void;
   setOutputFormat: (format: OutputFormat) => void;
+  /** 直接指定目标体积（MiB）；null 表示不限体积。不持久化：它是针对当前批次的临时设置 */
+  setTargetSize: (targetSizeMiB: number | null) => void;
   /** 采纳 AI 建议：档位与目标体积一起生效（否则体积建议等于空话） */
   applySuggestion: (preset: Preset, targetSizeMiB: number | null) => void;
   pickOutputDir: () => Promise<void>;
+  clearOutputDir: () => void;
+  /** 选一个文件夹，把里面的视频一次性加进来 */
+  addFolder: () => Promise<void>;
+  /** 清空转换历史 */
+  clearHistory: () => void;
+  setView: (view: 'queue' | 'history') => void;
   detectHardware: () => Promise<void>;
   loadSettings: () => Promise<void>;
 }
@@ -66,7 +108,7 @@ export const useStore = create<State>((set, get) => {
     const next = tasks.find((t) => t.status === 'queued');
     if (!next || !next.info) return;
 
-    const output = next.output ?? outputPathFor(next.path, get().outputFormat);
+    const output = next.output ?? outputPathFor(next.path, get().outputFormat, outputDir);
     set((state) => ({
       tasks: state.tasks.map((t) => (t.id === next.id ? { ...t, status: 'running', output } : t)),
     }));
@@ -114,6 +156,8 @@ export const useStore = create<State>((set, get) => {
     preset: 'balanced',
     outputFormat: 'same',
     outputDir: null,
+    history: [],
+    view: 'queue',
     hardware: [],
     ffmpegVersion: null,
     targetSizeMiB: null,
@@ -137,6 +181,8 @@ export const useStore = create<State>((set, get) => {
         progress: null,
         outcome: null,
         output: null,
+        failCount: 0,
+        errorRaw: null,
         reason: null,
       }));
       set((state) => ({ tasks: [...state.tasks, ...items] }));
@@ -181,9 +227,32 @@ export const useStore = create<State>((set, get) => {
 
     async startAll() {
       set((state) => ({
-        tasks: state.tasks.map((t) => (t.status === 'ready' || t.status === 'failed' ? { ...t, status: 'queued', outcome: null, progress: null, reason: null } : t)),
+        tasks: state.tasks.map((t) => {
+          if (t.status === 'ready') {
+            return { ...t, status: 'queued', outcome: null, progress: null, reason: null };
+          }
+          // 失败的任务可以重来，但连续失败到 2 次就停下：多半是文件本身的问题，
+          // 一路重试只会浪费用户时间。要用重试按钮才会再入队。
+          if (t.status === 'failed' && t.failCount < MAX_AUTO_RETRY) {
+            return { ...t, status: 'queued', outcome: null, progress: null, reason: null };
+          }
+          return t;
+        }),
       }));
       await pump();
+    },
+
+    /** 队列推进：跑完一个接着下一个时用，不动其它任务的状态 */
+    pumpNext: pump,
+
+    retryTask(id) {
+      set((state) => ({
+        tasks: state.tasks.map((t) =>
+          t.id === id
+            ? { ...t, status: 'ready', failCount: 0, errorRaw: null, reason: null, outcome: null, progress: null }
+            : t,
+        ),
+      }));
     },
 
     async cancelTask(id) {
@@ -208,17 +277,43 @@ export const useStore = create<State>((set, get) => {
       void persistSettings(get());
     },
 
+    setTargetSize(targetSizeMiB) {
+      set({ targetSizeMiB });
+    },
+
     applySuggestion(preset, targetSizeMiB) {
       set({ preset, targetSizeMiB });
       void persistSettings(get());
     },
 
     async pickOutputDir() {
-      const dir = await api()?.pickFiles();
-      if (dir && dir[0]) {
-        set({ outputDir: dir[0] });
+      const folders = await api()?.pickFolder('选择输出目录');
+      if (folders?.[0]) {
+        set({ outputDir: folders[0] });
         void persistSettings(get());
       }
+    },
+
+    clearOutputDir() {
+      set({ outputDir: null });
+      void persistSettings(get());
+    },
+
+    async addFolder() {
+      const folders = await api()?.pickFolder('选择要导入的文件夹');
+      const folder = folders?.[0];
+      if (!folder) return;
+      const files = await api()?.scanFolder(folder);
+      if (files?.length) await get().addFiles(files);
+    },
+
+    clearHistory() {
+      set({ history: [] });
+      void persistSettings(get());
+    },
+
+    setView(view) {
+      set({ view });
     },
 
     async detectHardware() {
@@ -229,7 +324,12 @@ export const useStore = create<State>((set, get) => {
     async loadSettings() {
       const settings = await api()?.loadSettings();
       if (settings) {
-        set({ preset: settings.preset, outputFormat: settings.outputFormat, outputDir: settings.outputDir });
+        set({
+          preset: settings.preset,
+          outputFormat: settings.outputFormat,
+          outputDir: settings.outputDir,
+          history: settings.history,
+        });
       }
     },
   };
@@ -240,13 +340,15 @@ async function persistSettings(state: {
   preset: Preset;
   outputFormat: OutputFormat;
   outputDir: string | null;
+  history: HistoryEntry[];
 }): Promise<void> {
   await api()?.saveSettings({
-    version: 1,
+    version: SETTINGS_VERSION,
     preset: state.preset,
     outputFormat: state.outputFormat,
     outputDir: state.outputDir,
     hw: 'none',
+    history: state.history,
   });
 }
 
@@ -262,21 +364,50 @@ export function bindIpcEvents(): void {
   });
 
   ffshift.onFinished(({ taskId, outcome }) => {
+    const failed = outcome.status === 'failed';
+
     useStore.setState((state) => ({
       tasks: state.tasks.map((t) =>
         t.id === taskId
           ? {
               ...t,
               outcome,
-              status:
-                outcome.status === 'done' ? 'done' : outcome.status === 'cancelled' ? 'cancelled' : 'failed',
-              reason: outcome.status === 'failed' ? outcome.error.title : null,
+              status: outcome.status === 'done' ? 'done' : outcome.status === 'cancelled' ? 'cancelled' : 'failed',
+              reason: failed ? outcome.error.title : null,
+              // 原始输出留给"查看原始日志"；失败次数用来决定还要不要自动重试
+              errorRaw: failed ? outcome.error.raw || null : null,
+              failCount: failed ? t.failCount + 1 : t.failCount,
             }
           : t,
       ),
     }));
-    // 一个跑完就接着跑下一个
-    void useStore.getState().startAll().catch(() => undefined);
+
+    // 只推进队列，不要调 startAll —— 那会把所有等待中的任务重新入队，等于重复排队
+    const state = useStore.getState();
+
+    // 记一条历史：成功的存体积变化，失败的也记——用户要能回看哪些文件没成
+    const task = state.tasks.find((t) => t.id === taskId);
+    if (task && (outcome.status === 'done' || outcome.status === 'failed')) {
+      const entry: HistoryEntry = {
+        id: `${taskId}-${Date.now()}`,
+        name: task.name,
+        inputPath: task.path,
+        outputPath: outcome.status === 'done' ? task.output : null,
+        inputSizeBytes: task.sizeBytes,
+        outputSizeBytes: outcome.status === 'done' ? outcome.outputSizeBytes : null,
+        format: state.outputFormat,
+        preset: state.preset,
+        finishedAt: new Date().toISOString(),
+        elapsedMs: outcome.status === 'done' ? outcome.elapsedMs : 0,
+        status: outcome.status === 'done' ? 'done' : 'failed',
+      };
+      useStore.setState({ history: appendHistory(state.history, entry) });
+      void persistSettings(useStore.getState());
+    }
+
+    const stillQueued = state.tasks.some((t) => t.status === 'running' || t.status === 'queued');
+    if (!stillQueued) notifyQueueFinished(state.tasks);
+    void state.pumpNext().catch(() => undefined);
   });
 
   void useStore.getState().detectHardware();

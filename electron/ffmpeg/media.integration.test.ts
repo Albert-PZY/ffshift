@@ -197,6 +197,8 @@ describe.skipIf(!ready)('缩略图与转换集成', () => {
       if (outcome.status === 'failed') {
         expect(outcome.error.title.length).toBeGreaterThan(0);
         expect(outcome.error.kind).not.toBe('unknown');
+        // 原始输出必须留着：界面上「查看原始日志」与「复制日志」都靠它
+        expect(outcome.error.raw.length).toBeGreaterThan(0);
       }
       // 失败也不留半成品：留着会让用户以为转换成功过
       expect(existsSync(output)).toBe(false);
