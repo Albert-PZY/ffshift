@@ -102,9 +102,10 @@ Refs: ADR-003
 | 合并只能由 PR 完成 | GitHub 上开 PR、自己 review、Squash 合并 |
 | 合并后删分支 | 历史留在 PR 里，本地 `git branch -d` |
 
-分支前缀：`feat/`（新功能）`fix/`（修缺陷）`refactor/` `test/` `docs/` `chore/` `tool/`（脚本与钩子）。
+分支前缀：`feat/`（新功能）`fix/`（修缺陷）`refactor/` `test/` `docs/` `chore/` `tool/`（脚本与钩子）`build/`（依赖与打包）。
 示例：`feat/media-probe`、`feat/convert-presets`、`fix/queue-cancel-leftover`、`docs/readme`。
 前缀白名单在 `.ffshift/config.json`，`pre-commit` 会实际检查——分支名不合规范提交不上去。
+白名单要与 §3 的 area 表一一对应：新增 area 时同步加分支前缀（`build/` 就是这样补上的）。
 
 ### 标准动作（照抄）
 

@@ -3,7 +3,7 @@
   "version": 1,
   "branchPolicy": {
     "protected": ["main"],
-    "allowedPrefixes": ["feat/", "fix/", "docs/", "chore/", "refactor/", "test/", "tool/"],
+    "allowedPrefixes": ["feat/", "fix/", "docs/", "chore/", "refactor/", "test/", "tool/", "build/"],
     "blockDirectCommit": true,
     "blockDirectPush": true
   },

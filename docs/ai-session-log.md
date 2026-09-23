@@ -132,3 +132,6 @@
 | 09-23 12:18 | feat/app-skeleton | `3917597` | docs: 加一张自动生成的真实界面截图 | 截图来自最新构建，内容为真实界面（AMF 加速、1280×720、5 秒素材） | 4 <!-- commit:3917597 --> |
 | 09-23 12:18 | feat/app-skeleton | `8023deb` | ui: 转换完成后可以直接打开输出目录 | typecheck 通过；端到端自检回归正常 | 6 <!-- commit:8023deb --> |
 | 09-23 12:18 | feat/app-skeleton | `d2b5c5f` | build: 锁定 electron-builder 的依赖树 | npm ls electron-builder 与 lock 一致 | 1 <!-- commit:d2b5c5f --> |
+| 09-23 12:21 | build/v1.0.0 | `baeb4ba` | tool: 分支前缀白名单补上 build/ | 改完后 build/ 开头的分支可以正常提交 | 3 <!-- commit:baeb4ba --> |
+| 09-23 12:21 | build/v1.0.0 | `6cdee87` | tool: 分支前缀白名单补上 build/ | 改完后 build/ 开头的分支可以正常提交 | 2 <!-- commit:6cdee87 --> |
+| 09-23 12:21 | build/v1.0.0 | `2f15513` | build: 版本号升到 1.0.0，与首个正式交付对齐 | 重新打包后产物名为 FFShift-1.0.0-setup.exe | 1 <!-- commit:2f15513 --> |
