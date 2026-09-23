@@ -478,5 +478,14 @@ export function bindIpcEvents(): void {
     addFiles: (paths: string[]) => useStore.getState().addFiles(paths),
     startAll: () => useStore.getState().startAll(),
     state: () => useStore.getState(),
+    /**
+     * 直接写输出目录。
+     * 原生目录选择框没法在自动化里点（那是系统窗口，不是页面元素），
+     * 端到端测试要验的是"写了之后能不能记住"，所以从这条口子进。
+     */
+    setOutputDir: (dir: string | null) => {
+      useStore.setState({ outputDir: dir });
+      void persistSettings(useStore.getState());
+    },
   };
 }
