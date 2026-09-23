@@ -196,3 +196,4 @@
 | 09-24 00:19 | refactor/ui-enso-language | `fa64163` | ui: 加浅黑主题，表单底色改成语义令牌 | typecheck、build 通过；单测 257 条全绿；e2e 17 条全绿（68.3s，主题用例扩到 | 10 <!-- commit:fa64163 --> |
 | 09-24 01:17 | refactor/ui-enso-language | `3f084b9` | docs: 默认值定成浅黑 + 15px 的取舍与同步 | pre-commit 文风检查通过；openspec 归档通过 | 14 <!-- commit:3f084b9 --> |
 | 09-24 01:18 | refactor/ui-enso-language | `ac40630` | settings: 默认字号 15px、默认主题浅黑 | typecheck、build 通过；单测 258 条全绿；一次快速冒烟通过 | 8 <!-- commit:ac40630 --> |
+| 09-24 03:02 | refactor/ui-enso-language | `e1d557e` | ui: 按用户使用逻辑精简二级描述；补齐签名打包与安装流程 | typecheck、build 通过；单测 258 条全绿；npm run package 出安装包与 | 17 <!-- commit:e1d557e --> |
