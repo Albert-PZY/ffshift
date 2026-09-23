@@ -85,6 +85,17 @@
 
 ---
 
+## 2026-09-23 · 会话 7：从零实现应用主体（全程测试先行）
+
+- **目标**：按排期把 lib 纯函数、主进程 ffmpeg 集成、界面、AI 助手与打包做完，每一步都先有测试再写实现
+- **关键提问**：a) 边界与异常输入各要覆盖哪些；b) ffprobe 对损坏文件到底是什么行为（不猜，直接实测）；c) 模型输出不可靠时链路怎么兜底
+- **结果**：`src/lib/` 八个纯函数模块、`electron/`（main / preload / ipc / ai / settings 与 ffmpeg 三件套）、React 界面、Windows NSIS 安装包（106.9 MB）
+- **验证**：单测 117 条、集成测试 15 条（真实 ffmpeg）、端到端自检三条路径（模型守格式 / 给散文 / 完全不可用）、打包版 exe 实跑 896ms 完成转换
+- **采纳 / 否决**：采纳 vitest 而非 node:test（TS 开箱可用）；否决 Tailwind（记 ADR-013）；否决"直接相信模型的 JSON 输出"，改为白名单校验 + 散文提取 + 规则降级三层
+- **反馈**：三个实测结果与直觉相反——ffprobe 对垃圾数据不报错、模型不理会"只输出 JSON"、目标体积该取用户说的数字而不是模型分析里的
+
+---
+
 ## 提交流水（自动生成）
 
 > 由 post-commit 钩子自动追加：只记事实（分支、提交、摘要、验证、文件数）。人工总结写在上面的会话记录里。
@@ -106,3 +117,18 @@
 | 09-23 03:23 | chore/repo-bootstrap | `0cef19e` | tool: 分支保护对管理员同样生效 | — | 1 |
 | 09-23 03:25 | docs/readme | `8815d08` | docs: 补 README，写清现状与上手方式 | oil-tone 对 README 报 PASS；hooks:verify 保持 16 条全绿 | 1 |
 | 09-23 03:28 | tool/branch-policy | `bdc0c71` | tool: 补上分支命名检查并修掉沉淀两处缺陷 | hooks:verify 17 条用例全绿 | 10 <!-- commit:bdc0c71 --> |
+| 09-23 03:39 | feat/app-skeleton | `158f82a` | tool: 建立 TDD 链路与提交前单测关卡 | npm run test:unit 通过；钩子实际拦下过未通过的单测 | 5 <!-- commit:158f82a --> |
+| 09-23 03:39 | feat/app-skeleton | `7ccad2d` | lib: 实现四个纯函数模块（含测试） | npm run test:unit → 4 个文件 51 条用例通过 | 8 <!-- commit:7ccad2d --> |
+| 09-23 03:41 | feat/app-skeleton | `2b976c7` | lib: 补 ffprobe 解析与缩略图缓存键 | npm run test:unit → 6 个文件 70 条用例通过 | 7 <!-- commit:2b976c7 --> |
+| 09-23 03:43 | feat/app-skeleton | `2706be3` | media: 接入 ffprobe 与可转换性判断 | 单测 76 条、集成测试 6 条（含中文空格路径、截断文件、垃圾数据）全绿 | 8 <!-- commit:2706be3 --> |
+| 09-23 03:46 | feat/app-skeleton | `4b4f10a` | media: 加上缩略图抽帧与转换引擎 | 单测 87 条、集成测试 15 条（真实转码、取消、目标体积、缓存命中）全绿 | 13 <!-- commit:4b4f10a --> |
+| 09-23 03:50 | feat/app-skeleton | `91a247a` | main: 搭起 Electron 应用骨架与 IPC 白名单 | 构建通过；冒烟自检窗口正常；端到端自检完成探测到转换全链路（799ms） | 8 <!-- commit:91a247a --> |
+| 09-23 03:50 | feat/app-skeleton | `36e4c13` | ui: 按设计系统实现列表与队列界面 | typecheck 通过；构建产物能正常加载 | 5 <!-- commit:36e4c13 --> |
+| 09-23 12:08 | feat/app-skeleton | `a435dbb` | ai: 接入参数建议，模型不守格式时也能给出结果 | 单测 109 条（含 20 条 AI 用例）；端到端自检把三种路径都跑过 | 11 <!-- commit:a435dbb --> |
+| 09-23 12:11 | feat/app-skeleton | `9daba8f` | settings: 记住档位与输出目录 | 单测 117 条（含 8 条设置解析用例） | 7 <!-- commit:9daba8f --> |
+| 09-23 12:14 | feat/app-skeleton | `5d32cf3` | build: 配上 Windows 打包与图标 | npm run package 出包成功；打包后的 FFShift.exe 冒烟与端到端都通过 | 4 <!-- commit:5d32cf3 --> |
+| 09-23 12:14 | feat/app-skeleton | `685b344` | ai: 采纳建议时把目标体积一起带上 | typecheck 与 117 条单测通过；构建正常 | 2 <!-- commit:685b344 --> |
+| 09-23 12:16 | feat/app-skeleton | `a7e4189` | docs: 补上开发期的测试记录与会话总结 | 两份文档都通过 oil-tone 检查 | 2 <!-- commit:a7e4189 --> |
+| 09-23 12:18 | feat/app-skeleton | `3917597` | docs: 加一张自动生成的真实界面截图 | 截图来自最新构建，内容为真实界面（AMF 加速、1280×720、5 秒素材） | 4 <!-- commit:3917597 --> |
+| 09-23 12:18 | feat/app-skeleton | `8023deb` | ui: 转换完成后可以直接打开输出目录 | typecheck 通过；端到端自检回归正常 | 6 <!-- commit:8023deb --> |
+| 09-23 12:18 | feat/app-skeleton | `d2b5c5f` | build: 锁定 electron-builder 的依赖树 | npm ls electron-builder 与 lock 一致 | 1 <!-- commit:d2b5c5f --> |

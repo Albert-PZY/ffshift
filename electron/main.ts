@@ -1,0 +1,141 @@
+import { app, BrowserWindow, shell } from 'electron';
+import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { disposeIpc, registerIpc } from './ipc';
+
+let mainWindow: BrowserWindow | null = null;
+
+function createWindow(): void {
+  mainWindow = new BrowserWindow({
+    width: 1120,
+    height: 760,
+    minWidth: 940,
+    minHeight: 600,
+    backgroundColor: '#0B0C0E',
+    show: false,
+    autoHideMenuBar: true,
+    title: 'FFShift',
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+    },
+  });
+
+  // 先渲染再显示，避免白屏闪一下
+  mainWindow.once('ready-to-show', () => mainWindow?.show());
+
+  // 冒烟自检：CI 或脚本里验证"窗口能建、页面能加载"，不依赖人手点
+  if (process.env.FFSHIFT_SMOKE === '1') {
+    mainWindow.webContents.once('did-finish-load', () => {
+      console.log('[smoke] 渲染进程加载完成');
+      setTimeout(() => app.exit(0), 800);
+    });
+    mainWindow.webContents.on('render-process-gone', (_event, details) => {
+      console.error('[smoke] 渲染进程异常退出：', details.reason);
+      app.exit(2);
+    });
+    mainWindow.webContents.on('did-fail-load', (_event, code, description) => {
+      console.error(`[smoke] 页面加载失败：${code} ${description}`);
+      app.exit(3);
+    });
+  }
+
+  // 端到端自检：让渲染进程真的走一遍 探测 → 缩略图 → 转换，验证整条 IPC 链路
+  if (process.env.FFSHIFT_SMOKE === 'e2e') {
+    mainWindow.webContents.once('did-finish-load', async () => {
+      const file = process.env.FFSHIFT_SMOKE_FILE ?? '';
+      const output = process.env.FFSHIFT_SMOKE_OUTPUT ?? '';
+      try {
+        const script = `(async () => {
+          const probe = await window.ffshift.probe(${JSON.stringify(file)});
+          if (!probe.ok || !probe.info) return { stage: 'probe', error: probe.reason ?? '探测失败' };
+          const thumb = await window.ffshift.thumbnail(${JSON.stringify(file)}, probe.info.durationSec);
+          if (!thumb.ok) return { stage: 'thumbnail', error: thumb.reason ?? '抽帧失败' };
+
+          const done = new Promise((resolve) => {
+            window.ffshift.onFinished((event) => resolve(event.outcome));
+          });
+          const started = await window.ffshift.convert({
+            taskId: 'e2e-task',
+            input: ${JSON.stringify(file)},
+            output: ${JSON.stringify(output)},
+            preset: 'balanced',
+            hasAudio: probe.info.hasAudio,
+            durationSec: probe.info.durationSec,
+          });
+          if (!started.ok) return { stage: 'convert', error: started.reason };
+          const outcome = await done;
+
+          const advice = await window.ffshift.suggest('压到 50MB 发微信，画质别太差');
+          return { stage: 'done', width: probe.info.width, hasThumb: true, outcome, advice };
+        })()`;
+
+        const result: unknown = await mainWindow?.webContents.executeJavaScript(script);
+        console.log('[e2e] 结果：', JSON.stringify(result));
+        app.exit(0);
+      } catch (error) {
+        console.error('[e2e] 失败：', error instanceof Error ? error.message : error);
+        app.exit(1);
+      }
+    });
+  }
+
+  // 自动截图：把真实界面拍下来放进 README，省得手工截图还每次都不一样
+  if (process.env.FFSHIFT_SMOKE === 'shot') {
+    mainWindow.webContents.once('did-finish-load', async () => {
+      try {
+        const target = process.env.FFSHIFT_SMOKE_OUTPUT ?? 'docs/screenshot.png';
+        const fixture = process.env.FFSHIFT_SMOKE_FILE;
+
+        if (fixture) {
+          await mainWindow?.webContents.executeJavaScript(
+            `window.__ffshift?.addFiles([${JSON.stringify(fixture)}])`,
+          );
+          // 等探测与缩略图落地，让截图里有真实内容
+          await new Promise((resolve) => setTimeout(resolve, 4000));
+        }
+
+        const image = await mainWindow?.webContents.capturePage();
+        if (image) writeFileSync(target, image.toPNG());
+        console.log('[shot] 截图已保存：', target);
+        app.exit(0);
+      } catch (error) {
+        console.error('[shot] 截图失败：', error instanceof Error ? error.message : error);
+        app.exit(1);
+      }
+    });
+  }
+
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    void shell.openExternal(url);
+    return { action: 'deny' };
+  });
+
+  const devServerUrl = process.env.ELECTRON_RENDERER_URL;
+  if (devServerUrl) {
+    void mainWindow.loadURL(devServerUrl);
+  } else {
+    void mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
+  }
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
+}
+
+void app.whenReady().then(() => {
+  registerIpc({ getWindow: () => mainWindow });
+  createWindow();
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
+});
+
+app.on('window-all-closed', () => {
+  // 退出前把还在跑的 ffmpeg 一起结束，避免留下孤儿进程
+  disposeIpc();
+  if (process.platform !== 'darwin') app.quit();
+});

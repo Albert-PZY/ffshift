@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 /**
- * pre-commit：提交前的确定性检查（毫秒级、不联网）。
- * 1) 保护分支不可直接提交  2) 禁提交路径  3) 大文件  4) 密钥泄露  5) 空白与冲突标记
+ * pre-commit：提交前的确定性检查（毫秒级、不联网；单测秒级）。
+ * 1) 保护分支不可直接提交  2) 分支命名  3) 禁提交路径  4) 大文件
+ * 5) 密钥泄露  6) 空白与冲突标记  7) oil-tone 文风  8) 单元测试
  */
-import { statSync, existsSync } from 'node:fs';
+import { statSync, existsSync, readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { git, branch, stagedFiles, showStaged, mergeOrRebaseInProgress, hasCommits } from '../lib/git.mjs';
 import { config, ok, fail, warn, info, title, allowProtectedCommit } from '../lib/env.mjs';
@@ -119,6 +121,29 @@ if (mdFiles.length) {
       warnings.push(`${f.file}:${f.line} oil-tone 提示 → ${f.fix}`);
     }
   }
+}
+
+// 7) 单元测试：秒级，值得卡在提交前；慢的集成测试留给 pre-push
+try {
+  const rootDir = git(['rev-parse', '--show-toplevel']);
+  const pkgFile = join(rootDir, 'package.json');
+  if (existsSync(pkgFile) && existsSync(join(rootDir, 'node_modules', 'vitest'))) {
+    const pkg = JSON.parse(readFileSync(pkgFile, 'utf8'));
+    if (pkg.scripts?.['test:unit']) {
+      info('运行单元测试…');
+      execFileSync(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['run', 'test:unit', '--silent'], {
+        cwd: rootDir,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+        // Windows 上 Node 不允许直接 exec .cmd（CVE-2024-27980 之后的行为），必须走 shell
+        shell: process.platform === 'win32',
+      });
+      ok('单元测试通过');
+    }
+  }
+} catch (err) {
+  const detail = `${err.stdout ?? ''}${err.stderr ?? ''}${err.message ?? ''}`;
+  errors.push(`单元测试未通过：\n${detail.split('\n').filter(Boolean).slice(-12).join('\n')}`);
 }
 
 // 报告
