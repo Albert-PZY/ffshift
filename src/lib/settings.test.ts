@@ -43,33 +43,34 @@ describe('parseSettings', () => {
     expect(parseSettings({ hw: 'cuda' }).hw).toBe('none');
   });
 
-  it('主题默认亮色：缺字段、写坏了、写了别的词都回到亮色', () => {
-    expect(DEFAULT_SETTINGS.theme).toBe('light');
-    expect(parseSettings({}).theme).toBe('light');
-    expect(parseSettings({ theme: 'solarized' }).theme).toBe('light');
-    expect(parseSettings({ theme: 1 }).theme).toBe('light');
-    // 选过暗色的要留下来，不能被默认值吃掉
+  it('主题默认浅黑：缺字段、写坏了、写了别的词都回到浅黑', () => {
+    expect(DEFAULT_SETTINGS.theme).toBe('dim');
+    expect(parseSettings({}).theme).toBe('dim');
+    expect(parseSettings({ theme: 'solarized' }).theme).toBe('dim');
+    expect(parseSettings({ theme: 1 }).theme).toBe('dim');
+    // 选过的要留下来，不能被默认值吃掉
     expect(parseSettings({ theme: 'dark' }).theme).toBe('dark');
+    expect(parseSettings({ theme: 'light' }).theme).toBe('light');
   });
 
-  it('字号默认 14px；越界收敛、认不出回默认、旧档位名照旧认', () => {
-    expect(DEFAULT_SETTINGS.fontSize).toBe(14);
-    expect(parseSettings({}).fontSize).toBe(14);
+  it('字号默认 15px；越界收敛、认不出回默认、旧档位名照旧认', () => {
+    expect(DEFAULT_SETTINGS.fontSize).toBe(15);
+    expect(parseSettings({}).fontSize).toBe(15);
     expect(parseSettings({ fontSize: 18 }).fontSize).toBe(18);
     // 越界往边界收，而不是丢掉用户的选择
     expect(parseSettings({ fontSize: 40 }).fontSize).toBe(24);
     expect(parseSettings({ fontSize: 2 }).fontSize).toBe(10);
     // 认不出的回默认
-    expect(parseSettings({ fontSize: '16px' }).fontSize).toBe(14);
-    expect(parseSettings({ fontSize: 'huge' }).fontSize).toBe(14);
+    expect(parseSettings({ fontSize: '16px' }).fontSize).toBe(15);
+    expect(parseSettings({ fontSize: 'huge' }).fontSize).toBe(15);
     // 版本 6 存的是档位名，升级时不能丢
     expect(parseSettings({ fontSize: 16 }).fontSize).toBe(16);
     expect(parseSettings({ fontSize: 'small' }).fontSize).toBe(13);
   });
 
-  it('旧版本（没有 theme 字段）读出来是亮色，其余字段照旧保留', () => {
+  it('旧版本（没有 theme 字段）读出来是默认主题，其余字段照旧保留', () => {
     const old = parseSettings({ version: 3, preset: 'small', outputDir: 'D:\\输出' });
-    expect(old.theme).toBe('light');
+    expect(old.theme).toBe(DEFAULT_SETTINGS.theme);
     expect(old.preset).toBe('small');
     expect(old.outputDir).toBe('D:\\输出');
   });
@@ -104,7 +105,7 @@ describe('parseSettings', () => {
     expect(parsed.outputFormat).toBe('mp3');
     expect(parsed.history).toEqual([]);
     expect(parsed.presets).toEqual([]);
-    expect(parsed.theme).toBe('light');
+    expect(parsed.theme).toBe(DEFAULT_SETTINGS.theme);
     expect(parsed.advanced).toEqual(DEFAULT_ADVANCED);
   });
 });

@@ -105,7 +105,7 @@ describe('持久化：设置与预设', () => {
     expect(await running.page.locator('#format-menu').innerText()).toContain('MKV');
   }, 180_000);
 
-  it('三套主题：默认亮色，浅黑与暗色各自记住，类名不串台', async () => {
+  it('三套主题：默认浅黑，亮色与暗色各自记住，类名不串台', async () => {
     const userDataDir = freshDir();
     const rootClass = (): Promise<string> =>
       running ? running.page.evaluate(() => document.documentElement.className) : Promise.resolve('');
@@ -116,15 +116,19 @@ describe('持久化：设置与预设', () => {
     };
 
     running = await launchApp({ userDataDir });
-    // 亮色是根状态：<html> 上不带类
-    expect(await rootClass()).toBe('');
-
-    await pickTheme('浅黑');
+    // 默认浅黑：第一次启动、没有任何设置文件
     expect(await rootClass()).toBe('dim');
 
     // 重启后首帧就是浅黑：主题在主进程建窗口之前就读出来了，不会先闪一下
     await restart(userDataDir);
     expect(await rootClass()).toBe('dim');
+
+    // 换到亮色：亮色是根状态，类名要清干净
+    await pickTheme('亮色');
+    expect(await rootClass()).toBe('');
+
+    await restart(userDataDir);
+    expect(await rootClass()).toBe('');
 
     // 换到暗色：类名要换掉，不能两个类同时在（那样两套令牌会打架）
     await pickTheme('暗色');
@@ -135,21 +139,15 @@ describe('持久化：设置与预设', () => {
     // 顺带确认设置界面上的选中态跟主题一致
     await openSettings(running.page, '外观');
     expect(await running.page.getByRole('tab', { name: '暗色' }).getAttribute('data-active')).not.toBeNull();
-
-    // 切回亮色也要记住，且类名清干净
-    await running.page.getByRole('tab', { name: '亮色' }).click();
-    await running.page.waitForTimeout(800);
-    await restart(userDataDir);
-    expect(await rootClass()).toBe('');
   }, 180_000);
 
-  it('字号：默认 14px，改过之后重启还是那一档', async () => {
+  it('字号：默认 15px，改过之后重启还是那一档', async () => {
     const userDataDir = freshDir();
     const rootPx = (): Promise<string> =>
       running ? running.page.evaluate(() => getComputedStyle(document.documentElement).fontSize) : Promise.resolve('');
 
     running = await launchApp({ userDataDir });
-    expect(await rootPx()).toBe('14px');
+    expect(await rootPx()).toBe('15px');
 
     await openSettings(running.page, '外观');
     await running.page

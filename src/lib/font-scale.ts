@@ -5,16 +5,16 @@
  * 圆角、图标都是从 rem 派生的，所以改一个数会等比缩放整个界面。
  * 只放大文字是做不到的——字号大了却还用原来的行高与控件高度，文字会顶到边上。
  *
- * 范围 10–24px、逐像素可选，默认 14。注意它是**基准**而不是正文大小：
- * 正文是 `text-sm`（0.875rem），所以基准 14px 时正文是 12.25px。
- * 界面上用 `derivedFontSizes` 把这几档一起报出来，免得用户对着"14px"猜。
+ * 范围 10–24px、逐像素可选，默认 15。注意它是**基准**而不是正文大小：
+ * 正文是 `text-sm`（0.875rem），所以基准 15px 时正文是 13.1px。
+ * 界面上用 `derivedFontSizes` 把这几档一起报出来，免得用户对着"15px"猜。
  *
  * 面板宽度、标题栏高度这些**外壳尺寸不跟着字号变**（见 docs/design-system.md）：
  * 它们要是跟着缩放，24px 下三栏骨架得占掉 1600px，普通笔记本装不下。
  */
 export const FONT_SIZE_MIN = 10;
 export const FONT_SIZE_MAX = 24;
-export const FONT_SIZE_DEFAULT = 14;
+export const FONT_SIZE_DEFAULT = 15;
 
 /** 下拉里的可选项：范围内的每一个整数 */
 export const FONT_SIZE_OPTIONS: readonly number[] = Array.from(

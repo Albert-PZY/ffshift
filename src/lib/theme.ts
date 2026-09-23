@@ -49,8 +49,17 @@ export function windowBackground(theme: Theme): string {
 /** 渲染进程 argv 里的主题标记；主进程写，preload 读 */
 export const THEME_ARG_PREFIX = '--ffshift-theme=';
 
-/** 从 argv 解析主题；认不出就当默认亮色，不抛错 */
+/**
+ * 认不出时回哪一套。
+ *
+ * 必须与 `DEFAULT_SETTINGS.theme` 一致，但这里不 import 它——
+ * preload 会加载本模块，把整条 settings 依赖链（advanced-params / ffmpeg-args / presets）
+ * 拖进 preload 的产物里不值得。这份重复由 `theme.test.ts` 一条断言钉住。
+ */
+const FALLBACK_THEME: Theme = 'dim';
+
+/** 从 argv 解析主题；认不出就回默认，不抛错 */
 export function themeFromArgv(argv: readonly string[]): Theme {
   const raw = argv.find((arg) => arg.startsWith(THEME_ARG_PREFIX))?.slice(THEME_ARG_PREFIX.length);
-  return raw === 'dark' || raw === 'dim' ? raw : 'light';
+  return raw === 'dark' || raw === 'dim' ? raw : raw === 'light' ? 'light' : FALLBACK_THEME;
 }

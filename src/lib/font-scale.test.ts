@@ -17,8 +17,8 @@ describe('界面字号的取值范围', () => {
     expect(FONT_SIZE_OPTIONS).toEqual([...FONT_SIZE_OPTIONS].sort((a, b) => a - b));
   });
 
-  it('默认 14px，在范围内', () => {
-    expect(FONT_SIZE_DEFAULT).toBe(14);
+  it('默认 15px，在范围内', () => {
+    expect(FONT_SIZE_DEFAULT).toBe(15);
     expect(FONT_SIZE_OPTIONS).toContain(FONT_SIZE_DEFAULT);
   });
 });
@@ -63,8 +63,8 @@ describe('旧档位名', () => {
 });
 
 describe('derivedFontSizes', () => {
-  it('基准 14px 时正文 12.25、元信息 10.5、小节标题 10——就是当前的观感', () => {
-    expect(derivedFontSizes(14)).toEqual({ body: 12.3, meta: 10.5, label: 10 });
+  it('基准 15px（默认）时正文 13.1、元信息 11.3、小节标题 10.7', () => {
+    expect(derivedFontSizes(15)).toEqual({ body: 13.1, meta: 11.3, label: 10.7 });
   });
 
   it('按同一比例缩放，且都保留一位小数', () => {

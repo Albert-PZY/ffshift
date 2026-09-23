@@ -7,12 +7,12 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import { applyFontSize, FONT_SIZE_DEFAULT } from './lib/font-scale';
-import type { FontSize, Theme } from './lib/settings';
+import { DEFAULT_SETTINGS, type FontSize, type Theme } from './lib/settings';
 import { applyTheme } from './lib/theme';
 import { bindIpcEvents } from './store';
 import './styles/globals.css';
 
-const initialTheme: Theme = window.ffshift?.initialTheme ?? 'light';
+const initialTheme: Theme = window.ffshift?.initialTheme ?? DEFAULT_SETTINGS.theme;
 const initialFontSize: FontSize = window.ffshift?.initialFontSize ?? FONT_SIZE_DEFAULT;
 applyTheme(initialTheme);
 applyFontSize(initialFontSize);

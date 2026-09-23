@@ -19,9 +19,9 @@ export type HardwareChoice = 'none' | 'nvenc' | 'qsv' | 'amf';
 /**
  * 界面主题。
  *
- * 默认亮色：桌面工具在白天办公环境下用得更多，而且亮色下界面本身不抢注意力。
- * `dim` 是偏灰的浅黑（底色中性深灰、文字不用纯白），比 `dark` 的近黑柔和一档，
- * 适合长时间盯着看。选过之后记住（见 electron/main.ts 的提前读取）。
+ * 默认浅黑：偏灰的深色比近黑柔和一档，长时间盯着不累；白底在暗环境里也太刺眼。
+ * 亮色与暗色都是可选项（见 src/lib/theme.ts）。
+ * 选过之后记住（见 electron/main.ts 的提前读取）。
  */
 export type Theme = 'light' | 'dim' | 'dark';
 
@@ -78,7 +78,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   hw: 'none',
   history: [],
   presets: [],
-  theme: 'light',
+  theme: 'dim',
   fontSize: FONT_SIZE_DEFAULT,
   advanced: { ...DEFAULT_ADVANCED },
 };
