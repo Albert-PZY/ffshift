@@ -115,3 +115,5 @@
 | 09-23 03:50 | feat/app-skeleton | `36e4c13` | ui: 按设计系统实现列表与队列界面 | typecheck 通过；构建产物能正常加载 | 5 <!-- commit:36e4c13 --> |
 | 09-23 12:08 | feat/app-skeleton | `a435dbb` | ai: 接入参数建议，模型不守格式时也能给出结果 | 单测 109 条（含 20 条 AI 用例）；端到端自检把三种路径都跑过 | 11 <!-- commit:a435dbb --> |
 | 09-23 12:11 | feat/app-skeleton | `9daba8f` | settings: 记住档位与输出目录 | 单测 117 条（含 8 条设置解析用例） | 7 <!-- commit:9daba8f --> |
+| 09-23 12:14 | feat/app-skeleton | `5d32cf3` | build: 配上 Windows 打包与图标 | npm run package 出包成功；打包后的 FFShift.exe 冒烟与端到端都通过 | 4 <!-- commit:5d32cf3 --> |
+| 09-23 12:14 | feat/app-skeleton | `685b344` | ai: 采纳建议时把目标体积一起带上 | typecheck 与 117 条单测通过；构建正常 | 2 <!-- commit:685b344 --> |
