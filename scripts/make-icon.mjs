@@ -50,6 +50,22 @@ try {
 
   writeFileSync(target, Buffer.concat([header, ...entries, ...images.map((i) => i.data)]));
   console.log(`${target} 已生成：${images.length} 个尺寸（${SIZES.join('/')}）`);
+
+  /*
+   * 托盘图标单独出一份。
+   *
+   * 托盘区只放得下 16px，直接拿 256px 的图标交给系统缩，细节会糊成一团。
+   * 这里出 32px（Windows 在 150% / 200% 缩放下会要 20 / 24px，
+   * 给一倍余量），主进程再按需缩到 16。
+   */
+  const trayFile = join(workDir, 'tray.png');
+  execFileSync(
+    'ffmpeg',
+    ['-hide_banner', '-loglevel', 'error', '-y', '-i', source, '-vf', 'scale=32:32', trayFile],
+    { stdio: 'inherit' },
+  );
+  writeFileSync('resources/tray.png', readFileSync(trayFile));
+  console.log('resources/tray.png 已生成：32×32');
 } finally {
   rmSync(workDir, { recursive: true, force: true });
 }

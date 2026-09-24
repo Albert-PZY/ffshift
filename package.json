@@ -48,6 +48,10 @@
         ]
       },
       {
+        "from": "resources/tray.png",
+        "to": "tray.png"
+      },
+      {
         "from": "LICENSE",
         "to": "LICENSE"
       }

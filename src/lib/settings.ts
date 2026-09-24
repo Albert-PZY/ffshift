@@ -9,7 +9,7 @@ import { clampFontSize, FONT_SIZE_DEFAULT, fontSizeFromLegacyName } from './font
 import { ALL_FORMATS, type OutputFormat, type Preset } from './ffmpeg-args';
 import { parsePresets, type CustomPreset } from './presets';
 
-export const SETTINGS_VERSION = 7;
+export const SETTINGS_VERSION = 8;
 
 /** 历史记录最多留这么多条，超出丢最旧的 */
 export const HISTORY_LIMIT = 50;
@@ -32,6 +32,16 @@ export type Theme = 'light' | 'dim' | 'dark';
  * 只会让"我设的 15px 对应哪一档"这种问题变得难解释。范围与收敛都在解析边界上做。
  */
 export type FontSize = number;
+
+/**
+ * 点关闭按钮时怎么办。
+ *
+ * - `ask`：弹一次确认，用户当场选（默认）。第一次关窗口的人看到选项，
+ *   不想每次被问就勾上"记住我的选择"。
+ * - `tray`：直接缩到托盘继续跑，不打断正在进行的转换。
+ * - `quit`：直接退出。
+ */
+export type CloseAction = 'ask' | 'tray' | 'quit';
 
 /** 一条转换记录：转换完成（成功或失败）时追加 */
 export interface HistoryEntry {
@@ -68,6 +78,8 @@ export interface AppSettings {
    * v1.5.0 起持久化：它从对话框搬进了设置页，就该按设置的语义走（ADR-018）。
    */
   advanced: AdvancedParams;
+  /** 点关闭按钮时怎么办；默认每次询问 */
+  closeAction: CloseAction;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -81,11 +93,13 @@ export const DEFAULT_SETTINGS: AppSettings = {
   theme: 'dim',
   fontSize: FONT_SIZE_DEFAULT,
   advanced: { ...DEFAULT_ADVANCED },
+  closeAction: 'ask',
 };
 
 const PRESETS: readonly Preset[] = ['clear', 'balanced', 'small'];
 const HARDWARE: readonly HardwareChoice[] = ['none', 'nvenc', 'qsv', 'amf'];
 const THEMES: readonly Theme[] = ['light', 'dim', 'dark'];
+const CLOSE_ACTIONS: readonly CloseAction[] = ['ask', 'tray', 'quit'];
 
 /**
  * 字号解析：先认旧档位名，再认数字，越界收敛。
@@ -151,6 +165,9 @@ export function parseSettings(raw: unknown): AppSettings {
     typeof stored.outputDir === 'string' && stored.outputDir.length > 0 ? stored.outputDir : null;
   const theme = THEMES.includes(stored.theme as Theme) ? (stored.theme as Theme) : DEFAULT_SETTINGS.theme;
   const fontSize = parseFontSize(stored.fontSize);
+  const closeAction = CLOSE_ACTIONS.includes(stored.closeAction as CloseAction)
+    ? (stored.closeAction as CloseAction)
+    : DEFAULT_SETTINGS.closeAction;
 
   const history = Array.isArray(stored.history)
     ? stored.history
@@ -170,6 +187,7 @@ export function parseSettings(raw: unknown): AppSettings {
     theme,
     fontSize,
     advanced: parseAdvanced(stored.advanced),
+    closeAction,
   };
 }
 

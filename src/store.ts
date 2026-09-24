@@ -7,12 +7,19 @@
  *   - 档位、输出格式、输出目录改动后立刻落盘，下次启动还在。
  */
 import { create } from 'zustand';
+
+/** 一次性提示挂多久 */
+const NOTICE_MS = 7000;
+
+/** 提示的定时器：模块级，因为同一时刻只允许有一条提示 */
+let noticeTimer: ReturnType<typeof setTimeout> | null = null;
 import type { ConvertOutcome, ProgressUpdate } from '../electron/ffmpeg/convert';
 import { outputPathFor, type OutputFormat, type Preset } from './lib/ffmpeg-args';
 import {
   DEFAULT_SETTINGS,
   SETTINGS_VERSION,
   appendHistory,
+  type CloseAction,
   type FontSize,
   type HistoryEntry,
   type Theme,
@@ -91,6 +98,15 @@ interface State {
   /** 界面字号档位；默认标准，改过之后落盘 */
   fontSize: FontSize;
   setFontSize: (size: FontSize) => void;
+  /** 点关闭按钮时怎么办；默认每次询问 */
+  closeAction: CloseAction;
+  setCloseAction: (action: CloseAction) => void;
+  /**
+   * 一次性提示。用来说明"刚刚那下为什么没生效"——
+   * 比如拖进来的东西没有可读取的磁盘路径。几秒后自己消失。
+   */
+  notice: string | null;
+  setNotice: (text: string | null) => void;
   addFiles: (paths: string[]) => Promise<void>;
   startAll: () => Promise<void>;
   /** 只推进队列：跑完一个接着下一个，不重置其它任务 */
@@ -192,6 +208,8 @@ export const useStore = create<State>((set, get) => {
     targetSizeMiB: null,
     theme: DEFAULT_SETTINGS.theme,
     fontSize: DEFAULT_SETTINGS.fontSize,
+    closeAction: DEFAULT_SETTINGS.closeAction,
+    notice: null,
 
     setTheme(theme) {
       set({ theme });
@@ -205,6 +223,22 @@ export const useStore = create<State>((set, get) => {
       // 同理：字号要跟手，不能等写文件回来
       applyFontSize(fontSize);
       void persistSettings(get());
+    },
+
+    setCloseAction(closeAction) {
+      set({ closeAction });
+      void persistSettings(get());
+    },
+
+    setNotice(notice) {
+      if (noticeTimer !== null) clearTimeout(noticeTimer);
+      set({ notice });
+      if (notice) {
+        noticeTimer = setTimeout(() => {
+          noticeTimer = null;
+          set({ notice: null });
+        }, NOTICE_MS);
+      }
     },
 
     async addFiles(paths) {
@@ -413,6 +447,7 @@ export const useStore = create<State>((set, get) => {
           theme: settings.theme,
           fontSize: settings.fontSize,
           advanced: settings.advanced,
+          closeAction: settings.closeAction,
         });
         // 首帧的主题与字号来自 argv（main.tsx 已应用过）。这里再应用一次是为了兜住
         // 两者不一致的情况——比如设置文件在第一帧之后才被外部改动过
@@ -433,6 +468,7 @@ async function persistSettings(state: {
   theme: Theme;
   fontSize: FontSize;
   advanced: AdvancedParams;
+  closeAction: CloseAction;
 }): Promise<void> {
   await api()?.saveSettings({
     version: SETTINGS_VERSION,
@@ -445,6 +481,7 @@ async function persistSettings(state: {
     theme: state.theme,
     fontSize: state.fontSize,
     advanced: state.advanced,
+    closeAction: state.closeAction,
   });
 }
 

@@ -9,6 +9,7 @@ import { extname, join } from 'node:path';
 import { promisify } from 'node:util';
 import { buildArgs } from '../src/lib/ffmpeg-args';
 import { assessConvertibility } from '../src/lib/ffprobe';
+import type { CloseAction } from '../src/lib/settings';
 import type {
   ConvertRequest,
   ConvertResponse,
@@ -243,6 +244,29 @@ export function registerIpc({ getWindow }: Deps): void {
 
   ipcMain.handle('ffshift:load-settings', async () => loadSettings());
   ipcMain.handle('ffshift:save-settings', async (_event, settings: unknown) => saveSettings(settings));
+
+  /**
+   * 用户在关闭确认框里选了怎么办。
+   *
+   * 两个动作都由主进程执行（隐藏或关闭窗口），渲染进程只负责传达选择——
+   * 它拿不到窗口状态，也不该为此多开一条权限。
+   */
+  ipcMain.handle('ffshift:close-choice', async (_event, choice: unknown, remember: unknown) => {
+    const action: CloseAction = choice === 'quit' ? 'quit' : 'tray';
+
+    if (remember === true) {
+      saveSettings({ ...loadSettings(), closeAction: action });
+    }
+
+    const window = getWindow();
+    if (action === 'quit') {
+      // 走 close 才会触发 window-all-closed 里的清理
+      app.quit();
+    } else {
+      window?.hide();
+    }
+    return { ok: true };
+  });
 
   // 无边框窗口：标题栏是自己画的，三个按钮与最大化状态都得有对应通道。
   // 用 send 而不是 invoke：这些都是"发出去就完成"的动作，等回执只会让按钮感觉有延迟。

@@ -33,6 +33,7 @@ export function Workspace({
   const history = useStore((s) => s.history);
   const view = useStore((s) => s.view);
   const outputDir = useStore((s) => s.outputDir);
+  const notice = useStore((s) => s.notice);
   const outputFormat = useStore((s) => s.outputFormat);
   const advanced = useStore((s) => s.advanced);
   const setView = useStore((s) => s.setView);
@@ -121,6 +122,12 @@ export function Workspace({
 
         {paramsBroken ? (
           <span className="min-w-0 flex-1 truncate text-destructive">专业参数有误，去设置里改完再开始</span>
+        ) : notice ? (
+          // 一次性提示说明"刚刚那下为什么没生效"，优先级在输出位置之上：
+          // 输出位置是常驻信息，提示错过就没了
+          <span className="min-w-0 flex-1 truncate text-destructive" data-slot="notice" title={notice}>
+            {notice}
+          </span>
         ) : (
           <span className="min-w-0 flex-1 truncate" title={outputDir ?? '与源文件同目录'}>
             {outputDir ? `输出到 ${outputDir}` : '输出到源文件同目录'}

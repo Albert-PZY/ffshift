@@ -6,7 +6,7 @@ import type { ConvertOutcome, ProgressUpdate } from '../../electron/ffmpeg/conve
 import type { AdvancedParams } from './advanced-params';
 import type { MediaInfo } from './ffprobe';
 import type { OutputFormat, Preset } from './ffmpeg-args';
-import type { AppSettings, FontSize, Theme } from './settings';
+import type { AppSettings, CloseAction, FontSize, Theme } from './settings';
 
 export interface ProbeResponse {
   ok: boolean;
@@ -111,6 +111,16 @@ export interface FfshiftApi {
   initialFontSize: FontSize;
   onProgress: (listener: (event: ProgressEvent) => void) => () => void;
   onFinished: (listener: (event: FinishedEvent) => void) => () => void;
+  /**
+   * 用户点了关闭按钮，主进程问渲染进程要怎么办。
+   *
+   * 关闭按钮是自绘的，但真正决定"关还是缩到托盘"的是主进程——
+   * 那里才知道窗口状态与托盘在不在。所以流程是：
+   * 主进程拦下 close → 问渲染进程 → 渲染进程弹确认框 → 回话。
+   */
+  onCloseRequest: (listener: () => void) => () => void;
+  /** 回答上面那次询问；remember 为真时把选择写进设置，下次不再问 */
+  respondCloseRequest: (choice: CloseAction, remember: boolean) => Promise<{ ok: boolean }>;
   /** 拖放的 File 对象在渲染进程拿不到磁盘路径，必须走它 */
   getPathForFile: (file: File) => string;
 }
