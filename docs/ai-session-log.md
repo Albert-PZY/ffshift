@@ -201,3 +201,4 @@
 | 09-24 03:09 | refactor/ui-enso-language | `ca2b625` | build: 版本升到 1.5.0，打包补齐便携版与签名流程 | 单测 258 条全绿、typecheck 与 build 通过、npm run package 通过 | 3 <!-- commit:ca2b625 --> |
 | 09-24 21:34 | fix/shell-drop-and-tray | `f5df7a1` | docs: 记下托盘常驻、关闭确认与拖入多来源的取舍 | pre-commit 文风检查通过 | 5 <!-- commit:f5df7a1 --> |
 | 09-24 21:34 | fix/shell-drop-and-tray | `4f7ffcd` | ui: 修好拖入，加托盘常驻与关闭确认 | typecheck、build 通过；单测 271 条全绿（新增 13 条拖入解析）； | 20 <!-- commit:4f7ffcd --> |
+| 09-24 21:39 | chore/bump-1.5.1 | `1de5c59` | build: 版本升到 1.5.1 | typecheck、单测 271 条、e2e 22 条全绿；npm run package 出安装包与便携版 | 1 <!-- commit:1de5c59 --> |
