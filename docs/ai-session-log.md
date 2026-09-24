@@ -199,3 +199,4 @@
 | 09-24 03:02 | refactor/ui-enso-language | `e1d557e` | ui: 按用户使用逻辑精简二级描述；补齐签名打包与安装流程 | typecheck、build 通过；单测 258 条全绿；npm run package 出安装包与 | 17 <!-- commit:e1d557e --> |
 | 09-24 03:03 | refactor/ui-enso-language | `bf65a30` | docs: 按真实使用场景重写 README | beautify-github-readme 的 audit_readme.py 通过（7 张图引用完整） | 1 <!-- commit:bf65a30 --> |
 | 09-24 03:09 | refactor/ui-enso-language | `ca2b625` | build: 版本升到 1.5.0，打包补齐便携版与签名流程 | 单测 258 条全绿、typecheck 与 build 通过、npm run package 通过 | 3 <!-- commit:ca2b625 --> |
+| 09-24 21:34 | fix/shell-drop-and-tray | `f5df7a1` | docs: 记下托盘常驻、关闭确认与拖入多来源的取舍 | pre-commit 文风检查通过 | 5 <!-- commit:f5df7a1 --> |
