@@ -67,6 +67,17 @@ const api: FfshiftApi & { getPathForFile: (file: File) => string } = {
     };
   },
 
+  onCloseRequest: (listener) => {
+    const handler = () => listener();
+    ipcRenderer.on('ffshift:ask-close', handler);
+    return () => {
+      ipcRenderer.removeListener('ffshift:ask-close', handler);
+    };
+  },
+
+  respondCloseRequest: (choice, remember) =>
+    ipcRenderer.invoke('ffshift:close-choice', choice, remember) as Promise<{ ok: boolean }>,
+
   // 拖放进来的 File 对象在渲染进程拿不到磁盘路径，必须走这个方法
   getPathForFile: (file: File) => webUtils.getPathForFile(file),
 };

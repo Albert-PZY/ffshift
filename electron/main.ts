@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell } from 'electron';
+import { app, BrowserWindow, Menu, nativeImage, shell, Tray } from 'electron';
 import { rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { FONT_SIZE_ARG_PREFIX } from '../src/lib/font-scale';
@@ -20,6 +20,63 @@ if (process.env.FFSHIFT_SMOKE === 'shot' && !process.argv.some((arg) => arg.star
 }
 
 let mainWindow: BrowserWindow | null = null;
+let tray: Tray | null = null;
+
+/**
+ * 真的在退出吗。
+ *
+ * 「点关闭」和「退出应用」是两件事：前者按用户偏好可能是缩到托盘。
+ * 托盘菜单的退出、系统关机、`app.quit()` 会把它置真，那时才真的放行 close。
+ */
+let isQuitting = false;
+
+/** 托盘图标。开发时在 resources/，打包后在 resourcesPath（extraResources 铺平） */
+function trayIconPath(): string {
+  return app.isPackaged
+    ? join(process.resourcesPath, 'tray.png')
+    : join(app.getAppPath(), 'resources', 'tray.png');
+}
+
+function showMainWindow(): void {
+  if (!mainWindow) {
+    createWindow();
+    return;
+  }
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+}
+
+/**
+ * 常驻托盘。
+ *
+ * 应用一启动就挂上：转换可能要跑十几分钟，用户会先把窗口关掉。
+ * 托盘在，进程就还有个"看得见"的入口，不会变成任务管理器里的幽灵进程。
+ */
+function createTray(): void {
+  if (tray) return;
+
+  const image = nativeImage.createFromPath(trayIconPath());
+  // 托盘位置只放得下 16px；256px 的图标直接塞进去会被系统糊成一团
+  tray = new Tray(image.isEmpty() ? nativeImage.createEmpty() : image.resize({ width: 16, height: 16 }));
+  tray.setToolTip('FFShift');
+
+  const menu = Menu.buildFromTemplate([
+    { label: '显示主窗口', click: () => showMainWindow() },
+    { type: 'separator' },
+    {
+      label: '退出 FFShift',
+      click: () => {
+        isQuitting = true;
+        app.quit();
+      },
+    },
+  ]);
+
+  tray.setContextMenu(menu);
+  // 左键点图标是最自然的"把窗口还给我"，不该还要先弹菜单
+  tray.on('click', () => showMainWindow());
+}
 
 function createWindow(): void {
   // 主题与字号要在建窗口之前读出来：窗口底色与首帧都靠它们，
@@ -178,6 +235,43 @@ function createWindow(): void {
     return { action: 'deny' };
   });
 
+  // 拖进来的东西没被接住时，Chromium 会默认导航到 file:// —— 整个界面会被
+  // 一个视频播放页顶掉。拖放我们已经处理了，这里只是兜底：任何导航一律拦下。
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    const current = mainWindow?.webContents.getURL() ?? '';
+    if (url !== current) event.preventDefault();
+  });
+
+  /**
+   * 关闭按钮的三种走法（见 src/lib/settings.ts 的 CloseAction）。
+   *
+   * 决定权在主进程：只有这里知道托盘在不在、窗口是不是最小化了。
+   * `ask` 也不能问系统对话框——渲染进程有确认框，样式和其它界面是一致的。
+   */
+  mainWindow.on('close', (event) => {
+    if (isQuitting) return;
+
+    const action = loadSettings().closeAction;
+
+    if (action === 'quit') {
+      isQuitting = true;
+      return;
+    }
+
+    if (action === 'tray') {
+      event.preventDefault();
+      mainWindow?.hide();
+      return;
+    }
+
+    // ask：拦下来让界面问。窗口可能正缩在托盘里，先露出来，否则用户会以为卡死了
+    event.preventDefault();
+    if (mainWindow?.isMinimized()) mainWindow.restore();
+    mainWindow?.show();
+    mainWindow?.focus();
+    mainWindow?.webContents.send('ffshift:ask-close');
+  });
+
   const devServerUrl = process.env.ELECTRON_RENDERER_URL;
   if (devServerUrl) {
     void mainWindow.loadURL(devServerUrl);
@@ -193,10 +287,17 @@ function createWindow(): void {
 void app.whenReady().then(() => {
   registerIpc({ getWindow: () => mainWindow });
   createWindow();
+  createTray();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    else showMainWindow();
   });
+});
+
+/** 托盘菜单的退出、系统关机、Cmd+Q 都要走这里，否则 close 会被当"点关闭"拦下来 */
+app.on('before-quit', () => {
+  isQuitting = true;
 });
 
 app.on('window-all-closed', () => {

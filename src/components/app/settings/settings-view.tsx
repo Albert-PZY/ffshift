@@ -1,5 +1,6 @@
 import { AboutSection } from '@/components/app/settings/about-section';
 import { AppearanceSection } from '@/components/app/settings/appearance-section';
+import { GeneralSection } from '@/components/app/settings/general-section';
 import { OutputSection } from '@/components/app/settings/output-section';
 import { ParamsSection } from '@/components/app/settings/params-section';
 import { SectionLabel } from '@/components/app/section-label';
@@ -10,6 +11,7 @@ export const SETTINGS_CATEGORIES = [
   { id: 'output', label: '输出' },
   { id: 'params', label: '参数预设' },
   { id: 'appearance', label: '外观' },
+  { id: 'general', label: '常规' },
   { id: 'about', label: '关于' },
 ] as const;
 
@@ -57,6 +59,7 @@ export function SettingsView({
           {category === 'output' && <OutputSection />}
           {category === 'params' && <ParamsSection />}
           {category === 'appearance' && <AppearanceSection />}
+          {category === 'general' && <GeneralSection />}
           {category === 'about' && <AboutSection />}
         </div>
       </div>
